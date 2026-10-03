@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.2-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.3-alpha**.
 
 ## Wat zit erin?
 
@@ -56,7 +56,7 @@ De questskin bereikt nu ook de geneste detail-/rewardsvensters, zoekveld, catego
 
 Bij ronde → vierkante minimap wordt zichtbaarheid na de kleurherstelling toegepast. Dat voorkomt dat het herstel van de ronde borderkleur diens alpha terugzet boven de vierkante kaart. Test meerdere rond/vierkantwissels met minimapskin voortdurend aan.
 
-34 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
+35 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
 
 ## Ronde minimap — 0.4.2 alpha
 
@@ -120,7 +120,7 @@ De native gamepad-bindingstack kan voorrang hebben op gewone addonbindings. Deze
 
 Gebouwd na broncodecontrole van Forever **1.60.1 (70205)**, [Gethe/wow-ui-source, commit e3ecc27](https://github.com/Gethe/wow-ui-source/commit/e3ecc27). TOC-interface: **16001**.
 
-Lokaal gecontroleerd: Lua 5.1-syntax, XML en 34 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
+Lokaal gecontroleerd: Lua 5.1-syntax, XML en 35 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
 
 Skinwijzigingen worden buiten combat toegepast. Post-hooks op de betrokken frames vragen alleen een latere visuele refresh aan; native functies worden niet vervangen. Dit is een conservatieve aanpak, geen bewijs dat de addon taintvrij is.
 
@@ -135,7 +135,9 @@ Test deze alpha eerst met alleen **PadSkinForever**, eventueel **Font Manager**,
 7. Test de Debug-tab: snapshots verversen, tracing starten, een PSF-instelling wijzigen, tracing stoppen en geschiedenis wissen.
 8. Meld bij een fout: clientbuild, addonversie, actieve addons, handeling en de volledige BugSack-stack. De eerder gemelde `SetPreferredGamepadInteractTarget()`-fout is een belangrijk regressiepunt.
 
-Deze versie toont eigen instellingen in een klein muisbediend venster. Native controllernavigatie voor dit instellingenvenster is nog niet ingebouwd.
+Vanaf **0.5.3-alpha** meldt het instellingenvenster zich bij Blizzard's `GamepadMode.FrameControlsManager` via `FrameShown`/`FrameHidden`. De bestaande focusknop, navigatie en bevestigingsknop gebruiken daarmee native SmartNavigation. Tabwissels en fontlijstverversingen verversen de native knopgroepen. Native B/back kan het venster sluiten; ESC blijft bruikbaar. Er worden geen eigen bindings of overrides geïnstalleerd. Registratie en verwijderen uit de focuslijst wachten tijdens combat tot `PLAYER_REGEN_ENABLED`. Clientvalidatie van focus, knoppen en fontlijstscrolling blijft nodig.
+
+Test `/psf` → je bestaande interfacefocusknop; navigeer naar tabs, vinkjes, plus/min-knoppen en fontlijst, bevestig een keuze en sluit met B. Herhaal openen/sluiten en controleer andere native vensters en BugSack, met name `SetPreferredGamepadInteractTarget()`.
 
 ## Ontwikkeling
 

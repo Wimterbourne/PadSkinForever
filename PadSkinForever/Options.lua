@@ -1,6 +1,28 @@
 local _, addon = ...
 local panel
 local ShowTab
+local registeredManager
+local function SyncController()
+    if not panel or InCombatLockdown() then return end
+    local manager = GamepadMode and GamepadMode.FrameControlsManager
+    local enabled = InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()
+    if registeredManager and (not panel:IsShown() or manager ~= registeredManager or not enabled) then
+        registeredManager:FrameHidden(panel)
+        registeredManager = nil
+    end
+    if manager and enabled and panel:IsShown() then
+        -- Documented native opt-in for windows that do not use ShowUIPanel.
+        -- Do not install a separate binding group or replace navigation methods.
+        manager:FrameShown(panel)
+        registeredManager = manager
+    end
+end
+local function RefreshControllerButtons()
+    if InCombatLockdown() or not registeredManager or not panel:IsShown() then return end
+    if registeredManager.focusedFrame == panel and SmartNavigation and SmartNavigation.RefreshButtonGroups then
+        SmartNavigation:RefreshButtonGroups(panel)
+    end
+end
 local outlines = { "", "OUTLINE", "THICKOUTLINE", "MONOCHROME,OUTLINE" }
 local outlineLabels = { "None", "Outline", "Thick outline", "Monochrome + outline" }
 
@@ -63,6 +85,7 @@ local function RefreshFontList()
         row:Show()
     end
     for index = #names + 1, #panel.fontRows do panel.fontRows[index]:Hide() end
+    RefreshControllerButtons()
 end
 
 function addon:ShowOptions()
@@ -73,6 +96,19 @@ function addon:ShowOptions()
     if not self.db then return end
     if not panel then
         panel = CreateFrame("Frame", "PadSkinForeverOptions", UIParent, "BackdropTemplate")
+        panel:Hide()
+        panel:SetScript("OnShow", SyncController)
+        panel:SetScript("OnHide", SyncController)
+        panel:SetScript("OnEvent", SyncController)
+        for _, event in ipairs({ "ADDON_LOADED", "CVAR_UPDATE", "PLAYER_REGEN_ENABLED" }) do panel:RegisterEvent(event) end
+        -- Native B/back handling may invoke this on our own frame.
+        panel.SmartNavigationCloseHandler = function(self) self:Hide() end
+        panel.GetJumpHintLabel = function() return "PadSkinForever" end
+        if InputUtil and InputUtil.RegisterForInterfaceTransitions and InputUtil.RegisterGamepadInit then
+            InputUtil.RegisterForInterfaceTransitions(panel)
+            InputUtil.RegisterGamepadInit(panel, SyncController)
+        end
+        if UISpecialFrames then table.insert(UISpecialFrames, "PadSkinForeverOptions") end
         panel:SetSize(510, 700)
         panel:SetPoint("CENTER")
         panel:SetFrameStrata("DIALOG")
@@ -84,7 +120,7 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.5.2 alpha", 22, -20)
+        Label(panel, "PadSkinForever — 0.5.3 alpha", 22, -20)
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}
         panel.settings = CreateFrame("Frame", nil, panel)
@@ -306,4 +342,5 @@ end
 
 ShowTab = function(name)
     for key, page in pairs(panel.pages) do page:SetShown(key == name) end
+    RefreshControllerButtons()
 end

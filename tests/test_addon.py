@@ -732,11 +732,20 @@ class AddonTests(unittest.TestCase):
             assert(report:find("RestrictedSurface"))
         ''')
 
+    def test_options_cannot_open_during_combat(self):
+        self.check('''
+            combat = true
+            addon:ShowOptions()
+            assert(messages[#messages]:find("after combat"))
+        ''')
+
     def test_options_tabs_build_and_open(self):
         self.check('''
             widgets = {}
             local function widget()
-                local w = { scripts = {}, visible = false, text = "" }
+                local w = { scripts = {}, events = {}, visible = false, text = "" }
+                function w:RegisterEvent(event) self.events[event] = true end
+                function w:IsShown() return self.visible end
                 for _, method in ipairs({"SetPoint", "SetSize", "SetFrameStrata", "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "EnableMouse", "SetMovable", "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetWidth", "SetHeight", "SetJustifyH", "SetHighlightTexture", "SetScrollChild", "SetFontObject", "SetMultiLine", "SetAutoFocus", "SetCursorPosition", "ClearFocus", "SetVerticalScroll"}) do
                     w[method] = function() end
                 end
@@ -749,6 +758,7 @@ class AddonTests(unittest.TestCase):
                     local changed = self.visible ~= value
                     self.visible = value
                     if changed and value and self.scripts.OnShow then self.scripts.OnShow(self) end
+                    if changed and not value and self.scripts.OnHide then self.scripts.OnHide(self) end
                 end
                 function w:Show() self:SetShown(true) end
                 function w:Hide() self:SetShown(false) end
@@ -766,7 +776,17 @@ class AddonTests(unittest.TestCase):
                 return w
             end
             CreateFrame = function() return widget() end
+            local manager = { shown = 0, hidden = 0 }
+            function manager:FrameShown(frame) self.shown = self.shown + 1; self.focusedFrame = frame end
+            function manager:FrameHidden(frame) self.hidden = self.hidden + 1; self.focusedFrame = nil end
+            GamepadMode = { FrameControlsManager = manager }
+            InputUtil = { IsGamepadUIEnabled = function() return true end }
+            local refreshed = 0
+            SmartNavigation = { RefreshButtonGroups = function(_, frame) assert(frame == manager.focusedFrame); refreshed = refreshed + 1 end }
             addon:ShowOptions()
+            assert(manager.shown == 1)
+            local focused = manager.focusedFrame
+            assert(focused.GetJumpHintLabel() == "PadSkinForever")
             local function click(text)
                 for _, w in ipairs(widgets) do if w.text == text then w.scripts.OnClick(w); return end end
                 error("Missing button: " .. text)
@@ -781,6 +801,14 @@ class AddonTests(unittest.TestCase):
             assert(addon:IsDebugTracing())
             click("Refresh")
             click("General")
+            assert(refreshed >= 5)
+            focused:Hide(); assert(manager.hidden == 1)
+            addon:ShowOptions(); assert(manager.shown == 2)
+            combat = true; focused:Hide(); assert(manager.hidden == 1)
+            combat = false; focused.scripts.OnEvent(focused, "PLAYER_REGEN_ENABLED")
+            assert(manager.hidden == 2)
+            addon:ShowOptions(); focused:SmartNavigationCloseHandler()
+            assert(manager.hidden == 3 and not focused:IsShown())
         ''')
 
     def test_legend_toggle_success_and_rejection(self):
