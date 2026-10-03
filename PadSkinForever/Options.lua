@@ -113,7 +113,7 @@ function addon:ShowOptions()
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
         Label(panel, "PadSkinForever", 22, -18, true, 17)
-        local version = Label(panel, "0.6.0 alpha", 156, -20, false, 12)
+        local version = Label(panel, "0.6.1 alpha", 156, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}

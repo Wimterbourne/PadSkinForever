@@ -7,7 +7,7 @@ function addon:CreateGameMenuButton()
 
     -- Keep this button outside Blizzard's pooled GameMenuFrame.buttons list.
     -- Native SmartNavigation discovers visible child Buttons on its own.
-    menuButton = self:CreatePSFButton(GameMenuFrame, "PadSkinForever", 0, 0, 200, function()
+    menuButton = self:CreatePSFButton(GameMenuFrame, "PADSKINFOREVER", 0, 0, 232, function()
         if InCombatLockdown() then
             addon:Print("Open PadSkinForever after combat.")
             return
@@ -17,23 +17,64 @@ function addon:CreateGameMenuButton()
         addon:ShowOptions()
     end)
     menuButton:ClearAllPoints()
-    menuButton:SetPoint("TOPRIGHT", GameMenuFrame, "TOPLEFT", -14, -48)
-    menuButton:SetSize(200, 36)
+    -- Visually attach the card to the menu, but keep it outside Blizzard's
+    -- pooled red-button column. Up from Options reaches it naturally.
+    menuButton:SetPoint("BOTTOM", GameMenuFrame, "TOP", 0, 14)
+    menuButton:SetSize(232, 58)
     menuButton:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 10)
+    menuButton:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 2,
+    })
     menuButton.PSFText:ClearAllPoints()
-    menuButton.PSFText:SetPoint("LEFT", 43, 0)
+    menuButton.PSFText:SetPoint("TOPLEFT", 53, -11)
+    menuButton.PSFText:SetTextColor(.95, .98, .96, 1)
+
+    local subtitle = menuButton:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    subtitle:SetPoint("TOPLEFT", 53, -32)
+    subtitle:SetText("ADDON SETTINGS")
+    if not subtitle:SetFont(self:GetUIFontPath(false), 10, "") then
+        subtitle:SetFont(STANDARD_TEXT_FONT, 10, "")
+    end
+    subtitle:SetTextColor(.58, .66, .61, 1)
+    menuButton.PSFSubtitle = subtitle
+
+    local openHint = menuButton:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    openHint:SetPoint("RIGHT", -11, 0)
+    openHint:SetText("A  OPEN")
+    if not openHint:SetFont(self:GetUIFontPath(true), 10, "") then
+        openHint:SetFont(STANDARD_TEXT_FONT, 10, "")
+    end
+    openHint:SetTextColor(unpack(self.uiColors.accent))
+    menuButton.PSFOpenHint = openHint
+
+    local function SetMenuState(focused)
+        if focused then
+            menuButton:SetBackdropColor(.08, .18, .11, .99)
+            menuButton:SetBackdropBorderColor(.38, 1, .57, 1)
+            subtitle:SetTextColor(.76, .86, .79, 1)
+        else
+            menuButton:SetBackdropColor(.04, .075, .055, .99)
+            menuButton:SetBackdropBorderColor(.24, .68, .38, 1)
+            subtitle:SetTextColor(.58, .66, .61, 1)
+        end
+    end
+    menuButton:SetScript("OnEnter", function() SetMenuState(true) end)
+    menuButton:SetScript("OnLeave", function() SetMenuState(false) end)
 
     local badge = CreateFrame("Frame", nil, menuButton, "BackdropTemplate")
-    badge:SetPoint("LEFT", 7, 0); badge:SetSize(27, 22)
+    badge:SetPoint("LEFT", 10, 0); badge:SetSize(32, 32)
     badge:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     badge:SetBackdropColor(.055, .062, .073, 1)
     badge:SetBackdropBorderColor(unpack(self.uiColors.accent))
     local badgeText = badge:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     badgeText:SetPoint("CENTER"); badgeText:SetText("PSF")
-    if not badgeText:SetFont(self:GetUIFontPath(true), 9, "") then
-        badgeText:SetFont(STANDARD_TEXT_FONT, 9, "")
+    if not badgeText:SetFont(self:GetUIFontPath(true), 10, "") then
+        badgeText:SetFont(STANDARD_TEXT_FONT, 10, "")
     end
     badgeText:SetTextColor(unpack(self.uiColors.accent))
+    SetMenuState(false)
     menuButton:Show()
 end
 

@@ -815,7 +815,8 @@ class AddonTests(unittest.TestCase):
             HideUIPanel = forbidden
             addon:CreateGameMenuButton()
             local gameMenuButton = addon:GetGameMenuButton()
-            assert(gameMenuButton and gameMenuButton.text == "PadSkinForever")
+            assert(gameMenuButton and gameMenuButton.text == "PADSKINFOREVER")
+            assert(gameMenuButton.PSFSubtitle and gameMenuButton.PSFSubtitle.text == "ADDON SETTINGS")
             gameMenuButton.scripts.OnClick(gameMenuButton)
             assert(manager.shown == 4 and manager.focusedFrame == focused)
         ''')
