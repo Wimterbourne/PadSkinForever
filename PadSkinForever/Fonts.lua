@@ -45,6 +45,10 @@ function addon:GetLegendHeaderFontPath()
     return self:GetFontPath()
 end
 
+function addon:GetUIFontPath(emphasized)
+    return bundled[emphasized and "PSF Inter SemiBold" or "PSF Inter Regular"]
+end
+
 local observedMedia
 function addon:ObserveSharedMedia()
     local media = SharedMedia()

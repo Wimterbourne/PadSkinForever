@@ -121,6 +121,9 @@ events:SetScript("OnEvent", function(_, event, name)
             addon.db.accent = { unpack(addon.defaults.accent) }
         end
     end
+    -- Blizzard_GameMenu normally exists before regular addons, but retry on
+    -- later events as well in case its load order changes in a beta build.
+    if addon.db and addon.CreateGameMenuButton then addon:CreateGameMenuButton() end
     addon:QueueRefresh()
 end)
 

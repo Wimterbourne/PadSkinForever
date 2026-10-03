@@ -26,31 +26,20 @@ end
 local outlines = { "", "OUTLINE", "THICKOUTLINE", "MONOCHROME,OUTLINE" }
 local outlineLabels = { "None", "Outline", "Thick outline", "Monochrome + outline" }
 
-local function Label(parent, text, x, y)
-    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    label:SetPoint("TOPLEFT", x, y)
-    label:SetText(text)
-    return label
+local function Label(parent, text, x, y, emphasized, size)
+    return addon:CreatePSFLabel(parent, text, x, y, emphasized, size)
 end
 
 local function Button(parent, text, x, y, width, callback)
-    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetPoint("TOPLEFT", x, y)
-    button:SetSize(width, 24)
-    button:SetText(text)
-    button:SetScript("OnClick", callback)
-    return button
+    return addon:CreatePSFButton(parent, text, x, y, width, callback)
 end
 
 local function Checkbox(parent, text, key, y)
-    local check = CreateFrame("CheckButton", nil, parent, "ChatConfigCheckButtonTemplate")
-    check:SetPoint("TOPLEFT", 20, y)
-    check.Text:SetText(text)
-    check:SetChecked(addon.db[key])
-    check:SetScript("OnClick", function(self)
+    local check = addon:CreatePSFCheckbox(parent, text, 20, y, function(self)
         addon.db[key] = self:GetChecked() and true or false
         addon:QueueRefresh()
     end)
+    check:SetChecked(addon.db[key])
     parent.checks[key] = check
 end
 
@@ -61,21 +50,23 @@ local function RefreshFontList()
     table.sort(names)
     panel.fontRows = panel.fontRows or {}
     panel.fontContent:SetHeight(math.max(180, #names * 24))
+    local uiFont = fonts["PSF Inter Regular"] or STANDARD_TEXT_FONT
     for index, name in ipairs(names) do
         local row = panel.fontRows[index]
         if not row then
-            row = CreateFrame("Button", nil, panel.fontContent)
+            row = addon:CreatePSFButton(panel.fontContent, "", 0, -(index - 1) * 24, 410, function() end)
             row:SetSize(420, 24)
-            row:SetPoint("TOPLEFT", 0, -(index - 1) * 24)
-            row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-            row.label = Label(row, "", 4, -4)
+            row.PSFText:ClearAllPoints()
+            row.PSFText:SetPoint("LEFT", 8, 0)
+            row.label = row.PSFText
             row.label:SetWidth(410)
             row.label:SetJustifyH("LEFT")
             panel.fontRows[index] = row
         end
-        row.label:SetText((name == addon.db.font and "|cff59bfff> " or "|cffffffff") .. name .. "|r")
+        row:SetText((name == addon.db.font and "> " or "") .. name)
+        row:SetPSFSelected(name == addon.db.font)
         -- Names only: opening the list must not load every registered asset.
-        row.label:SetFont(STANDARD_TEXT_FONT, 14, "")
+        row.label:SetFont(uiFont, 13, "")
         row:SetScript("OnClick", function()
             addon.db.font = name
             panel.selected:SetText("Selected font: " .. name)
@@ -111,27 +102,37 @@ function addon:ShowOptions()
         if UISpecialFrames then table.insert(UISpecialFrames, "PadSkinForeverOptions") end
         panel:SetSize(510, 700)
         panel:SetPoint("CENTER")
-        panel:SetFrameStrata("DIALOG")
+        panel:SetFrameStrata("FULLSCREEN_DIALOG")
         panel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        panel:SetBackdropColor(0.04, 0.05, 0.07, 0.97)
-        panel:SetBackdropBorderColor(0.35, 0.75, 1, 1)
+        panel:SetBackdropColor(0, 0, 0, 0)
+        panel:SetBackdropBorderColor(0, 0, 0, 0)
+        addon:CreateRoundedPanel(panel)
         panel:EnableMouse(true)
         panel:SetMovable(true)
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.5.3 alpha", 22, -20)
+        Label(panel, "PadSkinForever", 22, -18, true, 17)
+        local version = Label(panel, "0.6.0 alpha", 156, -20, false, 12)
+        version:SetTextColor(unpack(addon.uiColors.muted))
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}
+        panel.tabs = {}
         panel.settings = CreateFrame("Frame", nil, panel)
         panel.settings:SetPoint("TOPLEFT", 0, -36)
         panel.settings:SetPoint("BOTTOMRIGHT")
         panel.pages.general = panel.settings
-        Button(panel, "General", 22, -50, 82, function() ShowTab("general") end)
-        Button(panel, "Glyphs", 110, -50, 82, function() ShowTab("glyphs") end)
-        Button(panel, "Buttons", 198, -50, 82, function() ShowTab("buttons") end)
-        Button(panel, "Theme", 286, -50, 82, function() ShowTab("theme") end)
-        Button(panel, "Debug", 374, -50, 82, function() ShowTab("debug") end)
+        panel.tabs.general = Button(panel, "General", 22, -50, 82, function() ShowTab("general") end)
+        panel.tabs.glyphs = Button(panel, "Glyphs", 110, -50, 82, function() ShowTab("glyphs") end)
+        panel.tabs.buttons = Button(panel, "Buttons", 198, -50, 82, function() ShowTab("buttons") end)
+        panel.tabs.theme = Button(panel, "Theme", 286, -50, 82, function() ShowTab("theme") end)
+        panel.tabs.debug = Button(panel, "Debug", 374, -50, 82, function() ShowTab("debug") end)
+        local navLine = panel:CreateTexture(nil, "ARTWORK")
+        navLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+        navLine:SetVertexColor(.24, .28, .25, 1)
+        navLine:SetHeight(1)
+        navLine:SetPoint("TOPLEFT", panel, "TOPLEFT", 22, -84)
+        navLine:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -22, -84)
         Label(panel.settings, "Blizzard layout and gamepad behavior remain native.", 22, -56)
         panel.checks = {}
         panel.settings.checks = panel.checks
@@ -342,5 +343,6 @@ end
 
 ShowTab = function(name)
     for key, page in pairs(panel.pages) do page:SetShown(key == name) end
+    for key, tab in pairs(panel.tabs or {}) do tab:SetPSFSelected(key == name) end
     RefreshControllerButtons()
 end

@@ -211,7 +211,7 @@ class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua"):
+        for name in ("Core.lua", "Fonts.lua", "UI.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua", "GameMenu.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
@@ -746,9 +746,10 @@ class AddonTests(unittest.TestCase):
                 local w = { scripts = {}, events = {}, visible = false, text = "" }
                 function w:RegisterEvent(event) self.events[event] = true end
                 function w:IsShown() return self.visible end
-                for _, method in ipairs({"SetPoint", "SetSize", "SetFrameStrata", "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "EnableMouse", "SetMovable", "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetWidth", "SetHeight", "SetJustifyH", "SetHighlightTexture", "SetScrollChild", "SetFontObject", "SetMultiLine", "SetAutoFocus", "SetCursorPosition", "ClearFocus", "SetVerticalScroll"}) do
+                for _, method in ipairs({"SetPoint", "SetSize", "SetFrameStrata", "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "EnableMouse", "SetMovable", "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetWidth", "SetHeight", "SetJustifyH", "SetHighlightTexture", "SetScrollChild", "SetFontObject", "SetMultiLine", "SetAutoFocus", "SetCursorPosition", "ClearFocus", "SetVerticalScroll", "SetAllPoints", "ClearAllPoints", "SetFrameLevel", "SetFontString", "SetTextColor", "SetCheckedTexture", "SetVertexColor", "SetTexture", "SetTexCoord"}) do
                     w[method] = function() end
                 end
+                function w:GetFrameLevel() return 5 end
                 function w:SetScript(name, callback) self.scripts[name] = callback end
                 function w:HookScript(name, callback)
                     local before = self.scripts[name]
@@ -771,6 +772,7 @@ class AddonTests(unittest.TestCase):
                 function w:SetChecked(value) self.checked = value end
                 function w:GetChecked() return self.checked end
                 function w:CreateFontString() return widget() end
+                function w:CreateTexture() return widget() end
                 w.Text = { SetText = function() end }
                 table.insert(widgets, w)
                 return w
@@ -809,6 +811,13 @@ class AddonTests(unittest.TestCase):
             assert(manager.hidden == 2)
             addon:ShowOptions(); focused:SmartNavigationCloseHandler()
             assert(manager.hidden == 3 and not focused:IsShown())
+            GameMenuFrame = widget()
+            HideUIPanel = forbidden
+            addon:CreateGameMenuButton()
+            local gameMenuButton = addon:GetGameMenuButton()
+            assert(gameMenuButton and gameMenuButton.text == "PadSkinForever")
+            gameMenuButton.scripts.OnClick(gameMenuButton)
+            assert(manager.shown == 4 and manager.focusedFrame == focused)
         ''')
 
     def test_legend_toggle_success_and_rejection(self):

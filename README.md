@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.3-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.0-alpha**.
 
 ## Wat zit erin?
 
@@ -17,7 +17,8 @@ Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**
 - **Legendatheming aan/uit**: uit herstelt onze wijzigingen één keer, waarna de legenda niet opnieuw wordt gestyled. De native legendatoggle blijft apart bruikbaar.
 - Een **Debug-tab** met huidige atlas-/font-/kleur-/schaalwaarden en optionele tracing van toekomstige visuele wijzigingen.
 - Een eigen, standaard ongebonden keybinding om de native legenda aan/uit te zetten.
-- Instellingen via **`/psf`** of **`/padskin`**; **`/psf legend`** schakelt de legenda om.
+- Een eigen, controllerbedienbaar PSF-instellingenvenster in dezelfde donkere vormentaal als de inputlegenda.
+- Instellingen via de veilige **PadSkinForever-knop naast het ESC-menu**, **`/psf`** of **`/padskin`**; **`/psf legend`** schakelt de legenda om.
 
 De addon verandert geen actionbar-indeling, spells, targeting, loot-acties of native navigatie. De Theme-modules stylen de bestaande vensters; native schermposities blijven behouden. De minimalistische knopstijl gebruikt zes eigen gegenereerde knoptextures en twee legenda-hoektextures. Glyphs gebruiken Blizzard-atlases. Geen Masque-installatie nodig; bestaande Masque-skinpakketten worden niet ingelezen.
 
@@ -56,7 +57,7 @@ De questskin bereikt nu ook de geneste detail-/rewardsvensters, zoekveld, catego
 
 Bij ronde → vierkante minimap wordt zichtbaarheid na de kleurherstelling toegepast. Dat voorkomt dat het herstel van de ronde borderkleur diens alpha terugzet boven de vierkante kaart. Test meerdere rond/vierkantwissels met minimapskin voortdurend aan.
 
-35 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
+35 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De controllerfocus van het PSF-venster is in WoW bevestigd. Radial theming en overige conceptafwerking blijven op de lijst.
 
 ## Ronde minimap — 0.4.2 alpha
 
@@ -79,6 +80,22 @@ De **eigen loot-toaster** leest ontvangen item-lootberichten, ook bij autoloot e
 Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderlijke ingebouwde status-/voertuig-/class-resource-elementen blijven native. Nieuwe of afwijkende vensters kunnen nog ongestylede onderdelen hebben. De skins vervangen geen native klikfuncties en voeren geen loot- of gamepad-interactie uit. **De volledige themaversie moet nog in de echte client worden getest**, inclusief secure/taintgedrag.
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
+
+## PSF-menu — 0.6.0-alpha
+
+Het `/psf`-venster gebruikt dezelfde antracietvulling, afgeronde grijze 1px-rand, groene focusaccenten en Inter-typografie als de vernieuwde inputlegenda. Tabs, knoppen, vinkjes en fontregels zijn addon-eigen controls en blijven onderdeel van Blizzards native SmartNavigation. De geselecteerde tab en het element onder controllerfocus zijn zichtbaar gemarkeerd.
+
+Naast het native ESC-menu staat een eigen **PadSkinForever**-kaart met PSF-badge. Dit is bewust geen item in `GameMenuFrame.buttons`: die lijst wordt door Blizzard gepoold, opnieuw opgebouwd en aan de gamepadbindingstack gekoppeld. PSF wijzigt de pool, callbacks, navigatiemethoden en bindinggroepen daarom niet. SmartNavigation ontdekt onze zichtbare child-knop zelf.
+
+Na het activeren blijft het ESC-menu onder PSF open. Daardoor hoeft addoncode `HideUIPanel(GameMenuFrame)` niet aan te roepen en kan sluiten met B veilig terugkeren naar het native menu. Tijdens combat weigert de kaart het openen met een chatmelding. De bestaande `/psf`-route blijft beschikbaar.
+
+Voor deze versie zijn `UI.lua` en `GameMenu.lua` nieuw; sluit WoW daarom volledig af na het ophalen en start het opnieuw. Test daarna:
+
+1. ESC openen, met de controller naar **PadSkinForever** navigeren en bevestigen.
+2. Alle vijf tabs, vinkjes, plus/min-knoppen en de fontlijst bedienen.
+3. PSF met B sluiten en controleren dat de focus terugkeert naar het ESC-menu.
+4. Herhalen met de muis, na `/reload`, na combat en na meerdere open-/sluitcycli.
+5. BugSack controleren op iedere fout, met name `ADDON_ACTION_FORBIDDEN` en `SetPreferredGamepadInteractTarget()`.
 
 ## Meegeleverd font — 0.5.2-alpha
 
@@ -135,7 +152,7 @@ Test deze alpha eerst met alleen **PadSkinForever**, eventueel **Font Manager**,
 7. Test de Debug-tab: snapshots verversen, tracing starten, een PSF-instelling wijzigen, tracing stoppen en geschiedenis wissen.
 8. Meld bij een fout: clientbuild, addonversie, actieve addons, handeling en de volledige BugSack-stack. De eerder gemelde `SetPreferredGamepadInteractTarget()`-fout is een belangrijk regressiepunt.
 
-Vanaf **0.5.3-alpha** meldt het instellingenvenster zich bij Blizzard's `GamepadMode.FrameControlsManager` via `FrameShown`/`FrameHidden`. De bestaande focusknop, navigatie en bevestigingsknop gebruiken daarmee native SmartNavigation. Tabwissels en fontlijstverversingen verversen de native knopgroepen. Native B/back kan het venster sluiten; ESC blijft bruikbaar. Er worden geen eigen bindings of overrides geïnstalleerd. Registratie en verwijderen uit de focuslijst wachten tijdens combat tot `PLAYER_REGEN_ENABLED`. Clientvalidatie van focus, knoppen en fontlijstscrolling blijft nodig.
+Vanaf **0.5.3-alpha** meldt het instellingenvenster zich bij Blizzard's `GamepadMode.FrameControlsManager` via `FrameShown`/`FrameHidden`. De bestaande focusknop, navigatie en bevestigingsknop gebruiken daarmee native SmartNavigation. Tabwissels en fontlijstverversingen verversen de native knopgroepen. Native B/back kan het venster sluiten; ESC blijft bruikbaar. Er worden geen eigen bindings of overrides geïnstalleerd. Registratie en verwijderen uit de focuslijst wachten tijdens combat tot `PLAYER_REGEN_ENABLED`. De tester heeft het vinden, openen en bedienen van het venster met de controller in WoW bevestigd.
 
 Test `/psf` → je bestaande interfacefocusknop; navigeer naar tabs, vinkjes, plus/min-knoppen en fontlijst, bevestig een keuze en sluit met B. Herhaal openen/sluiten en controleer andere native vensters en BugSack, met name `SetPreferredGamepadInteractTarget()`.
 
