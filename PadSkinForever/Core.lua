@@ -21,6 +21,10 @@ addon.defaults = {
     dpadGlyphScale = 1,
     dpadGlyphStyle = "native",
     skinLegend = true,
+    legendFontSize = 14,
+    legendGlyphScale = 1,
+    legendRowGap = 10,
+    legendPadding = 16,
     cooldownFont = true,
     font = "Blizzard default",
     fontSize = 18,
@@ -94,11 +98,14 @@ events:SetScript("OnEvent", function(_, event, name)
                 end
             end
         end
-        for _, key in ipairs({ "faceGlyphScale", "dpadGlyphScale" }) do
+        for _, key in ipairs({ "faceGlyphScale", "dpadGlyphScale", "legendGlyphScale" }) do
             addon.db[key] = math.max(.5, math.min(2, tonumber(addon.db[key]) or 1))
         end
         if addon.db.buttonStyle ~= "minimal" and addon.db.buttonStyle ~= "native" then addon.db.buttonStyle = "native" end
         addon.db.disabledGlyphIntensity = math.max(.2, math.min(1, tonumber(addon.db.disabledGlyphIntensity) or .7))
+        for key, limits in pairs({ legendFontSize = {10, 28}, legendRowGap = {4, 24}, legendPadding = {8, 32} }) do
+            addon.db[key] = math.max(limits[1], math.min(limits[2], tonumber(addon.db[key]) or addon.defaults[key]))
+        end
         local faceStyle, dpadStyle = addon.db.faceGlyphStyle, addon.db.dpadGlyphStyle
         if faceStyle ~= "native" and faceStyle ~= "xbox" and faceStyle ~= "xboxColor" then addon.db.faceGlyphStyle = "native" end
         if dpadStyle ~= "native" and dpadStyle ~= "xbox" and dpadStyle ~= "xboxAccent" then addon.db.dpadGlyphStyle = "native" end

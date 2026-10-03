@@ -128,19 +128,21 @@ local function RefreshSkin(self)
         Hook(legend, "PostVariableSetUp")
         Hook(legend, "CreateEntry")
         Hook(legend, "CreateBackground")
+        Hook(legend, "ShowGroup")
         for name, group in pairs(legend.groups or {}) do
             for index, frame in ipairs(group) do
                 local label = "Legend/" .. name .. "/" .. index
-                self:SkinGlyph(frame.InputIcon1, self.db.skinLegend, label .. "/icon1")
-                self:SkinGlyph(frame.InputIcon2, self.db.skinLegend, label .. "/icon2")
+                self:SkinGlyph(frame.InputIcon1, self.db.skinLegend, label .. "/icon1", nil, self.db.legendGlyphScale)
+                self:SkinGlyph(frame.InputIcon2, self.db.skinLegend, label .. "/icon2", nil, self.db.legendGlyphScale)
                 local text = frame.ControlDescText and frame.ControlDescText.FontString
-                -- Preserve native legend text size and positioning.
+                -- Legend text size is independent of cooldown text size.
                 self:DebugSurface(text, label .. "/text", "legend font")
-                Font(text, self.db.skinLegend)
-                Background(frame.Background, self.db.skinLegend and self.db.accent or nil, 0, label .. "/background")
-                addon:Tint(frame.HeaderTrim, self.db.skinLegend and self.db.accent or nil)
+                Font(text, self.db.skinLegend, self.db.legendFontSize)
+                Background(frame.Background, nil, 0, label .. "/background")
+                addon:Tint(frame.HeaderTrim, nil)
             end
         end
+        self:LayoutLegend(legend)
     end
 end
 

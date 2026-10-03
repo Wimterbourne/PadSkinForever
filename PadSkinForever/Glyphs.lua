@@ -24,7 +24,7 @@ local function Points(icon)
     return points
 end
 
-function addon:SkinGlyph(icon, enabled, label, button)
+function addon:SkinGlyph(icon, enabled, label, button, sizeMultiplier)
     if not icon then return end
     self:DebugSurface(icon, label, "glyph frame")
     local original = originals[icon]
@@ -50,6 +50,7 @@ function addon:SkinGlyph(icon, enabled, label, button)
     local isFace, isDpad = face[key] ~= nil, dpad[key] ~= nil
     local style = isFace and self.db.faceGlyphStyle or isDpad and self.db.dpadGlyphStyle or "native"
     local scale = isFace and self.db.faceGlyphScale or isDpad and self.db.dpadGlyphScale or 1
+    scale = scale * (sizeMultiplier or 1)
     if not enabled then style, scale = "native", 1 end
     local desiredScale = original.scale * scale
     if enabled then

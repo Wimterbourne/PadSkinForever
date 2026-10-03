@@ -155,18 +155,148 @@ surface = Surface
 CreateFrame = function(_, _, parent) return Surface("Frame", parent) end
 '''
 
+LEGEND_MOCKS = r'''
+local function Widget(kind, parent)
+    local w = surface(kind, parent)
+    w.points = {}; w.width = 18; w.height = 18; w.scale = 1
+    function w:GetSize() return self.width, self.height end
+    function w:GetNumPoints() return #self.points end
+    function w:GetPoint(i) return unpack(self.points[i]) end
+    function w:ClearAllPoints() self.points = {} end
+    function w:SetPoint(...) self.points[#self.points + 1] = {...} end
+    function w:SetSize(x, y) self.width = x; self.height = y end
+    function w:SetWidth(x) self.width = x end
+    function w:SetHeight(y) self.height = y end
+    function w:GetScale() return self.scale end
+    function w:SetScale(value) self.scale = value end
+    function w:SetAllPoints() end
+    function w:GetStringHeight() return self.values[2] end
+    function w:GetStringWidth() return #(self.text or "Native label") * self.values[2] * .5 end
+    function w:RefreshIconTextures() end
+    function w:CreateTexture() return Widget("Texture", self) end
+    function w:CreateFontString() return Widget("FontString", self) end
+    return w
+end
+CreateFrame = function(_, _, parent) return Widget("Frame", parent) end
+GamepadMainActionBarFrame = nil
+legend = Widget("Frame")
+function legend:GetColumnWidth() return 300 end
+function legend:DoesGroupUseHeader() return self.header or false end
+function legend:ShowGroup() end
+background = Widget("Frame", legend); background:SetSize(320, 130)
+background:SetPoint("TOPLEFT", legend, "TOPLEFT", 0, 0)
+background.Background = Widget("Frame", background)
+background.HeaderTrim = Widget("Texture", background)
+function Entry(col, row, key, label)
+    local frame = Widget("Frame", legend)
+    frame:SetSize(150, 18)
+    frame:SetPoint("TOPLEFT", legend, "TOPLEFT", 20 + col * 300, -20 - row * 24 - (legend.header and row > 0 and 10 or 0))
+    frame.InputIcon1 = Widget("Frame", frame); frame.InputIcon1.mappedButtonKey = key
+    frame.InputIcon1:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    frame.ControlDescText = Widget("Frame", frame)
+    frame.ControlDescText:SetPoint("LEFT", frame.InputIcon1, "RIGHT", 4, 0)
+    frame.ControlDescText.FontString = Widget("FontString", frame.ControlDescText)
+    frame.ControlDescText.FontString:SetText(label)
+    function frame:SetPromptText(value) self.ControlDescText.FontString:SetText(value) end
+    return frame
+end
+entry1 = Entry(0, 0, "PAD1", "First")
+entry2 = Entry(0, 1, "PADDUP", "Second")
+legend.groups = { GAMEPLAY = { background, entry1, entry2 } }
+GamepadPersistentInputLegend = legend
+'''
+
 
 class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "Toasts.lua", "Skin.lua", "Options.lua"):
+        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
 
     def check(self, source):
         self.lua.execute(source)
+
+    def legend_setup(self):
+        self.lua.execute(THEME_MOCKS)
+        self.lua.execute(LEGEND_MOCKS)
+
+    def test_legend_rows_resize_without_drift_and_restore(self):
+        self.legend_setup()
+        self.check('''
+            entry2.ControlDescText:SetAlpha(.5)
+            addon.db.faceGlyphScale = 2
+            addon.db.dpadGlyphScale = .5
+            addon:QueueRefresh(); drain()
+            local firstY = entry1.points[1][5]
+            assert(entry2.points[1][5] == firstY - 36 - addon.db.legendRowGap)
+            local height = background.height
+            addon:QueueRefresh(); drain()
+            assert(background.height == height and entry1.points[1][5] == firstY)
+            addon.db.faceGlyphScale = .5; addon:QueueRefresh(); drain()
+            assert(background.height < height)
+            assert(entry2.ControlDescText.alpha == .5)
+            addon.db.skinLegend = false; addon:QueueRefresh(); drain()
+            assert(background.width == 320 and background.height == 130)
+            assert(background.Background.alpha == 1 and background.HeaderTrim.alpha == 1)
+            assert(entry1.points[1][4] == 20 and entry2.points[1][5] == -44)
+            assert(entry1.InputIcon1.scale == 1)
+            assert(entry2.ControlDescText.alpha == .5)
+            addon.db.skinLegend = true; addon:QueueRefresh(); drain()
+            assert(background.height < height and background.Background.alpha == 0)
+        ''')
+
+    def test_legend_global_size_scales_shoulders_and_combines_face_setting(self):
+        self.legend_setup()
+        self.check('''
+            entry1.InputIcon1.mappedButtonKey = "PADLSHOULDER"
+            addon.db.legendGlyphScale = 1.5
+            addon.db.dpadGlyphScale = 2
+            addon:QueueRefresh(); drain()
+            assert(entry1.InputIcon1.scale == 1.5 and entry2.InputIcon1.scale == 3)
+            assert(entry2.height == 54)
+            addon.db.skinLegend = false; addon:QueueRefresh(); drain()
+            assert(entry1.InputIcon1.scale == 1 and entry2.InputIcon1.scale == 1)
+        ''')
+
+    def test_legend_columns_two_icons_headers_and_text_changes(self):
+        self.legend_setup()
+        self.check('''
+            legend.header = true
+            local header = Entry(0, 0, "PAD1", "Friendly targeting")
+            local left = Entry(0, 1, "PADDUP", "Target group")
+            local right = Entry(1, 1, "PAD4", "Target marker")
+            right.InputIcon2 = CreateFrame("Frame", nil, right)
+            right.InputIcon2:SetPoint("LEFT", right.InputIcon1, "RIGHT", 4, 0)
+            right.InputIcon2.mappedButtonKey = "PAD2"
+            right.IconDivider1 = CreateFrame("Frame", nil, right)
+            right.IconDivider1:SetSize(16, 16)
+            right.IconDivider1:SetPoint("LEFT", right.InputIcon1, "RIGHT", 4, 0)
+            legend.groups.GAMEPLAY = { background, header, left, right }
+            addon.db.faceGlyphScale = 2; addon.db.dpadGlyphScale = .5
+            addon:QueueRefresh(); drain()
+            assert(left.points[1][5] == right.points[1][5])
+            assert(right.ControlDescText.points[1][4] >= 36 + 16 + 36 + 10 + 12)
+            assert(left.points[1][5] < header.points[1][5] - 36)
+            local width = background.width
+            right:SetPromptText("A much longer localized contextual legend label"); drain()
+            assert(background.width > width)
+            assert(background.Background.alpha == 0)
+        ''')
+
+    def test_legend_layout_and_settings_defer_during_combat(self):
+        self.legend_setup()
+        self.check('''
+            addon:QueueRefresh(); drain()
+            local height = background.height
+            combat = true; addon.db.faceGlyphScale = 2; addon.db.legendRowGap = 20
+            addon:QueueRefresh(); drain()
+            assert(background.height == height)
+            combat = false; fire("PLAYER_REGEN_ENABLED"); drain()
+            assert(background.height > height)
+        ''')
 
     def test_minimal_assets_and_native_restore(self):
         self.check('''
@@ -576,6 +706,8 @@ class AddonTests(unittest.TestCase):
             click("Glyphs")
             click("Buttons")
             click("Theme")
+            click("Input legend settings...")
+            click("Toggle native legend")
             click("Debug")
             click("Start tracing")
             assert(addon:IsDebugTracing())
@@ -597,7 +729,7 @@ class AddonTests(unittest.TestCase):
             local text = font()
             GamepadPersistentInputLegend = { groups = { HUD = { { ControlDescText = { FontString = text }, InputIcon1 = icon } } } }
             addon:QueueRefresh(); drain()
-            assert(text.values[2] == 12)
+            assert(text.values[2] == 14)
             addon.db.skinLegend = false; addon:QueueRefresh(); drain()
             assert(text.values[1] == STANDARD_TEXT_FONT and text.values[2] == 12)
         ''')

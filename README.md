@@ -1,25 +1,25 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.4.4-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.0-alpha**.
 
 ## Wat zit erin?
 
 - Een **Modern minimal** knopstijl: eigen dunne borders (grijs voor D-pad, Xbox-kleuren voor A/B/X/Y) en donkere neutrale lege slots, in de bestaande ronde/vierkante vorm. **Blizzard borders** behoudt de oorspronkelijke textures met blauwe tint. Beide vallen onder de schakelaar voor button skinning.
 - In 0.3.3 zijn alleen de ronde borders dikker: 3 texturepixels in plaats van 1,5. Dat geeft bij circa 48 px knopgrootte ongeveer 1 px extra; de zichtbare dikte hangt af van je UI-schaal. Vierkante borders blijven gelijk.
-- Actionbar-glyphs behouden de native kant/hoek. Bij vergroten schuiven ze mee zodat de binnenrand op zijn oorspronkelijke positie blijft; alle glyphs naar dezelfde rechterbovenhoek verplaatsen veroorzaakte overlap in 0.3.0. Zet **Move enlarged glyphs outward from their native anchor** uit om de native positie terug te krijgen. Legenda-glyphs houden hun eigen native anchors.
+- Actionbar-glyphs behouden de native kant/hoek. Bij vergroten schuiven ze mee zodat de binnenrand op zijn oorspronkelijke positie blijft; alle glyphs naar dezelfde rechterbovenhoek verplaatsen veroorzaakte overlap in 0.3.0. Zet **Move enlarged glyphs outward from their native anchor** uit om de native positie terug te krijgen. Legenda-glyphs krijgen een eigen uitgelijnde layout wanneer legendatheming aan staat.
 - **Vivid glyph colors** gebruikt de gekleurde glyphtextures met volledige opacity, naast meer verzadigde Xbox-kleurtinten. Dit is afzonderlijk uit te zetten; native status en disabled-artwork blijven behouden.
 - Disabled-glyphhelderheid naar keuze: **45%, 70% of 100%** van de tint (standaard 70%). De native disabled-status en artwork blijven bestaan.
 - A/B/X/Y-glyphkeuze: **Blizzard standaard**, **Xbox monochroom** of **Xbox gekleurd** (A groen, B rood, X blauw, Y geel). De gekleurde disabled-toestand blijft gedimd; Blizzard bepaalt de interactiestatus.
 - D-pad-iconkeuze: **Blizzard standaard**, **Xbox monochroom** of **Xbox blauw**.
 - Onafhankelijke groottes voor A/B/X/Y en D-pad: **50–200%**. Deze keuzes gelden voor de vier actionbars én voor de legenda wanneer legendatheming aan staat.
 - Een cooldownfont naar keuze, met grootte en outline. Fonts uit **LibSharedMedia** en **Font Manager** verschijnen in de fontlijst. Een werkend geregistreerd `.otf`-font kan direct worden gekozen.
-- Een tint voor de bestaande achtergrond/randen van de native inputlegenda en het geselecteerde font. De native tekstgrootte en frame-anchors blijven behouden. Grotere glyphs kunnen meer ruimte vragen; controleer de leesbaarheid.
+- Een donkere inputlegenda met afgeronde hoeken, grijze rand, geselecteerd font en instelbare tekstgrootte, glyphschaal, regelafstand en binnenmarge. De rijhoogte en paneelafmetingen volgen de inhoud.
 - **Legendatheming aan/uit**: uit herstelt onze wijzigingen één keer, waarna de legenda niet opnieuw wordt gestyled. De native legendatoggle blijft apart bruikbaar.
 - Een **Debug-tab** met huidige atlas-/font-/kleur-/schaalwaarden en optionele tracing van toekomstige visuele wijzigingen.
 - Een eigen, standaard ongebonden keybinding om de native legenda aan/uit te zetten.
 - Instellingen via **`/psf`** of **`/padskin`**; **`/psf legend`** schakelt de legenda om.
 
-De addon verandert geen actionbar-indeling, spells, targeting, loot-acties of native navigatie. De Theme-modules stylen de bestaande vensters; native schermposities blijven behouden. De minimalistische knopstijl gebruikt zes eigen gegenereerde TGA-assets. Glyphs gebruiken Blizzard-atlases. Geen Masque-installatie nodig; bestaande Masque-skinpakketten worden niet ingelezen.
+De addon verandert geen actionbar-indeling, spells, targeting, loot-acties of native navigatie. De Theme-modules stylen de bestaande vensters; native schermposities blijven behouden. De minimalistische knopstijl gebruikt zes eigen gegenereerde knoptextures en twee legenda-hoektextures. Glyphs gebruiken Blizzard-atlases. Geen Masque-installatie nodig; bestaande Masque-skinpakketten worden niet ingelezen.
 
 ## Installeren
 
@@ -56,7 +56,7 @@ De questskin bereikt nu ook de geneste detail-/rewardsvensters, zoekveld, catego
 
 Bij ronde → vierkante minimap wordt zichtbaarheid na de kleurherstelling toegepast. Dat voorkomt dat het herstel van de ronde borderkleur diens alpha terugzet boven de vierkante kaart. Test meerdere rond/vierkantwissels met minimapskin voortdurend aan.
 
-26 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
+30 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
 
 ## Ronde minimap — 0.4.2 alpha
 
@@ -80,6 +80,24 @@ Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderli
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
 
+## Inputlegenda — 0.5.0-alpha
+
+Open `/psf` → General → **Legend style and spacing...** (ook bereikbaar via Theme).
+
+De legenda gebruikt een eigen donker paneel met afgeronde hoeken en een grijze rand. De tekst gebruikt het geselecteerde SharedMedia/Font Manager-font, met een eigen tekstgrootte. **All legend glyphs** schaalt ook de schouder- en stickiconen, uitsluitend in de legenda. Dit vermenigvuldigt de A/B/X/Y- en D-pad-grootte uit Glyphs. Elke regel reserveert ruimte voor de grootste geschaalde glyph, divider of tekst op die regel, plus de instelbare regelafstand. De binnenmarge, achtergrondhoogte en kolombreedtes groeien mee. Tekstlabels zijn per kolom uitgelijnd.
+
+Blizzard houdt controle over de inhoud, modifiergroepen, disabled-alpha en zichtbaarheid. Theming uit herstelt de native geometrie, fonts en decoraties. Geen nieuwe controllerbinding of promptactie. Wijzigingen wachten tot combat voorbij is.
+
+**WoW volledig opnieuw starten** om `Legend.lua` en de nieuwe textures te laden. Test:
+
+1. Normale legenda en groepen bij LB, RB, LB+RB en HUD/menucontext.
+2. Alle legendaglyphs op 50%, 100% en 200%; combineer met A/B/X/Y- en D-pad-groottes. Controleer regelafstand, kolommen en glyph/tekst-overlap.
+3. Verander tekstgrootte, regelafstand en binnenmarge, telkens groter én kleiner.
+4. Controleer twee-iconenregels, lange labels en native gedimde prompts.
+5. Zet theming uit en weer aan, daarna `/reload`: geen maatdrift, oorspronkelijke opmaak bij uitschakelen en behoud van keuzes.
+6. Houd een modifier vast tijdens combat. Controleer dat native prompts blijven werken en uitgestelde stijlwijzigingen na combat worden toegepast.
+7. Controleer BugSack op nieuwe fouten. De Lua-mocks testen layoutlogica en herstel, niet Blizzard's secure/taint-model.
+
 ## Legenda met de controller
 
 Zoek **PadSkinForever → Toggle native input legend** in de keybindings en kies zelf een vrije controllerknop. De addon bindt geen toetsen automatisch en installeert geen override bindings.
@@ -92,7 +110,7 @@ De native gamepad-bindingstack kan voorrang hebben op gewone addonbindings. Deze
 
 Gebouwd na broncodecontrole van Forever **1.60.1 (70205)**, [Gethe/wow-ui-source, commit e3ecc27](https://github.com/Gethe/wow-ui-source/commit/e3ecc27). TOC-interface: **16001**.
 
-Lokaal gecontroleerd: Lua 5.1-syntax, XML en 26 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
+Lokaal gecontroleerd: Lua 5.1-syntax, XML en 30 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
 
 Skinwijzigingen worden buiten combat toegepast. Post-hooks op de betrokken frames vragen alleen een latere visuele refresh aan; native functies worden niet vervangen. Dit is een conservatieve aanpak, geen bewijs dat de addon taintvrij is.
 

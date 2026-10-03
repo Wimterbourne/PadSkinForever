@@ -2,7 +2,7 @@
 ## Title: PadSkinForever
 ## Notes: Visual skin for Blizzard's native Forever gamepad bars and input legend. /psf
 ## Author: Wimterbourne
-## Version: 0.4.4-alpha
+## Version: 0.5.0-alpha
 ## SavedVariables: PadSkinForeverDB
 ## OptionalDeps: FontManager, LibSharedMedia-3.0
 
@@ -13,5 +13,6 @@ Glyphs.lua
 Buttons.lua
 Theme.lua
 Toasts.lua
+Legend.lua
 Skin.lua
 Options.lua

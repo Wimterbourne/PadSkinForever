@@ -84,7 +84,7 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.4.4 alpha", 22, -20)
+        Label(panel, "PadSkinForever — 0.5.0 alpha", 22, -20)
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}
         panel.settings = CreateFrame("Frame", nil, panel)
@@ -225,6 +225,39 @@ function addon:ShowOptions()
         themePage:SetScript("OnShow", function()
             for key, check in pairs(themePage.checks) do check:SetChecked(addon.db[key]) end
         end)
+
+        Button(themePage, "Input legend settings...", 274, -365, 210, function() ShowTab("legend") end)
+        Button(panel.settings, "Legend style and spacing...", 266, -113, 218, function() ShowTab("legend") end)
+        local legendPage = CreateFrame("Frame", nil, panel)
+        legendPage:SetPoint("TOPLEFT", 0, -90); legendPage:SetPoint("BOTTOMRIGHT")
+        legendPage.checks = {}; panel.pages.legend = legendPage
+        Label(legendPage, "Input legend — modern Xbox theme", 22, -10)
+        Checkbox(legendPage, "Theme native input legend", "skinLegend", -44)
+        Label(legendPage, "Uses the selected font from General.", 22, -90)
+        local function LegendNumber(title, key, low, high, y, step)
+            step = step or 1
+            local label = Label(legendPage, "", 22, y)
+            local function Update()
+                local value = key == "legendGlyphScale" and (math.floor(addon.db[key] * 100 + .5) .. "%") or addon.db[key]
+                label:SetText(title .. ": " .. value)
+            end
+            Button(legendPage, "−", 280, y + 6, 36, function()
+                addon.db[key] = math.max(low, addon.db[key] - step); Update(); addon:QueueRefresh()
+            end)
+            Button(legendPage, "+", 324, y + 6, 36, function()
+                addon.db[key] = math.min(high, addon.db[key] + step); Update(); addon:QueueRefresh()
+            end)
+            legendPage:HookScript("OnShow", Update)
+        end
+        LegendNumber("All legend glyphs", "legendGlyphScale", .5, 2, -132, .1)
+        LegendNumber("Text size", "legendFontSize", 10, 28, -186)
+        LegendNumber("Space between rows", "legendRowGap", 4, 24, -240)
+        LegendNumber("Panel padding", "legendPadding", 8, 32, -294)
+        Button(legendPage, "Glyph style and size...", 22, -344, 240, function() ShowTab("glyphs") end)
+        Button(legendPage, "Toggle native legend", 22, -384, 240, function() addon:ToggleLegend() end)
+        local legendHelp = Label(legendPage, "Row heights follow actual glyph and text sizes.\nPanel height and column widths follow the content.\nNative prompts, modifiers and dimmed states remain.\nTheming off restores native layout and appearance.\nChanges wait until combat ends.", 22, -436)
+        legendHelp:SetWidth(465); legendHelp:SetJustifyH("LEFT")
+        legendPage:HookScript("OnShow", function() legendPage.checks.skinLegend:SetChecked(addon.db.skinLegend) end)
 
         local debugPage = CreateFrame("Frame", nil, panel)
         debugPage:SetPoint("TOPLEFT", 0, -90)
