@@ -742,14 +742,30 @@ class AddonTests(unittest.TestCase):
     def test_options_tabs_build_and_open(self):
         self.check('''
             widgets = {}
-            local function widget()
-                local w = { scripts = {}, events = {}, visible = false, text = "" }
+            namedWidgets = {}
+            local function widget(frameType, name, parent, template)
+                local w = { scripts = {}, events = {}, visible = true, text = "", frameType = frameType,
+                    name = name, parent = parent, template = template, attrs = {}, width = 100, height = 28 }
                 function w:RegisterEvent(event) self.events[event] = true end
                 function w:IsShown() return self.visible end
-                for _, method in ipairs({"SetPoint", "SetSize", "SetFrameStrata", "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "EnableMouse", "SetMovable", "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetWidth", "SetHeight", "SetJustifyH", "SetHighlightTexture", "SetScrollChild", "SetFontObject", "SetMultiLine", "SetAutoFocus", "SetCursorPosition", "ClearFocus", "SetVerticalScroll", "SetAllPoints", "ClearAllPoints", "SetFrameLevel", "SetFontString", "SetTextColor", "SetCheckedTexture", "SetVertexColor", "SetTexture", "SetTexCoord"}) do
+                function w:IsVisible() return self.visible and (not self.parent or not self.parent.IsVisible or self.parent:IsVisible()) end
+                function w:IsEnabled() return self.enabled ~= false end
+                function w:SetPoint(_, a, b, c, d)
+                    if type(a) == "number" then self.x, self.y = a, b
+                    else self.x, self.y = c or 0, d or 0 end
+                end
+                function w:GetCenter() return 500 + (self.x or 0) + self.width / 2, 500 + (self.y or 0) - self.height / 2 end
+                function w:SetSize(width, height) self.width, self.height = width, height end
+                function w:SetWidth(width) self.width = width end
+                function w:SetHeight(height) self.height = height end
+                function w:GetHeight() return self.height end
+                function w:SetVerticalScroll(value) self.scroll = value end
+                function w:GetVerticalScroll() return self.scroll or 0 end
+                for _, method in ipairs({"SetFrameStrata", "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "EnableMouse", "SetMovable", "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetJustifyH", "SetHighlightTexture", "SetScrollChild", "SetFontObject", "SetMultiLine", "SetAutoFocus", "SetCursorPosition", "ClearFocus", "SetAllPoints", "ClearAllPoints", "SetFrameLevel", "SetFontString", "SetTextColor", "SetCheckedTexture", "SetVertexColor", "SetTexture", "SetTexCoord"}) do
                     w[method] = function() end
                 end
                 function w:GetFrameLevel() return 5 end
+                function w:GetName() return self.name end
                 function w:SetScript(name, callback) self.scripts[name] = callback end
                 function w:HookScript(name, callback)
                     local before = self.scripts[name]
@@ -771,48 +787,53 @@ class AddonTests(unittest.TestCase):
                 function w:SetFont() return true end
                 function w:SetChecked(value) self.checked = value end
                 function w:GetChecked() return self.checked end
-                function w:CreateFontString() return widget() end
-                function w:CreateTexture() return widget() end
+                function w:ClearBindings() self.bindings = {} end
+                function w:SetBindingClick(priority, key, target, button)
+                    self.bindings = self.bindings or {}
+                    self.bindings[key] = { priority, target, button }
+                end
+                function w:SetAttribute(key, value)
+                    self.attrs[key] = value
+                    if key ~= "_onattributechanged" and self.attrs._onattributechanged then
+                        local handler = assert(loadstring("return function(self, name, value) " .. self.attrs._onattributechanged .. " end"))()
+                        handler(self, key, value)
+                    end
+                end
+                function w:GetAttribute(key) return self.attrs[key] end
+                function w:Click(button)
+                    if self.frameType == "CheckButton" then self.checked = not self.checked end
+                    if self.scripts.OnClick then self.scripts.OnClick(self, button or "LeftButton") end
+                end
+                function w:CreateFontString() return widget("FontString", nil, self) end
+                function w:CreateTexture() return widget("Texture", nil, self) end
                 w.Text = { SetText = function() end }
                 table.insert(widgets, w)
+                if name then namedWidgets[name] = w end
                 return w
             end
-            CreateFrame = function() return widget() end
-            local manager = { shown = 0, hidden = 0 }
-            function manager:FrameShown(frame) self.shown = self.shown + 1; self.focusedFrame = frame end
-            function manager:FrameHidden(frame) self.hidden = self.hidden + 1; self.focusedFrame = nil end
-            GamepadMode = { FrameControlsManager = manager }
-            local registeredPanel
-            function RegisterUIPanel(frame, attributes)
-                registeredPanel = frame
-                assert(attributes.area == "center" and attributes.centerFrameSkipAnchoring)
+            CreateFrame = function(frameType, name, parent, template) return widget(frameType, name, parent, template) end
+            local stateDrivers = 0
+            function RegisterStateDriver(frame, state, values)
+                stateDrivers = stateDrivers + 1
+                assert(state == "combat" and values == "[combat] combat; nocombat")
+                frame:SetAttribute("state-combat", "nocombat")
             end
-            function ShowUIPanel(frame)
-                if frame:IsShown() then return end
-                frame:Show(); manager:FrameShown(frame)
-            end
-            function HideUIPanel(frame)
-                if not frame:IsShown() then return end
-                frame:Hide(); manager:FrameHidden(frame)
-            end
-            SMART_NAV_INPUT_DIRECTION = {
-                UP = { dirKey = "UP" }, DOWN = { dirKey = "DOWN" },
-            }
-            function SmartNavigation_AddJumpNavigationOverride(source, direction, destination)
-                source.routes = source.routes or {}
-                source.routes[direction.dirKey] = destination
-            end
-            local refreshed = 0
-            SmartNavigation = { RefreshButtonGroups = function(_, frame) assert(frame == manager.focusedFrame); refreshed = refreshed + 1 end }
             addon:ShowOptions()
-            assert(manager.shown == 1)
-            local focused = manager.focusedFrame
-            assert(registeredPanel == focused)
-            assert(focused.GetJumpHintLabel() == "PadSkinForever")
-            assert(focused.sizeMinus.routes.DOWN == focused.outline)
-            assert(focused.sizePlus.routes.DOWN == focused.outline)
-            assert(focused.outline.routes.DOWN == focused.toggleLegend)
-            assert(focused.toggleLegend.routes.UP == focused.outline)
+            local focused = namedWidgets.PadSkinForeverOptions
+            local bindingOwner = namedWidgets.PadSkinForeverControllerBindings
+            assert(focused and focused:IsShown())
+            assert(bindingOwner and bindingOwner.template == "SecureHandlerAttributeTemplate")
+            assert(bindingOwner.attrs["psf-active"] == true and stateDrivers == 1)
+            assert(bindingOwner.bindings.PADDUP[2] == "PadSkinForeverControllerUp")
+            assert(bindingOwner.bindings.PADDDOWN[2] == "PadSkinForeverControllerDown")
+            assert(bindingOwner.bindings.PAD1[2] == "PadSkinForeverControllerAccept")
+            assert(bindingOwner.bindings.PAD2[2] == "PadSkinForeverControllerBack")
+            assert(bindingOwner.attrs._onattributechanged:find("self:ClearBindings", 1, true))
+            assert(bindingOwner.attrs._onattributechanged:find("self:SetBindingClick", 1, true))
+            assert(not bindingOwner.attrs._onattributechanged:find("SetPreferredGamepadInteractTarget", 1, true))
+            local general
+            for _, w in ipairs(widgets) do if w.text == "General" then general = w end end
+            assert(general and general.PSFControllerFocused)
             local function click(text)
                 for _, w in ipairs(widgets) do if w.text == text then w.scripts.OnClick(w); return end end
                 error("Missing button: " .. text)
@@ -827,14 +848,28 @@ class AddonTests(unittest.TestCase):
             assert(addon:IsDebugTracing())
             click("Refresh")
             click("General")
-            assert(refreshed >= 5)
-            HideUIPanel(focused); assert(manager.hidden == 1)
-            addon:ShowOptions(); assert(manager.shown == 2)
-            focused:SmartNavigationCloseHandler()
-            assert(manager.hidden == 2 and not focused:IsShown())
-            GameMenuFrame = widget()
+            assert(general.PSFControllerFocused)
+            namedWidgets.PadSkinForeverControllerDown:Click()
+            local moved = false
+            for _, w in ipairs(widgets) do if w ~= general and w.PSFControllerFocused then moved = true end end
+            assert(moved)
+            namedWidgets.PadSkinForeverControllerBack:Click()
+            assert(not focused:IsShown() and bindingOwner.attrs["psf-active"] == false)
+            assert(next(bindingOwner.bindings) == nil)
+            addon:ShowOptions()
+            assert(focused:IsShown() and bindingOwner.attrs["psf-active"] == true and stateDrivers == 1)
+            bindingOwner:SetAttribute("state-combat", "combat")
+            assert(bindingOwner.attrs["psf-active"] == false and next(bindingOwner.bindings) == nil)
+            combat = true
+            focused.scripts.OnEvent(focused, "PLAYER_REGEN_DISABLED")
+            assert(not focused:IsShown())
+            combat = false
+            bindingOwner:SetAttribute("state-combat", "nocombat")
+            assert(next(bindingOwner.bindings) == nil)
+            addon:ShowOptions()
+            GameMenuFrame = widget("Frame", "GameMenuFrame", UIParent)
             GameMenuFrame.visible = true
-            GameMenuFrame.buttons = { widget(), widget() }
+            GameMenuFrame.buttons = { widget("Button"), widget("Button") }
             function GameMenuFrame:InitButtons() end
             addon:CreateGameMenuButton()
             local gameMenuButton = addon:GetGameMenuButton()
@@ -843,8 +878,8 @@ class AddonTests(unittest.TestCase):
             assert(GameMenuFrame.buttons[1].routes == nil)
             assert(GameMenuFrame.buttons[2].routes == nil)
             assert(GameMenuFrame.scripts.OnHide == nil)
-            gameMenuButton.scripts.OnClick(gameMenuButton)
-            assert(manager.shown == 3 and manager.focusedFrame == focused)
+            gameMenuButton:Click()
+            assert(focused:IsShown() and bindingOwner.attrs["psf-active"] == true)
         ''')
 
     def test_legend_toggle_success_and_rejection(self):

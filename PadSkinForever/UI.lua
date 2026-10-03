@@ -79,7 +79,7 @@ end
 
 local function SetButtonState(button)
     local colors = addon.uiColors
-    local active = button.PSFSelected or button.PSFHovered
+    local active = button.PSFSelected or button.PSFHovered or button.PSFControllerFocused
     local style = button.PSFStyle or "action"
     if style == "tab" then
         button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
@@ -128,6 +128,10 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
         self.PSFSelected = selected and true or nil
         SetButtonState(self)
     end
+    button.SetPSFControllerFocused = function(self, focused)
+        self.PSFControllerFocused = focused and true or nil
+        SetButtonState(self)
+    end
     button.SetPSFStyle = function(self, style)
         self.PSFStyle = style or "action"
         self.PSFIndicator:ClearAllPoints()
@@ -167,16 +171,24 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     if not check.Text:SetFont(self:GetUIFontPath(false), 13, "") then check.Text:SetFont(STANDARD_TEXT_FONT, 13, "") end
     check.Text:SetTextColor(unpack(self.uiColors.text))
     check.Text:SetText(text)
-    check:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(.09, .14, .11, .76)
+    local function SetCheckboxState(self)
+        local focused = self.PSFHovered or self.PSFControllerFocused
+        self:SetBackdropColor(focused and .09 or .08, focused and .14 or .09, focused and .11 or .105, focused and .76 or .18)
         self:SetBackdropBorderColor(0, 0, 0, 0)
-        focusBar:Show()
+        focusBar:SetShown(focused and true or false)
+    end
+    check:SetScript("OnEnter", function(self)
+        self.PSFHovered = true
+        SetCheckboxState(self)
     end)
     check:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(.08, .09, .105, .18)
-        self:SetBackdropBorderColor(0, 0, 0, 0)
-        focusBar:Hide()
+        self.PSFHovered = nil
+        SetCheckboxState(self)
     end)
+    check.SetPSFControllerFocused = function(self, focused)
+        self.PSFControllerFocused = focused and true or nil
+        SetCheckboxState(self)
+    end
     check:SetScript("OnClick", callback)
     return check
 end

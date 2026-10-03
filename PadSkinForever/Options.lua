@@ -1,29 +1,152 @@
 local _, addon = ...
 local panel
 local ShowTab
+local controllerOwner
+local controllerButtons = {}
+local controllerFocus
+local controllerActive
+
+local function ControlIsVisible(control)
+    if not control then return false end
+    if control.IsVisible then return control:IsVisible() end
+    return not control.IsShown or control:IsShown()
+end
+
+local function ControlIsUsable(control)
+    if not ControlIsVisible(control) then return false end
+    return not control.IsEnabled or control:IsEnabled()
+end
+
+local function EnsureControlVisible(control)
+    local scroll = control and control.PSFScrollFrame
+    local index = control and control.PSFScrollIndex
+    if not scroll or not index or not scroll.GetVerticalScroll or not scroll.SetVerticalScroll then return end
+    local rowHeight = control.PSFScrollRowHeight or 24
+    local rowTop, rowBottom = (index - 1) * rowHeight, index * rowHeight
+    local offset = scroll:GetVerticalScroll() or 0
+    local viewport = scroll.GetHeight and scroll:GetHeight() or 0
+    if rowTop < offset then
+        scroll:SetVerticalScroll(rowTop)
+    elseif viewport > 0 and rowBottom > offset + viewport then
+        scroll:SetVerticalScroll(rowBottom - viewport)
+    end
+end
+
+local function SetControllerFocus(control)
+    if controllerFocus == control then return end
+    if controllerFocus and controllerFocus.SetPSFControllerFocused then
+        controllerFocus:SetPSFControllerFocused(false)
+    end
+    controllerFocus = ControlIsUsable(control) and control or nil
+    if controllerFocus and controllerFocus.SetPSFControllerFocused then
+        controllerFocus:SetPSFControllerFocused(true)
+        EnsureControlVisible(controllerFocus)
+    end
+end
+
+local function RegisterControl(control)
+    if not panel or not control then return control end
+    panel.PSFControls = panel.PSFControls or {}
+    panel.PSFControls[#panel.PSFControls + 1] = control
+    return control
+end
+
+local function MoveControllerFocus(direction)
+    if not panel or not panel:IsShown() then return end
+    if not ControlIsUsable(controllerFocus) then
+        SetControllerFocus(panel.tabs and panel.tabs.general)
+        return
+    end
+    local fromX, fromY = controllerFocus:GetCenter()
+    if not fromX or not fromY then return end
+    local best, bestScore
+    for _, candidate in ipairs(panel.PSFControls or {}) do
+        if candidate ~= controllerFocus and ControlIsUsable(candidate) then
+            local x, y = candidate:GetCenter()
+            if x and y then
+                local dx, dy = x - fromX, y - fromY
+                local primary, cross
+                if direction == "UP" and dy > 2 then primary, cross = dy, math.abs(dx)
+                elseif direction == "DOWN" and dy < -2 then primary, cross = -dy, math.abs(dx)
+                elseif direction == "LEFT" and dx < -2 then primary, cross = -dx, math.abs(dy)
+                elseif direction == "RIGHT" and dx > 2 then primary, cross = dx, math.abs(dy) end
+                if primary then
+                    -- Prefer the closest control in the requested direction,
+                    -- strongly favoring controls that share the same row/column.
+                    local score = primary + cross * 2.75
+                    if cross > primary * 2.5 then score = score + cross * 4 end
+                    if not bestScore or score < bestScore then best, bestScore = candidate, score end
+                end
+            end
+        end
+    end
+    if best then SetControllerFocus(best) end
+end
+
+local function ActivateControllerFocus()
+    if ControlIsUsable(controllerFocus) and controllerFocus.Click then
+        controllerFocus:Click("LeftButton")
+    end
+end
+
+local function SetControllerActive(active)
+    controllerActive = active and true or nil
+    if not controllerActive then SetControllerFocus(nil) end
+    if InCombatLockdown() or not controllerOwner then return end
+    controllerOwner:SetAttribute("psf-active", controllerActive and true or false)
+end
+
+local function CreateControllerBindings()
+    if controllerOwner then return true end
+    if not RegisterStateDriver then
+        addon:Print("Controller navigation is unavailable in this client build.")
+        return false
+    end
+
+    controllerOwner = CreateFrame("Frame", "PadSkinForeverControllerBindings", UIParent, "SecureHandlerAttributeTemplate")
+    local actions = {
+        UP = { "PadSkinForeverControllerUp", function() MoveControllerFocus("UP") end },
+        DOWN = { "PadSkinForeverControllerDown", function() MoveControllerFocus("DOWN") end },
+        LEFT = { "PadSkinForeverControllerLeft", function() MoveControllerFocus("LEFT") end },
+        RIGHT = { "PadSkinForeverControllerRight", function() MoveControllerFocus("RIGHT") end },
+        ACCEPT = { "PadSkinForeverControllerAccept", ActivateControllerFocus },
+        BACK = { "PadSkinForeverControllerBack", function() if panel then panel:Hide() end end },
+    }
+    for action, data in pairs(actions) do
+        local button = CreateFrame("Button", data[1], UIParent)
+        button:SetScript("OnClick", data[2])
+        controllerButtons[action] = button
+    end
+
+    -- This restricted snippet owns PSF's temporary overrides. It never calls
+    -- Blizzard's gamepad binding stack. Combat clears the bindings securely
+    -- before insecure addon code could be blocked from doing so.
+    controllerOwner:SetAttribute("_onattributechanged", [[
+        if name == "psf-active" or name == "state-combat" then
+            self:ClearBindings()
+            local active = self:GetAttribute("psf-active")
+            local combat = self:GetAttribute("state-combat") == "combat"
+            if active and not combat then
+                self:SetBindingClick(true, "PADDUP", "PadSkinForeverControllerUp", "LeftButton")
+                self:SetBindingClick(true, "PADDDOWN", "PadSkinForeverControllerDown", "LeftButton")
+                self:SetBindingClick(true, "PADDLEFT", "PadSkinForeverControllerLeft", "LeftButton")
+                self:SetBindingClick(true, "PADDRIGHT", "PadSkinForeverControllerRight", "LeftButton")
+                self:SetBindingClick(true, "PAD1", "PadSkinForeverControllerAccept", "LeftButton")
+                self:SetBindingClick(true, "PAD2", "PadSkinForeverControllerBack", "LeftButton")
+            elseif combat and active then
+                self:SetAttribute("psf-active", false)
+            end
+        end
+    ]])
+    controllerOwner:SetAttribute("psf-active", false)
+    RegisterStateDriver(controllerOwner, "combat", "[combat] combat; nocombat")
+    return true
+end
 
 local function CloseOptions()
     if not panel or not panel:IsShown() then return end
-    if HideUIPanel then
-        HideUIPanel(panel)
-    else
-        panel:Hide()
-    end
-end
-
-local function RefreshControllerButtons()
-    if InCombatLockdown() or not panel or not panel:IsShown() then return end
-    if SmartNavigation and SmartNavigation.RefreshButtonGroups then
-        SmartNavigation:RefreshButtonGroups(panel)
-    end
-end
-
-local function LinkOwnedNavigation(source, direction, destination)
-    if not source or not destination or not SmartNavigation_AddJumpNavigationOverride then return end
-    if not SMART_NAV_INPUT_DIRECTION or not SMART_NAV_INPUT_DIRECTION[direction] then return end
-    -- Both endpoints are PSF-owned controls. Never write routes to Blizzard
-    -- frames: native route data participates in the protected binding stack.
-    SmartNavigation_AddJumpNavigationOverride(source, SMART_NAV_INPUT_DIRECTION[direction], destination)
+    SetControllerActive(false)
+    panel:Hide()
 end
 local outlines = { "", "OUTLINE", "THICKOUTLINE", "MONOCHROME,OUTLINE" }
 local outlineLabels = { "None", "Outline", "Thick outline", "Monochrome + outline" }
@@ -33,7 +156,7 @@ local function Label(parent, text, x, y, emphasized, size)
 end
 
 local function Button(parent, text, x, y, width, callback)
-    return addon:CreatePSFButton(parent, text, x, y, width, callback)
+    return RegisterControl(addon:CreatePSFButton(parent, text, x, y, width, callback))
 end
 
 local function FlatButton(parent, text, x, y, width, callback)
@@ -55,6 +178,7 @@ local function Checkbox(parent, text, key, y)
     end)
     check:SetChecked(addon.db[key])
     parent.checks[key] = check
+    RegisterControl(check)
 end
 
 local function RefreshFontList()
@@ -77,6 +201,10 @@ local function RefreshFontList()
             row.label:SetWidth(410)
             row.label:SetJustifyH("LEFT")
             panel.fontRows[index] = row
+            RegisterControl(row)
+            row.PSFScrollFrame = panel.fontScroll
+            row.PSFScrollIndex = index
+            row.PSFScrollRowHeight = 24
         end
         row:SetText(name)
         row:SetPSFSelected(name == addon.db.font)
@@ -91,7 +219,6 @@ local function RefreshFontList()
         row:Show()
     end
     for index = #names + 1, #panel.fontRows do panel.fontRows[index]:Hide() end
-    RefreshControllerButtons()
 end
 
 function addon:ShowOptions()
@@ -103,23 +230,7 @@ function addon:ShowOptions()
     if not panel then
         panel = CreateFrame("Frame", "PadSkinForeverOptions", UIParent, "BackdropTemplate")
         panel:Hide()
-        -- ShowUIPanel/HideUIPanel emit the native panel events consumed by the
-        -- gamepad focus manager. Calling FrameShown/FrameHidden ourselves can
-        -- taint its protected binding stack.
-        panel.SmartNavigationCloseHandler = function()
-            CloseOptions()
-            return true
-        end
-        panel.GetJumpHintLabel = function() return "PadSkinForever" end
-        if RegisterUIPanel then
-            RegisterUIPanel(panel, {
-                area = "center",
-                pushable = 0,
-                whileDead = 1,
-                allowOtherPanels = 1,
-                centerFrameSkipAnchoring = true,
-            })
-        end
+        panel.PSFControls = {}
         panel:SetSize(510, 700)
         panel:SetPoint("CENTER")
         panel:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -133,7 +244,7 @@ function addon:ShowOptions()
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
         Label(panel, "PadSkinForever", 22, -18, true, 17)
-        local version = Label(panel, "0.6.4 alpha", 182, -20, false, 12)
+        local version = Label(panel, "0.6.5 alpha", 182, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
         Button(panel, "Close", 408, -14, 80, CloseOptions)
         panel.pages = {}
@@ -172,6 +283,7 @@ function addon:ShowOptions()
         local scroll = CreateFrame("ScrollFrame", nil, panel.settings, "UIPanelScrollFrameTemplate")
         scroll:SetPoint("TOPLEFT", 22, -273)
         scroll:SetSize(438, 180)
+        panel.fontScroll = scroll
         panel.fontContent = CreateFrame("Frame", nil, scroll)
         panel.fontContent:SetSize(438, 180)
         scroll:SetScrollChild(panel.fontContent)
@@ -195,12 +307,7 @@ function addon:ShowOptions()
             addon:QueueRefresh()
         end)
         panel.toggleLegend = Button(panel.settings, "Toggle native legend", 22, -557, 210, function() addon:ToggleLegend() end)
-        LinkOwnedNavigation(panel.sizeMinus, "DOWN", panel.outline)
-        LinkOwnedNavigation(panel.sizePlus, "DOWN", panel.outline)
-        LinkOwnedNavigation(panel.outline, "UP", panel.sizeMinus)
-        LinkOwnedNavigation(panel.outline, "DOWN", panel.toggleLegend)
-        LinkOwnedNavigation(panel.toggleLegend, "UP", panel.outline)
-        local help = Hint(panel.settings, "Controller toggle: assign a free key in Key Bindings > PadSkinForever.\nNative gamepad bindings can take priority. Changes apply after combat.", 22, -596)
+        local help = Hint(panel.settings, "D-pad navigates PSF; A selects and B returns to the Game Menu.\nPSF uses isolated bindings and releases them automatically before combat.", 22, -596)
         help:SetWidth(460)
         help:SetJustifyH("LEFT")
         local glyphPage = CreateFrame("Frame", nil, panel)
@@ -361,6 +468,18 @@ function addon:ShowOptions()
             addon:ClearDebugHistory(); RefreshReport()
         end)
         debugPage:SetScript("OnShow", RefreshReport)
+
+        panel:SetScript("OnHide", function()
+            SetControllerActive(false)
+        end)
+        panel:RegisterEvent("PLAYER_REGEN_DISABLED")
+        panel:SetScript("OnEvent", function(self, event)
+            if event == "PLAYER_REGEN_DISABLED" and self:IsShown() then
+                controllerActive = nil
+                SetControllerFocus(nil)
+                self:Hide()
+            end
+        end)
     end
     for key, check in pairs(panel.checks) do check:SetChecked(self.db[key]) end
     panel.selected:SetText("Selected font: " .. self.db.font)
@@ -369,16 +488,16 @@ function addon:ShowOptions()
         if flags == self.db.fontFlags then panel.outline:SetText("Cooldown: " .. outlineLabels[index]) end
     end
     RefreshFontList()
+    panel:Show()
     ShowTab("general")
-    if ShowUIPanel then
-        ShowUIPanel(panel)
-    else
-        panel:Show()
+    if CreateControllerBindings() then
+        SetControllerActive(true)
+        SetControllerFocus(panel.tabs.general)
     end
 end
 
 ShowTab = function(name)
     for key, page in pairs(panel.pages) do page:SetShown(key == name) end
     for key, tab in pairs(panel.tabs or {}) do tab:SetPSFSelected(key == name) end
-    RefreshControllerButtons()
+    if controllerActive then SetControllerFocus(panel.tabs and panel.tabs[name]) end
 end

@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.4-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.5-alpha**.
 
 ## Wat zit erin?
 
@@ -81,21 +81,23 @@ Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderli
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
 
-## PSF-menu — 0.6.4-alpha
+## PSF-menu — 0.6.5-alpha
 
-Het `/psf`-venster gebruikt dezelfde antracietvulling, afgeronde grijze 1px-rand, groene focusaccenten en Inter-typografie als de vernieuwde inputlegenda. De rustige toestand is vlak: tabs gebruiken een groene onderstreep, instellingen tonen alleen onder focus een groene zijstrook en de fontlijst vormt één doorlopend vlak. Alleen echte actieknoppen behouden een compacte omlijning. Tabs, knoppen, vinkjes en fontregels zijn addon-eigen controls en blijven onderdeel van Blizzards native SmartNavigation.
+Het `/psf`-venster gebruikt dezelfde antracietvulling, afgeronde grijze 1px-rand, groene focusaccenten en Inter-typografie als de vernieuwde inputlegenda. De rustige toestand is vlak: tabs gebruiken een groene onderstreep, instellingen tonen alleen onder focus een groene zijstrook en de fontlijst vormt één doorlopend vlak. Alleen echte actieknoppen behouden een compacte omlijning. Tabs, knoppen, vinkjes en fontregels zijn addon-eigen controls en worden door PSF's geïsoleerde controllerlaag bediend.
 
 Naast het native ESC-menu staat een brede **PadSkinForever**-kaart met PSF-badge, `ADDON SETTINGS` en een groen `A OPEN`-label. De sterkere groene rand licht verder op onder controllerfocus. De kaart staat bewust buiten de rode kolom en buiten `GameMenuFrame.buttons`: die lijst en de navigatieroutes van zijn knoppen worden door Blizzard gepoold en zijn gekoppeld aan de beschermde gamepadbindingstack. Vanaf 0.6.4 schrijft PSF daarom geen enkele route, hook of waarde meer naar een Blizzard-knop. SmartNavigation vindt de zichtbare PSF-kaart uitsluitend op basis van zijn positie naast het menu.
 
-Openen en sluiten van het PSF-venster loopt via de publieke `ShowUIPanel`/`HideUIPanel`-route. Daardoor ontvangt Blizzards gamepadmanager zijn eigen paneelevents; PSF roept `FrameShown` en `FrameHidden` niet meer rechtstreeks aan. Alleen de richtingskoppelingen tussen PSF-eigen knoppen worden expliciet ingesteld, waaronder de knoppen onder de cooldown-fontgrootte. Tijdens combat weigert de kaart het openen met een chatmelding. De bestaande `/psf`-route blijft beschikbaar.
+Vanaf 0.6.5 registreert PSF zijn instellingenvenster nadrukkelijk **niet** als Blizzard-UIPanel. De Forever-bèta liet zowel `FrameShown/FrameHidden` als `ShowUIPanel/HideUIPanel` uiteindelijk via de native bindingstack bij `SetPreferredGamepadInteractTarget()` uitkomen en schreef die beschermde call aan PSF toe. PSF raakt daarom geen `FrameControlsManager`, SmartNavigation-routes of native bindinggroep meer aan.
+
+In plaats daarvan routeert een eigen secure binding-owner alleen D-pad, A en B tijdelijk naar zes PSF-knoppen. De focus beweegt uitsluitend over zichtbare PSF-controls; de fontlijst scrollt mee. B sluit PSF en geeft de controller direct terug aan het rode menu. Een secure combat-state-driver wist de tijdelijke routes vóór addoncode door combat lockdown kan worden geblokkeerd. Tijdens combat weigert de kaart het openen. De bestaande `/psf`-route blijft beschikbaar.
 
 Kom je van een versie ouder dan 0.6.0, sluit WoW dan volledig af omdat `UI.lua` en `GameMenu.lua` nieuwe bestanden zijn. Vanaf 0.6.0 of 0.6.1 volstaat ophalen en `/reload`. Test daarna:
 
 1. Na `/reload` eerst ESC openen en direct een native rode knop zoals **Options** activeren; controleer dat BugSack stil blijft.
 2. ESC opnieuw openen, zijwaarts naar **PadSkinForever** navigeren en bevestigen.
-3. In General vanaf de cooldown-min/plusknoppen omlaag navigeren naar **Cooldown: Outline** en **Toggle native legend**.
+3. Met D-pad door tabs, vinkjes, de fontlijst, plus/min, **Cooldown: Outline** en **Toggle native legend** navigeren; A moet elke focusbare regel activeren.
 4. PSF met B sluiten, ESC opnieuw openen en weer een native rode knop activeren.
-5. Herhalen na combat en na meerdere open-/sluitcycli. Controleer vooral op `ADDON_ACTION_FORBIDDEN` en `SetPreferredGamepadInteractTarget()`.
+5. Herhalen na meerdere open-/sluitcycli en vóór/na combat. Als combat start terwijl PSF open is, moet PSF sluiten en de tijdelijke controllerroute loslaten. Controleer vooral op `ADDON_ACTION_FORBIDDEN` en `SetPreferredGamepadInteractTarget()`.
 
 ## Meegeleverd font — 0.5.2-alpha
 
@@ -152,7 +154,7 @@ Test deze alpha eerst met alleen **PadSkinForever**, eventueel **Font Manager**,
 7. Test de Debug-tab: snapshots verversen, tracing starten, een PSF-instelling wijzigen, tracing stoppen en geschiedenis wissen.
 8. Meld bij een fout: clientbuild, addonversie, actieve addons, handeling en de volledige BugSack-stack. De eerder gemelde `SetPreferredGamepadInteractTarget()`-fout is een belangrijk regressiepunt.
 
-Vanaf **0.6.4-alpha** registreert het instellingenvenster zich als normaal UIPanel en gebruikt het uitsluitend `ShowUIPanel`/`HideUIPanel`. Blizzards eigen paneelevents verzorgen de controllerfocus; PSF raakt de `FrameControlsManager`, zijn bindinggroepen en de routes van native Game Menu-knoppen niet rechtstreeks aan. Tabwissels en fontlijstverversingen verversen de knopgroepen. De enige expliciete richtingsroutes liggen tussen PSF-eigen controls. Native B/back kan het venster sluiten; er worden geen eigen controllerbindings geïnstalleerd.
+Vanaf **0.6.5-alpha** blijft het instellingenvenster volledig buiten Blizzards UIPanel-, `FrameControlsManager`- en SmartNavigation-stack. Een PSF-eigen secure binding-owner onderschept D-pad, A en B alleen zolang het venster open is en wist zijn routes automatisch bij sluiten of combat. De visuele focus wordt door PSF zelf over uitsluitend eigen zichtbare controls verplaatst. Dit vervangt de 0.6.4-route via `ShowUIPanel`/`HideUIPanel`, die in de Forever-bèta alsnog de beschermde `SetPreferredGamepadInteractTarget()` liet uitvoeren onder PSF-attributie.
 
 Test `/psf` → je bestaande interfacefocusknop; navigeer naar tabs, vinkjes, plus/min-knoppen en fontlijst, bevestig een keuze en sluit met B. Herhaal openen/sluiten en controleer andere native vensters en BugSack, met name `SetPreferredGamepadInteractTarget()`.
 
