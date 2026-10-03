@@ -1,10 +1,11 @@
 # PadSkinForever
 
-Een kleine, zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.3.2-alpha**.
+Een kleine, zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.3.3-alpha**.
 
 ## Wat zit erin?
 
 - Een **Modern minimal** knopstijl: eigen dunne borders (grijs voor D-pad, Xbox-kleuren voor A/B/X/Y) en donkere neutrale lege slots, in de bestaande ronde/vierkante vorm. **Blizzard borders** behoudt de oorspronkelijke textures met blauwe tint. Beide vallen onder de schakelaar voor button skinning.
+- In 0.3.3 zijn alleen de ronde borders dikker: 3 texturepixels in plaats van 1,5. Dat geeft bij circa 48 px knopgrootte ongeveer 1 px extra; de zichtbare dikte hangt af van je UI-schaal. Vierkante borders blijven gelijk.
 - Actionbar-glyphs behouden de native kant/hoek. Bij vergroten schuiven ze mee zodat de binnenrand op zijn oorspronkelijke positie blijft; alle glyphs naar dezelfde rechterbovenhoek verplaatsen veroorzaakte overlap in 0.3.0. Zet **Move enlarged glyphs outward from their native anchor** uit om de native positie terug te krijgen. Legenda-glyphs houden hun eigen native anchors.
 - **Vivid glyph colors** gebruikt de gekleurde glyphtextures met volledige opacity, naast meer verzadigde Xbox-kleurtinten. Dit is afzonderlijk uit te zetten; native status en disabled-artwork blijven behouden.
 - Disabled-glyphhelderheid naar keuze: **45%, 70% of 100%** van de tint (standaard 70%). De native disabled-status en artwork blijven bestaan.

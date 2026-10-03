@@ -14,7 +14,8 @@ for shape in ['Circle','Square']:
                     for sx in range(4):
                         xx=x+(sx+.5)/4-32; yy=y+(sy+.5)/4-32
                         d=math.hypot(xx,yy) if shape=='Circle' else max(abs(xx),abs(yy))
-                        if (d<30 if kind=='Empty' else 28.5<=d<30):inside+=1
+                        inner = 27 if shape == "Circle" else 28.5
+                        if (d<30 if kind=='Empty' else inner<=d<30):inside+=1
                 a=round(255*inside/16)
                 rgb=(16,20,26) if kind=='Empty' else (255,255,255)
                 if kind=='Pressed': a=round(a*.65)
