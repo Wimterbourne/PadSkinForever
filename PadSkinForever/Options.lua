@@ -84,7 +84,7 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.2.0 alpha", 22, -20)
+        Label(panel, "PadSkinForever — 0.3.0 alpha", 22, -20)
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}
         panel.settings = CreateFrame("Frame", nil, panel)
@@ -93,7 +93,8 @@ function addon:ShowOptions()
         panel.pages.general = panel.settings
         Button(panel, "General", 22, -50, 100, function() ShowTab("general") end)
         Button(panel, "Glyphs", 128, -50, 100, function() ShowTab("glyphs") end)
-        Button(panel, "Debug", 234, -50, 100, function() ShowTab("debug") end)
+        Button(panel, "Buttons", 234, -50, 100, function() ShowTab("buttons") end)
+        Button(panel, "Debug", 340, -50, 100, function() ShowTab("debug") end)
         Label(panel.settings, "Blizzard layout and gamepad behavior remain native.", 22, -56)
         panel.checks = {}
         panel.settings.checks = panel.checks
@@ -169,8 +170,38 @@ function addon:ShowOptions()
         end
         Group("A / B / X / Y", "faceGlyphStyle", "faceGlyphScale", addon.faceStyles, addon.faceStyleLabels, -56)
         Group("D-pad", "dpadGlyphStyle", "dpadGlyphScale", addon.dpadStyles, addon.dpadStyleLabels, -202)
-        local glyphHelp = Label(glyphPage, "Size range: 50–200%. Changes wait until combat ends.\nDisabled glyphs stay dimmed. Native input state remains with Blizzard.\nLegend theming off also restores its native glyph style and size.", 22, -346)
+        glyphPage.checks = {}
+        Checkbox(glyphPage, "Place actionbar glyphs outside the skill icon", "glyphOutside", -325)
+        local intensity
+        intensity = Button(glyphPage, "", 22, -367, 330, function()
+            local current = addon.db.disabledGlyphIntensity
+            addon.db.disabledGlyphIntensity = current < .6 and .7 or current < .9 and 1 or .45
+            intensity:SetText("Disabled glyph brightness: " .. math.floor(addon.db.disabledGlyphIntensity * 100 + .5) .. "%")
+            addon:QueueRefresh()
+        end)
+        glyphPage:HookScript("OnShow", function()
+            glyphPage.checks.glyphOutside:SetChecked(addon.db.glyphOutside)
+            intensity:SetText("Disabled glyph brightness: " .. math.floor(addon.db.disabledGlyphIntensity * 100 + .5) .. "%")
+        end)
+        local glyphHelp = Label(glyphPage, "Size range: 50–200%. Changes wait until combat ends.\nDisabled glyphs stay dimmed. Native input state remains with Blizzard.\nLegend theming off also restores its native glyph style and size.", 22, -416)
         glyphHelp:SetWidth(465); glyphHelp:SetJustifyH("LEFT")
+
+        local buttonPage = CreateFrame("Frame", nil, panel)
+        buttonPage:SetPoint("TOPLEFT", 0, -90)
+        buttonPage:SetPoint("BOTTOMRIGHT")
+        panel.pages.buttons = buttonPage
+        Label(buttonPage, "Modern minimalistic Xbox controls", 22, -10)
+        local buttonStyle
+        local function UpdateButtonStyle()
+            buttonStyle:SetText(addon.db.buttonStyle == "minimal" and "Modern minimal" or "Blizzard borders")
+        end
+        buttonStyle = Button(buttonPage, "", 22, -56, 330, function()
+            addon.db.buttonStyle = addon.db.buttonStyle == "minimal" and "native" or "minimal"
+            UpdateButtonStyle(); addon:QueueRefresh()
+        end)
+        buttonPage:HookScript("OnShow", UpdateButtonStyle)
+        local buttonHelp = Label(buttonPage, "Thin borders and dark empty slots. Native button shapes remain.\nEnable button skinning on General to apply this style.\nCooldowns, spell highlights and input behavior stay with Blizzard.", 22, -108)
+        buttonHelp:SetWidth(465); buttonHelp:SetJustifyH("LEFT")
 
         local debugPage = CreateFrame("Frame", nil, panel)
         debugPage:SetPoint("TOPLEFT", 0, -90)

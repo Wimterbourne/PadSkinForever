@@ -16,14 +16,26 @@ local function CaptureAtlases(icon, original)
     end
 end
 
-function addon:SkinGlyph(icon, enabled, label)
+local function Points(icon)
+    local points = {}
+    for index = 1, icon:GetNumPoints() do points[index] = { icon:GetPoint(index) } end
+    return points
+end
+
+function addon:SkinGlyph(icon, enabled, label, button)
     if not icon then return end
     self:DebugSurface(icon, label, "glyph frame")
     local original = originals[icon]
     if not original then
-        original = { scale = icon:GetScale(), atlases = {} }
+        original = { scale = icon:GetScale(), atlases = {}, points = Points(icon) }
         CaptureAtlases(icon, original)
         originals[icon] = original
+        hooksecurefunc(icon, "SetPoint", function()
+            if addon.applyingSkin then return end
+            original.points = Points(icon)
+            original.positioned = false
+            addon:QueueRefresh()
+        end)
         hooksecurefunc(icon, "RefreshIconTextures", function()
             -- Blizzard just supplied current device/key art. Save that art,
             -- not our previous replacement, for future restoration.
@@ -45,6 +57,17 @@ function addon:SkinGlyph(icon, enabled, label)
         icon:SetScale(original.scale)
         original.scaled = false
     end
+    -- Only actionbar prompts move. Legend icons belong to a separate layout.
+    if enabled and button and self.db.glyphOutside and (isFace or isDpad) then
+        icon:ClearAllPoints()
+        -- Offsets use the glyph's scaled coordinates; keep a two-pixel gap.
+        icon:SetPoint("BOTTOMLEFT", button, "TOPRIGHT", 2 / desiredScale, 2 / desiredScale)
+        original.positioned = true
+    elseif original.positioned then
+        icon:ClearAllPoints()
+        for _, point in ipairs(original.points) do icon:SetPoint(unpack(point)) end
+        original.positioned = false
+    end
     local overriding = false
     for state, texture in pairs(icon.textureStateTextures or {}) do
         self:DebugSurface(texture, label .. "/state" .. state, "glyph texture")
@@ -61,7 +84,7 @@ function addon:SkinGlyph(icon, enabled, label)
         end
         local color = style == "xboxColor" and colors[key] or style == "xboxAccent" and self.db.accent or nil
         if color and texture == icon.DisabledTexture then
-            color = { color[1] * .45, color[2] * .45, color[3] * .45 }
+            color = { color[1] * self.db.disabledGlyphIntensity, color[2] * self.db.disabledGlyphIntensity, color[3] * self.db.disabledGlyphIntensity }
         end
         self:Tint(texture, color)
     end

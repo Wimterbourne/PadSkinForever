@@ -3,6 +3,9 @@ PadSkinForever = addon -- Used only by our Bindings.xml command.
 addon.name = addonName
 addon.defaults = {
     skinButtons = true,
+    buttonStyle = "minimal",
+    glyphOutside = true,
+    disabledGlyphIntensity = .7,
     colorGlyphs = true, -- Legacy setting, migrated to faceGlyphStyle.
     faceGlyphScale = 1,
     dpadGlyphScale = 1,
@@ -79,6 +82,8 @@ events:SetScript("OnEvent", function(_, event, name)
         for _, key in ipairs({ "faceGlyphScale", "dpadGlyphScale" }) do
             addon.db[key] = math.max(.5, math.min(2, tonumber(addon.db[key]) or 1))
         end
+        if addon.db.buttonStyle ~= "minimal" and addon.db.buttonStyle ~= "native" then addon.db.buttonStyle = "native" end
+        addon.db.disabledGlyphIntensity = math.max(.2, math.min(1, tonumber(addon.db.disabledGlyphIntensity) or .7))
         local faceStyle, dpadStyle = addon.db.faceGlyphStyle, addon.db.dpadGlyphStyle
         if faceStyle ~= "native" and faceStyle ~= "xbox" and faceStyle ~= "xboxColor" then addon.db.faceGlyphStyle = "native" end
         if dpadStyle ~= "native" and dpadStyle ~= "xbox" and dpadStyle ~= "xboxAccent" then addon.db.dpadGlyphStyle = "native" end

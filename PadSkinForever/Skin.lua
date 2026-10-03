@@ -50,11 +50,14 @@ local function Hook(object, method)
     methods[method] = true
     -- A post-hook only requests a later visual refresh; it does not replace
     -- Blizzard's method or run protected interaction/navigation calls.
-    hooksecurefunc(object, method, function() addon:QueueRefresh() end)
+    hooksecurefunc(object, method, function()
+        if not addon.applyingSkin then addon:QueueRefresh() end
+    end)
 end
 
 local function SkinButton(button, label)
     local db = addon.db
+    addon:SkinButtonAssets(button)
     local color = db.skinButtons and db.accent or nil
     addon:DebugSurface(button:GetNormalTexture(), label .. "/border", "button border")
     addon:DebugSurface(button:GetPushedTexture(), label .. "/pushed", "button border")
@@ -63,7 +66,7 @@ local function SkinButton(button, label)
     addon:Tint(button:GetPushedTexture(), color)
     addon:Tint(button.SlotArt, color)
     addon:Tint(button.SlotBackground, color)
-    addon:SkinGlyph(button.ButtonIcon, true, label .. "/glyph")
+    addon:SkinGlyph(button.ButtonIcon, true, label .. "/glyph", button)
     for _, name in ipairs({ "cooldown", "chargeCooldown", "lossOfControlCooldown" }) do
         local cooldown = button[name]
         if cooldown and cooldown.GetCountdownFontString then

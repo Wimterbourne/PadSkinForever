@@ -55,6 +55,10 @@ C_CVar = { SetCVar = function(_, value)
 end }
 function texture(atlas)
     local t = { atlas = atlas, rgba = {1, 1, 1, 0.8}, desaturation = 0 }
+    function t:GetTexture() return self.file end
+    function t:SetTexture(value) assert(not combat); self.file = value; self.atlas = nil end
+    function t:GetTexCoord() return 0, 1, 0, 1 end
+    function t:SetTexCoord(...) self.coords = {...} end
     function t:GetAtlas() return self.atlas end
     function t:SetAtlas(value) assert(not combat); self.atlas = value end
     function t:GetVertexColor() return unpack(self.rgba) end
@@ -73,6 +77,12 @@ normal = texture("gamepad-xbox1-buttona-normal")
 disabled = texture("gamepad-xbox1-buttona-disabled")
 icon = { scale = 1, mappedButtonKey = "PAD1", DisabledTexture = disabled,
          textureStateTextures = {normal, disabled}, RefreshIconTextures = function() end }
+icon.points = { {"TOPRIGHT", nil, "TOPRIGHT", 0, 0} }
+function icon:GetNumPoints() return #self.points end
+function icon:GetPoint(i) return unpack(self.points[i]) end
+function icon:ClearAllPoints() assert(not combat); self.points = {} end
+function icon:SetPoint(...) assert(not combat); table.insert(self.points, {...}) end
+function icon:GetSize() return 20, 20 end
 function icon:GetScale() return self.scale end
 function icon:SetScale(scale) assert(not combat); self.scale = scale end
 countdown = font()
@@ -91,13 +101,54 @@ class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Skin.lua", "Options.lua"):
+        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Skin.lua", "Options.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
 
     def check(self, source):
         self.lua.execute(source)
+
+    def test_minimal_assets_and_native_restore(self):
+        self.check('''
+            assert(button.normal.file:find("SquareBorder", 1, true))
+            assert(button.SlotArt.file:find("SquareEmpty", 1, true))
+            addon.db.buttonStyle = "native"; addon:QueueRefresh(); drain()
+            assert(button.normal:GetAtlas() == "border")
+            assert(button.SlotArt:GetAtlas() == "slot")
+            button.CircleMask = { IsShown = function() return true end }
+            addon.db.buttonStyle = "minimal"; addon:QueueRefresh(); drain()
+            assert(button.normal.file:find("CircleBorder", 1, true))
+        ''')
+
+    def test_minimal_restores_latest_native_shape_and_alpha(self):
+        self.check('''
+            local decoration = { alpha = .8 }
+            function decoration:GetAlpha() return self.alpha end
+            function decoration:SetAlpha(value) self.alpha = value end
+            button.Border = decoration
+            addon:QueueRefresh(); drain(); assert(decoration.alpha == 0)
+            button.normal:SetAtlas("new-native-circle")
+            button.CircleMask = { IsShown = function() return true end }
+            button:SetShapeToCircle(); drain()
+            addon.db.skinButtons = false; addon:QueueRefresh(); drain()
+            assert(button.normal:GetAtlas() == "new-native-circle")
+            assert(decoration.alpha == .8)
+        ''')
+
+    def test_outside_glyph_anchors_restore_and_native_update(self):
+        self.check('''
+            assert(icon.points[1][1] == "BOTTOMLEFT" and icon.points[1][2] == button)
+            addon.db.faceGlyphScale = 2; addon:QueueRefresh(); drain()
+            assert(icon.points[1][4] == 1 and icon.points[1][5] == 1)
+            addon.db.glyphOutside = false; addon:QueueRefresh(); drain()
+            assert(icon.points[1][1] == "TOPRIGHT")
+            icon:ClearAllPoints(); icon:SetPoint("LEFT", button, "RIGHT", 7, 3); drain()
+            addon.db.glyphOutside = true; addon:QueueRefresh(); drain()
+            addon.db.glyphOutside = false; addon:QueueRefresh(); drain()
+            assert(icon.points[1][1] == "LEFT" and icon.points[1][4] == 7)
+            assert(#timers == 0)
+        ''')
 
     def test_xbox_colors_and_disabled_feedback(self):
         self.check('''
