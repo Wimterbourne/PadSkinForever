@@ -1,11 +1,17 @@
 local _, addon = ...
 
+local bundled = {
+    ["PSF Inter Regular"] = "Interface\\AddOns\\PadSkinForever\\Media\\Fonts\\Inter-Regular.ttf",
+    ["PSF Inter SemiBold"] = "Interface\\AddOns\\PadSkinForever\\Media\\Fonts\\Inter-SemiBold.ttf",
+}
+
 local function SharedMedia()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
 end
 
 function addon:GetFonts()
     local fonts = { ["Blizzard default"] = STANDARD_TEXT_FONT }
+    for name, path in pairs(bundled) do fonts[name] = path end
     local media = SharedMedia()
     if media then
         for _, name in ipairs(media:List("font")) do
@@ -34,6 +40,11 @@ function addon:GetFontPath()
     return self:GetFonts()[self.db.font] or STANDARD_TEXT_FONT
 end
 
+function addon:GetLegendHeaderFontPath()
+    if self.db.font == "PSF Inter Regular" then return bundled["PSF Inter SemiBold"] end
+    return self:GetFontPath()
+end
+
 local observedMedia
 function addon:ObserveSharedMedia()
     local media = SharedMedia()
@@ -42,5 +53,8 @@ function addon:ObserveSharedMedia()
         media.RegisterCallback(addon, "LibSharedMedia_Registered", function(_, mediaType)
             if mediaType == "font" then addon:QueueRefresh() end
         end)
+        if media.Register then
+            for name, path in pairs(bundled) do media:Register("font", name, path) end
+        end
     end
 end

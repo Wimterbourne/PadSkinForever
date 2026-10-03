@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.1-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.2-alpha**.
 
 ## Wat zit erin?
 
@@ -56,7 +56,7 @@ De questskin bereikt nu ook de geneste detail-/rewardsvensters, zoekveld, catego
 
 Bij ronde → vierkante minimap wordt zichtbaarheid na de kleurherstelling toegepast. Dat voorkomt dat het herstel van de ronde borderkleur diens alpha terugzet boven de vierkante kaart. Test meerdere rond/vierkantwissels met minimapskin voortdurend aan.
 
-32 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
+34 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
 
 ## Ronde minimap — 0.4.2 alpha
 
@@ -79,6 +79,14 @@ De **eigen loot-toaster** leest ontvangen item-lootberichten, ook bij autoloot e
 Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderlijke ingebouwde status-/voertuig-/class-resource-elementen blijven native. Nieuwe of afwijkende vensters kunnen nog ongestylede onderdelen hebben. De skins vervangen geen native klikfuncties en voeren geen loot- of gamepad-interactie uit. **De volledige themaversie moet nog in de echte client worden getest**, inclusief secure/taintgedrag.
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
+
+## Meegeleverd font — 0.5.2-alpha
+
+**PSF Inter Regular** en **PSF Inter SemiBold** zijn direct beschikbaar in General, ook zonder Font Manager of LibSharedMedia. Als LibSharedMedia aanwezig is, worden beide daar geregistreerd. Kies Regular voor de regels; de legenda gebruikt dan automatisch SemiBold voor de titel en native groepskoppen. Andere fontkeuzes blijven behouden en gebruiken hun eigen font voor de kop.
+
+De twee ongewijzigde statische TTF-bestanden komen uit [Inter 4.1](https://github.com/rsms/inter/releases/tag/v4.1), door The Inter Project Authors. Ze vallen onder de SIL Open Font License 1.1, meegeleverd in `PadSkinForever/Media/Fonts/LICENSE-Inter.txt`. Het MIT-licentiebeleid van de addon geldt niet voor deze fonts. Er worden geen variabele fonts, Windows-systeemfonts of fonts van de gebruiker meegeleverd.
+
+Na ophalen: start WoW volledig opnieuw voor de nieuwe fontbestanden, kies **PSF Inter Regular** in `/psf` → General en controleer de legenda, modifierkoppen, cooldowns, theming uit/aan en `/reload`. Bestaande FOT-Rodin-instellingen worden niet automatisch vervangen.
 
 ## Inputlegenda — 0.5.1-alpha
 
@@ -112,7 +120,7 @@ De native gamepad-bindingstack kan voorrang hebben op gewone addonbindings. Deze
 
 Gebouwd na broncodecontrole van Forever **1.60.1 (70205)**, [Gethe/wow-ui-source, commit e3ecc27](https://github.com/Gethe/wow-ui-source/commit/e3ecc27). TOC-interface: **16001**.
 
-Lokaal gecontroleerd: Lua 5.1-syntax, XML en 32 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
+Lokaal gecontroleerd: Lua 5.1-syntax, XML en 34 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
 
 Skinwijzigingen worden buiten combat toegepast. Post-hooks op de betrokken frames vragen alleen een latere visuele refresh aan; native functies worden niet vervangen. Dit is een conservatieve aanpak, geen bewijs dat de addon taintvrij is.
 

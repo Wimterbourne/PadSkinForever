@@ -137,6 +137,9 @@ function addon:LayoutLegend(legend)
                 local text = frame.ControlDescText.FontString
                 if text.GetTextColor and not saved[text] then saved[text] = { color = { text:GetTextColor() } } end
                 text:SetTextColor(.94, .95, .96, 1)
+                if header and row == 0 then
+                    text:SetFont(self:GetLegendHeaderFontPath(), self.db.legendFontSize + 2, "")
+                end
                 local height = math.max(self.db.legendFontSize, text:GetStringHeight())
                 local iconWidth = 0
                 for _, part in ipairs({ "InputIcon1", "IconDivider1", "InputIcon2" }) do
@@ -201,7 +204,7 @@ function addon:LayoutLegend(legend)
             end
             local panel = Panel(background)
             panel.title:SetShown(not header)
-            if not header then panel.title:SetFont(self:GetFontPath(), self.db.legendFontSize + 2, "") end
+            if not header then panel.title:SetFont(self:GetLegendHeaderFontPath(), self.db.legendFontSize + 2, "") end
             local lineY = header and offsets[0] + rows[0] + 6 or pad + self.db.legendFontSize + 7
             panel.line:ClearAllPoints()
             panel.line:SetPoint("TOPLEFT", panel, "TOPLEFT", pad, -lineY)

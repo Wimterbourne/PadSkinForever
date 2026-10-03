@@ -335,6 +335,37 @@ class AddonTests(unittest.TestCase):
             assert(background.height > height)
         ''')
 
+    def test_bundled_inter_is_available_without_libraries(self):
+        self.check(r'''
+            LibStub = nil; FontManagerDB = nil
+            local fonts = addon:GetFonts()
+            assert(fonts["PSF Inter Regular"] == "Interface\\AddOns\\PadSkinForever\\Media\\Fonts\\Inter-Regular.ttf")
+            addon.db.font = "PSF Inter Regular"
+            addon:QueueRefresh(); drain()
+            assert(countdown.values[1] == fonts["PSF Inter Regular"])
+            assert(addon:GetLegendHeaderFontPath() == fonts["PSF Inter SemiBold"])
+            addon.db.font = "Blizzard default"
+            assert(addon:GetLegendHeaderFontPath() == STANDARD_TEXT_FONT)
+        ''')
+
+    def test_bundled_inter_registers_when_shared_media_loads_late(self):
+        self.check('''
+            local media = { fonts = {}, registrations = 0 }
+            function media:List() local names = {}; for name in pairs(self.fonts) do names[#names+1] = name end; return names end
+            function media:Fetch(_, name) return self.fonts[name] end
+            function media:Register(kind, name, path)
+                assert(kind == "font"); self.fonts[name] = path
+                self.registrations = self.registrations + 1
+                self.callback("LibSharedMedia_Registered", kind, name)
+            end
+            function media.RegisterCallback(_, _, callback) media.callback = callback end
+            LibStub = function() return media end
+            addon:QueueRefresh(); drain(); drain()
+            assert(media.fonts["PSF Inter Regular"] and media.fonts["PSF Inter SemiBold"])
+            addon:QueueRefresh(); drain()
+            assert(media.registrations == 2)
+        ''')
+
     def test_minimal_assets_and_native_restore(self):
         self.check('''
             assert(button.normal.file:find("SquareBorder", 1, true))
