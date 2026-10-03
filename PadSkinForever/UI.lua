@@ -4,12 +4,13 @@ local _, addon = ...
 -- Blizzard frames, bindings and navigation tables are never modified here.
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local CORNER = "Interface\\AddOns\\PadSkinForever\\Media\\LegendCorner"
+local PANEL_RADIUS = 12
 
 addon.uiColors = {
     fill = { .055, .062, .073, .97 },
     raised = { .085, .095, .11, .98 },
-    border = { .40, .43, .47, 1 },
-    borderSoft = { .27, .30, .34, 1 },
+    border = { .31, .34, .38, .96 },
+    borderSoft = { .23, .26, .30, .88 },
     accent = { .34, .86, .49, 1 },
     text = { .94, .95, .96, 1 },
     muted = { .64, .67, .71, 1 },
@@ -44,21 +45,21 @@ function addon:CreateRoundedPanel(parent)
         for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
             local texture = panel:CreateTexture(nil, drawLayer)
             texture:SetTexture(CORNER .. asset .. ".tga")
-            texture:SetSize(8, 8)
+            texture:SetSize(PANEL_RADIUS, PANEL_RADIUS)
             texture:SetPoint(corner, panel, corner)
             local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
             texture:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
             Color(texture, color)
         end
         if asset == "Fill" then
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMRIGHT", 8, 0, -8, 0)
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -8, 8, 8)
-            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -8, -8, 8)
+            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMRIGHT", PANEL_RADIUS, 0, -PANEL_RADIUS, 0)
+            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -PANEL_RADIUS, PANEL_RADIUS, PANEL_RADIUS)
+            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -PANEL_RADIUS, -PANEL_RADIUS, PANEL_RADIUS)
         else
-            Rect(panel, drawLayer, color, "TOPLEFT", "TOPRIGHT", 8, 0, -8, -1)
-            Rect(panel, drawLayer, color, "BOTTOMLEFT", "BOTTOMRIGHT", 8, 0, -8, 1)
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -8, 1, 8)
-            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -8, -1, 8)
+            Rect(panel, drawLayer, color, "TOPLEFT", "TOPRIGHT", PANEL_RADIUS, 0, -PANEL_RADIUS, -1)
+            Rect(panel, drawLayer, color, "BOTTOMLEFT", "BOTTOMRIGHT", PANEL_RADIUS, 0, -PANEL_RADIUS, 1)
+            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -PANEL_RADIUS, 1, PANEL_RADIUS)
+            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -PANEL_RADIUS, -1, PANEL_RADIUS)
         end
     end
     parent.PSFRoundedPanel = panel
@@ -78,16 +79,29 @@ end
 
 local function SetButtonState(button)
     local colors = addon.uiColors
-    local selected = button.PSFSelected or button.PSFHovered
-    if selected then
+    local active = button.PSFSelected or button.PSFHovered
+    local style = button.PSFStyle or "action"
+    if style == "tab" then
+        button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
+        button:SetBackdropBorderColor(0, 0, 0, 0)
+        button.PSFIndicator:SetShown(active and true or false)
+        button.PSFIndicator:SetVertexColor(unpack(colors.accent))
+    elseif style == "flat" or style == "list" then
+        button:SetBackdropColor(.08, .10, .095, active and .78 or style == "list" and .24 or .12)
+        button:SetBackdropBorderColor(0, 0, 0, 0)
+        button.PSFIndicator:SetShown(active and true or false)
+        button.PSFIndicator:SetVertexColor(unpack(colors.accent))
+    elseif active then
         button:SetBackdropColor(.09, .14, .11, .98)
         button:SetBackdropBorderColor(unpack(colors.accent))
+        button.PSFIndicator:Hide()
     else
         button:SetBackdropColor(unpack(colors.raised))
         button:SetBackdropBorderColor(unpack(colors.borderSoft))
+        button.PSFIndicator:Hide()
     end
     if button.PSFText then
-        button.PSFText:SetTextColor(unpack(selected and colors.text or colors.muted))
+        button.PSFText:SetTextColor(unpack(active and colors.text or colors.muted))
     end
 end
 
@@ -96,6 +110,10 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
     button:SetPoint("TOPLEFT", x, y)
     button:SetSize(width, 28)
     button:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    button.PSFIndicator = button:CreateTexture(nil, "ARTWORK")
+    button.PSFIndicator:SetTexture(WHITE)
+    button.PSFIndicator:SetVertexColor(unpack(self.uiColors.accent))
+    button.PSFIndicator:Hide()
     button.PSFText = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     button.PSFText:SetPoint("CENTER")
     if not button.PSFText:SetFont(self:GetUIFontPath(true), 13, "") then
@@ -110,6 +128,21 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
         self.PSFSelected = selected and true or nil
         SetButtonState(self)
     end
+    button.SetPSFStyle = function(self, style)
+        self.PSFStyle = style or "action"
+        self.PSFIndicator:ClearAllPoints()
+        if self.PSFStyle == "tab" then
+            self.PSFIndicator:SetPoint("BOTTOMLEFT", 8, 0)
+            self.PSFIndicator:SetPoint("BOTTOMRIGHT", -8, 0)
+            self.PSFIndicator:SetHeight(2)
+        else
+            self.PSFIndicator:SetPoint("TOPLEFT", 0, -5)
+            self.PSFIndicator:SetPoint("BOTTOMLEFT", 0, 5)
+            self.PSFIndicator:SetWidth(2)
+        end
+        SetButtonState(self)
+    end
+    button.PSFStyle = "action"
     SetButtonState(button)
     return button
 end
@@ -119,8 +152,12 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     check:SetPoint("TOPLEFT", x, y)
     check:SetSize(460, 28)
     check:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-    check:SetBackdropColor(unpack(self.uiColors.raised))
-    check:SetBackdropBorderColor(unpack(self.uiColors.borderSoft))
+    check:SetBackdropColor(.08, .09, .105, .18)
+    check:SetBackdropBorderColor(0, 0, 0, 0)
+    local focusBar = check:CreateTexture(nil, "ARTWORK")
+    focusBar:SetTexture(WHITE); focusBar:SetWidth(2)
+    focusBar:SetPoint("TOPLEFT", 0, -5); focusBar:SetPoint("BOTTOMLEFT", 0, 5)
+    focusBar:SetVertexColor(unpack(self.uiColors.accent)); focusBar:Hide()
     local mark = check:CreateTexture(nil, "ARTWORK")
     mark:SetTexture(WHITE); mark:SetSize(14, 14); mark:SetPoint("LEFT", 7, 0)
     mark:SetVertexColor(unpack(self.uiColors.accent))
@@ -131,10 +168,14 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     check.Text:SetTextColor(unpack(self.uiColors.text))
     check.Text:SetText(text)
     check:SetScript("OnEnter", function(self)
-        self:SetBackdropBorderColor(unpack(addon.uiColors.accent))
+        self:SetBackdropColor(.09, .14, .11, .76)
+        self:SetBackdropBorderColor(0, 0, 0, 0)
+        focusBar:Show()
     end)
     check:SetScript("OnLeave", function(self)
-        self:SetBackdropBorderColor(unpack(addon.uiColors.borderSoft))
+        self:SetBackdropColor(.08, .09, .105, .18)
+        self:SetBackdropBorderColor(0, 0, 0, 0)
+        focusBar:Hide()
     end)
     check:SetScript("OnClick", callback)
     return check

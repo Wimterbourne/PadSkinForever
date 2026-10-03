@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.2-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.3-alpha**.
 
 ## Wat zit erin?
 
@@ -81,9 +81,9 @@ Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderli
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
 
-## PSF-menu — 0.6.2-alpha
+## PSF-menu — 0.6.3-alpha
 
-Het `/psf`-venster gebruikt dezelfde antracietvulling, afgeronde grijze 1px-rand, groene focusaccenten en Inter-typografie als de vernieuwde inputlegenda. Tabs, knoppen, vinkjes en fontregels zijn addon-eigen controls en blijven onderdeel van Blizzards native SmartNavigation. De geselecteerde tab en het element onder controllerfocus zijn zichtbaar gemarkeerd.
+Het `/psf`-venster gebruikt dezelfde antracietvulling, afgeronde grijze 1px-rand, groene focusaccenten en Inter-typografie als de vernieuwde inputlegenda. De rustige toestand is vlak: tabs gebruiken een groene onderstreep, instellingen tonen alleen onder focus een groene zijstrook en de fontlijst vormt één doorlopend vlak. Alleen echte actieknoppen behouden een compacte omlijning. Tabs, knoppen, vinkjes en fontregels zijn addon-eigen controls en blijven onderdeel van Blizzards native SmartNavigation.
 
 Boven het native ESC-menu staat een brede **PadSkinForever**-kaart met PSF-badge, `ADDON SETTINGS` en een groen `A OPEN`-label. De sterkere groene rand licht verder op onder controllerfocus. Vanuit de native knop **Options** navigeer je omhoog naar PSF; omlaag keert terug naar Options. De verticale wrap loopt PSF → laatste rode knop → … → Options → PSF. Dit is bewust geen item in `GameMenuFrame.buttons`: die rode lijst wordt door Blizzard gepoold, opnieuw opgebouwd en aan de gamepadbindingstack gekoppeld. PSF wijzigt de pool, klikcallbacks, acties en bindinggroepen niet. Alleen de publieke SmartNavigation-routehelpers leggen na iedere native menurebuild vier richtingsrelaties op de eerste knop, laatste knop en PSF-kaart vast; bij sluiten ruimt Blizzard zijn eigen routes op en wist PSF zijn eigen route.
 
