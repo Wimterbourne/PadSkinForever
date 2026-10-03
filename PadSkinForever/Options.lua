@@ -1,27 +1,29 @@
 local _, addon = ...
 local panel
 local ShowTab
-local registeredManager
-local function SyncController()
-    if not panel or InCombatLockdown() then return end
-    local manager = GamepadMode and GamepadMode.FrameControlsManager
-    local enabled = InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()
-    if registeredManager and (not panel:IsShown() or manager ~= registeredManager or not enabled) then
-        registeredManager:FrameHidden(panel)
-        registeredManager = nil
-    end
-    if manager and enabled and panel:IsShown() then
-        -- Documented native opt-in for windows that do not use ShowUIPanel.
-        -- Do not install a separate binding group or replace navigation methods.
-        manager:FrameShown(panel)
-        registeredManager = manager
+
+local function CloseOptions()
+    if not panel or not panel:IsShown() then return end
+    if HideUIPanel then
+        HideUIPanel(panel)
+    else
+        panel:Hide()
     end
 end
+
 local function RefreshControllerButtons()
-    if InCombatLockdown() or not registeredManager or not panel:IsShown() then return end
-    if registeredManager.focusedFrame == panel and SmartNavigation and SmartNavigation.RefreshButtonGroups then
+    if InCombatLockdown() or not panel or not panel:IsShown() then return end
+    if SmartNavigation and SmartNavigation.RefreshButtonGroups then
         SmartNavigation:RefreshButtonGroups(panel)
     end
+end
+
+local function LinkOwnedNavigation(source, direction, destination)
+    if not source or not destination or not SmartNavigation_AddJumpNavigationOverride then return end
+    if not SMART_NAV_INPUT_DIRECTION or not SMART_NAV_INPUT_DIRECTION[direction] then return end
+    -- Both endpoints are PSF-owned controls. Never write routes to Blizzard
+    -- frames: native route data participates in the protected binding stack.
+    SmartNavigation_AddJumpNavigationOverride(source, SMART_NAV_INPUT_DIRECTION[direction], destination)
 end
 local outlines = { "", "OUTLINE", "THICKOUTLINE", "MONOCHROME,OUTLINE" }
 local outlineLabels = { "None", "Outline", "Thick outline", "Monochrome + outline" }
@@ -101,18 +103,23 @@ function addon:ShowOptions()
     if not panel then
         panel = CreateFrame("Frame", "PadSkinForeverOptions", UIParent, "BackdropTemplate")
         panel:Hide()
-        panel:SetScript("OnShow", SyncController)
-        panel:SetScript("OnHide", SyncController)
-        panel:SetScript("OnEvent", SyncController)
-        for _, event in ipairs({ "ADDON_LOADED", "CVAR_UPDATE", "PLAYER_REGEN_ENABLED" }) do panel:RegisterEvent(event) end
-        -- Native B/back handling may invoke this on our own frame.
-        panel.SmartNavigationCloseHandler = function(self) self:Hide() end
-        panel.GetJumpHintLabel = function() return "PadSkinForever" end
-        if InputUtil and InputUtil.RegisterForInterfaceTransitions and InputUtil.RegisterGamepadInit then
-            InputUtil.RegisterForInterfaceTransitions(panel)
-            InputUtil.RegisterGamepadInit(panel, SyncController)
+        -- ShowUIPanel/HideUIPanel emit the native panel events consumed by the
+        -- gamepad focus manager. Calling FrameShown/FrameHidden ourselves can
+        -- taint its protected binding stack.
+        panel.SmartNavigationCloseHandler = function()
+            CloseOptions()
+            return true
         end
-        if UISpecialFrames then table.insert(UISpecialFrames, "PadSkinForeverOptions") end
+        panel.GetJumpHintLabel = function() return "PadSkinForever" end
+        if RegisterUIPanel then
+            RegisterUIPanel(panel, {
+                area = "center",
+                pushable = 0,
+                whileDead = 1,
+                allowOtherPanels = 1,
+                centerFrameSkipAnchoring = true,
+            })
+        end
         panel:SetSize(510, 700)
         panel:SetPoint("CENTER")
         panel:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -126,9 +133,9 @@ function addon:ShowOptions()
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
         Label(panel, "PadSkinForever", 22, -18, true, 17)
-        local version = Label(panel, "0.6.3 alpha", 182, -20, false, 12)
+        local version = Label(panel, "0.6.4 alpha", 182, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
-        Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
+        Button(panel, "Close", 408, -14, 80, CloseOptions)
         panel.pages = {}
         panel.tabs = {}
         panel.settings = CreateFrame("Frame", nil, panel)
@@ -169,12 +176,12 @@ function addon:ShowOptions()
         panel.fontContent:SetSize(438, 180)
         scroll:SetScrollChild(panel.fontContent)
         panel.sizeText = Label(panel.settings, "", 22, -480)
-        Button(panel.settings, "−", 205, -474, 36, function()
+        panel.sizeMinus = Button(panel.settings, "−", 205, -474, 36, function()
             addon.db.fontSize = math.max(8, addon.db.fontSize - 1)
             panel.sizeText:SetText("Cooldown font size: " .. addon.db.fontSize)
             addon:QueueRefresh()
         end)
-        Button(panel.settings, "+", 245, -474, 36, function()
+        panel.sizePlus = Button(panel.settings, "+", 245, -474, 36, function()
             addon.db.fontSize = math.min(40, addon.db.fontSize + 1)
             panel.sizeText:SetText("Cooldown font size: " .. addon.db.fontSize)
             addon:QueueRefresh()
@@ -187,7 +194,12 @@ function addon:ShowOptions()
             panel.outline:SetText("Cooldown: " .. outlineLabels[current])
             addon:QueueRefresh()
         end)
-        Button(panel.settings, "Toggle native legend", 22, -557, 210, function() addon:ToggleLegend() end)
+        panel.toggleLegend = Button(panel.settings, "Toggle native legend", 22, -557, 210, function() addon:ToggleLegend() end)
+        LinkOwnedNavigation(panel.sizeMinus, "DOWN", panel.outline)
+        LinkOwnedNavigation(panel.sizePlus, "DOWN", panel.outline)
+        LinkOwnedNavigation(panel.outline, "UP", panel.sizeMinus)
+        LinkOwnedNavigation(panel.outline, "DOWN", panel.toggleLegend)
+        LinkOwnedNavigation(panel.toggleLegend, "UP", panel.outline)
         local help = Hint(panel.settings, "Controller toggle: assign a free key in Key Bindings > PadSkinForever.\nNative gamepad bindings can take priority. Changes apply after combat.", 22, -596)
         help:SetWidth(460)
         help:SetJustifyH("LEFT")
@@ -358,7 +370,11 @@ function addon:ShowOptions()
     end
     RefreshFontList()
     ShowTab("general")
-    panel:Show()
+    if ShowUIPanel then
+        ShowUIPanel(panel)
+    else
+        panel:Show()
+    end
 end
 
 ShowTab = function(name)

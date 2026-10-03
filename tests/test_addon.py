@@ -782,13 +782,37 @@ class AddonTests(unittest.TestCase):
             function manager:FrameShown(frame) self.shown = self.shown + 1; self.focusedFrame = frame end
             function manager:FrameHidden(frame) self.hidden = self.hidden + 1; self.focusedFrame = nil end
             GamepadMode = { FrameControlsManager = manager }
-            InputUtil = { IsGamepadUIEnabled = function() return true end }
+            local registeredPanel
+            function RegisterUIPanel(frame, attributes)
+                registeredPanel = frame
+                assert(attributes.area == "center" and attributes.centerFrameSkipAnchoring)
+            end
+            function ShowUIPanel(frame)
+                if frame:IsShown() then return end
+                frame:Show(); manager:FrameShown(frame)
+            end
+            function HideUIPanel(frame)
+                if not frame:IsShown() then return end
+                frame:Hide(); manager:FrameHidden(frame)
+            end
+            SMART_NAV_INPUT_DIRECTION = {
+                UP = { dirKey = "UP" }, DOWN = { dirKey = "DOWN" },
+            }
+            function SmartNavigation_AddJumpNavigationOverride(source, direction, destination)
+                source.routes = source.routes or {}
+                source.routes[direction.dirKey] = destination
+            end
             local refreshed = 0
             SmartNavigation = { RefreshButtonGroups = function(_, frame) assert(frame == manager.focusedFrame); refreshed = refreshed + 1 end }
             addon:ShowOptions()
             assert(manager.shown == 1)
             local focused = manager.focusedFrame
+            assert(registeredPanel == focused)
             assert(focused.GetJumpHintLabel() == "PadSkinForever")
+            assert(focused.sizeMinus.routes.DOWN == focused.outline)
+            assert(focused.sizePlus.routes.DOWN == focused.outline)
+            assert(focused.outline.routes.DOWN == focused.toggleLegend)
+            assert(focused.toggleLegend.routes.UP == focused.outline)
             local function click(text)
                 for _, w in ipairs(widgets) do if w.text == text then w.scripts.OnClick(w); return end end
                 error("Missing button: " .. text)
@@ -804,35 +828,23 @@ class AddonTests(unittest.TestCase):
             click("Refresh")
             click("General")
             assert(refreshed >= 5)
-            focused:Hide(); assert(manager.hidden == 1)
+            HideUIPanel(focused); assert(manager.hidden == 1)
             addon:ShowOptions(); assert(manager.shown == 2)
-            combat = true; focused:Hide(); assert(manager.hidden == 1)
-            combat = false; focused.scripts.OnEvent(focused, "PLAYER_REGEN_ENABLED")
-            assert(manager.hidden == 2)
-            addon:ShowOptions(); focused:SmartNavigationCloseHandler()
-            assert(manager.hidden == 3 and not focused:IsShown())
+            focused:SmartNavigationCloseHandler()
+            assert(manager.hidden == 2 and not focused:IsShown())
             GameMenuFrame = widget()
             GameMenuFrame.visible = true
             GameMenuFrame.buttons = { widget(), widget() }
             function GameMenuFrame:InitButtons() end
-            SMART_NAV_INPUT_DIRECTION = { UP = { dirKey = "UP" }, DOWN = { dirKey = "DOWN" } }
-            function SmartNavigation_AddJumpNavigationOverride(source, direction, destination)
-                source.routes = source.routes or {}
-                source.routes[direction.dirKey] = destination
-            end
-            function SmartNavigation_ClearJumpNavigationOverrides(source) source.routes = nil end
-            HideUIPanel = forbidden
             addon:CreateGameMenuButton()
-            GameMenuFrame:InitButtons(); drain()
             local gameMenuButton = addon:GetGameMenuButton()
             assert(gameMenuButton and gameMenuButton.text == "PADSKINFOREVER")
             assert(gameMenuButton.PSFSubtitle and gameMenuButton.PSFSubtitle.text == "ADDON SETTINGS")
-            assert(GameMenuFrame.buttons[1].routes.UP == gameMenuButton)
-            assert(gameMenuButton.routes.DOWN == GameMenuFrame.buttons[1])
-            assert(gameMenuButton.routes.UP == GameMenuFrame.buttons[2])
-            assert(GameMenuFrame.buttons[2].routes.DOWN == gameMenuButton)
+            assert(GameMenuFrame.buttons[1].routes == nil)
+            assert(GameMenuFrame.buttons[2].routes == nil)
+            assert(GameMenuFrame.scripts.OnHide == nil)
             gameMenuButton.scripts.OnClick(gameMenuButton)
-            assert(manager.shown == 4 and manager.focusedFrame == focused)
+            assert(manager.shown == 3 and manager.focusedFrame == focused)
         ''')
 
     def test_legend_toggle_success_and_rejection(self):

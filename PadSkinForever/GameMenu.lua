@@ -2,27 +2,13 @@ local _, addon = ...
 
 local menuButton
 
-local function ApplyMenuNavigation()
-    if not menuButton or not GameMenuFrame or not GameMenuFrame:IsShown() then return end
-    if not SmartNavigation_AddJumpNavigationOverride or not SMART_NAV_INPUT_DIRECTION then return end
-    local buttons = GameMenuFrame.buttons
-    local first = buttons and buttons[1]
-    local last = buttons and buttons[#buttons]
-    if not first or not last then return end
-
-    -- Extend Blizzard's vertical wrap with our addon-owned card. These public
-    -- helpers only write SmartNavigation route data; no binding is installed.
-    SmartNavigation_AddJumpNavigationOverride(first, SMART_NAV_INPUT_DIRECTION.UP, menuButton)
-    SmartNavigation_AddJumpNavigationOverride(menuButton, SMART_NAV_INPUT_DIRECTION.DOWN, first)
-    SmartNavigation_AddJumpNavigationOverride(menuButton, SMART_NAV_INPUT_DIRECTION.UP, last)
-    SmartNavigation_AddJumpNavigationOverride(last, SMART_NAV_INPUT_DIRECTION.DOWN, menuButton)
-end
-
 function addon:CreateGameMenuButton()
     if menuButton or not GameMenuFrame or not self.CreatePSFButton then return end
 
     -- Keep this button outside Blizzard's pooled GameMenuFrame.buttons list.
-    -- Native SmartNavigation discovers visible child Buttons on its own.
+    -- Native SmartNavigation discovers visible child Buttons geometrically.
+    -- Never add routes to Blizzard-owned buttons: those route tables feed the
+    -- protected gamepad binding stack when the native menu closes.
     menuButton = self:CreatePSFButton(GameMenuFrame, "PADSKINFOREVER", 0, 0, 232, function()
         if InCombatLockdown() then
             addon:Print("Open PadSkinForever after combat.")
@@ -33,9 +19,9 @@ function addon:CreateGameMenuButton()
         addon:ShowOptions()
     end)
     menuButton:ClearAllPoints()
-    -- Visually attach the card to the menu, but keep it outside Blizzard's
-    -- pooled red-button column. Up from Options reaches it naturally.
-    menuButton:SetPoint("BOTTOM", GameMenuFrame, "TOP", 0, 14)
+    -- The card sits beside the red column so directional navigation can find
+    -- it without PSF writing to GameMenuFrame.buttons or their route tables.
+    menuButton:SetPoint("TOPRIGHT", GameMenuFrame, "TOPLEFT", -14, -46)
     menuButton:SetSize(232, 58)
     menuButton:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 10)
     menuButton:SetBackdrop({
@@ -92,19 +78,6 @@ function addon:CreateGameMenuButton()
     badgeText:SetTextColor(unpack(self.uiColors.accent))
     SetMenuState(false)
     menuButton:Show()
-
-    -- InitButtons can run again while the menu is open. Defer until Blizzard
-    -- has finished rebuilding its pool and its own first/last-button wrap.
-    if type(GameMenuFrame.InitButtons) == "function" then
-        hooksecurefunc(GameMenuFrame, "InitButtons", function()
-            C_Timer.After(0, ApplyMenuNavigation)
-        end)
-    end
-    GameMenuFrame:HookScript("OnHide", function()
-        if SmartNavigation_ClearJumpNavigationOverrides then
-            SmartNavigation_ClearJumpNavigationOverrides(menuButton)
-        end
-    end)
 end
 
 function addon:GetGameMenuButton()
