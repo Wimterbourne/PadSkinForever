@@ -1,0 +1,7 @@
+<Bindings>
+    <Binding name="PADSKINFOREVER_TOGGLE_LEGEND" header="PADSKINFOREVER" category="ADDONS">
+        if keystate == "down" then
+            PadSkinForever:ToggleLegend();
+        end
+    </Binding>
+</Bindings>
