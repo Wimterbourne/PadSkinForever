@@ -3,7 +3,10 @@ PadSkinForever = addon -- Used only by our Bindings.xml command.
 addon.name = addonName
 addon.defaults = {
     skinButtons = true,
-    colorGlyphs = true,
+    colorGlyphs = true, -- Legacy setting, migrated to faceGlyphStyle.
+    faceGlyphScale = 1,
+    dpadGlyphScale = 1,
+    dpadGlyphStyle = "native",
     skinLegend = true,
     cooldownFont = true,
     font = "Blizzard default",
@@ -61,6 +64,9 @@ events:SetScript("OnEvent", function(_, event, name)
     if event == "ADDON_LOADED" and name == addonName then
         if type(PadSkinForeverDB) ~= "table" then PadSkinForeverDB = {} end
         addon.db = PadSkinForeverDB
+        if addon.db.faceGlyphStyle == nil then
+            addon.db.faceGlyphStyle = addon.db.colorGlyphs == false and "native" or "xboxColor"
+        end
         for key, value in pairs(addon.defaults) do
             if addon.db[key] == nil then
                 if type(value) == "table" then
@@ -70,6 +76,12 @@ events:SetScript("OnEvent", function(_, event, name)
                 end
             end
         end
+        for _, key in ipairs({ "faceGlyphScale", "dpadGlyphScale" }) do
+            addon.db[key] = math.max(.5, math.min(2, tonumber(addon.db[key]) or 1))
+        end
+        local faceStyle, dpadStyle = addon.db.faceGlyphStyle, addon.db.dpadGlyphStyle
+        if faceStyle ~= "native" and faceStyle ~= "xbox" and faceStyle ~= "xboxColor" then addon.db.faceGlyphStyle = "native" end
+        if dpadStyle ~= "native" and dpadStyle ~= "xbox" and dpadStyle ~= "xboxAccent" then addon.db.dpadGlyphStyle = "native" end
         if type(addon.db.font) ~= "string" then addon.db.font = addon.defaults.font end
         local size = tonumber(addon.db.fontSize) or addon.defaults.fontSize
         addon.db.fontSize = math.max(8, math.min(40, size))

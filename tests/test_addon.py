@@ -7,6 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MOCKS = r'''
 unpack = unpack or table.unpack
 addon = {}
+function wipe(t) for key in pairs(t) do t[key] = nil end end
+function debugstack() return "[FontManager/FontManager.lua]:10: SetFont" end
+C_Texture = { GetAtlasInfo = function(atlas) return { width = 24, height = 24 } end }
 combat = false
 messages = {}
 timers = {}
@@ -53,6 +56,7 @@ end }
 function texture(atlas)
     local t = { atlas = atlas, rgba = {1, 1, 1, 0.8}, desaturation = 0 }
     function t:GetAtlas() return self.atlas end
+    function t:SetAtlas(value) assert(not combat); self.atlas = value end
     function t:GetVertexColor() return unpack(self.rgba) end
     function t:GetDesaturation() return self.desaturation end
     function t:SetDesaturation(value) assert(not combat); self.desaturation = value end
@@ -67,8 +71,10 @@ function font()
 end
 normal = texture("gamepad-xbox1-buttona-normal")
 disabled = texture("gamepad-xbox1-buttona-disabled")
-icon = { mappedButtonKey = "PAD1", DisabledTexture = disabled,
+icon = { scale = 1, mappedButtonKey = "PAD1", DisabledTexture = disabled,
          textureStateTextures = {normal, disabled}, RefreshIconTextures = function() end }
+function icon:GetScale() return self.scale end
+function icon:SetScale(scale) assert(not combat); self.scale = scale end
 countdown = font()
 button = { ButtonIcon = icon, SlotArt = texture("slot"),
            normal = texture("border"), pushed = texture("pushed"),
@@ -85,7 +91,7 @@ class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "Skin.lua", "Options.lua"):
+        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Skin.lua", "Options.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
@@ -97,10 +103,11 @@ class AddonTests(unittest.TestCase):
         self.check('''
             assert(normal.rgba[1] == 0.25 and normal.rgba[2] == 1)
             assert(normal.rgba[4] == 0.8)
-            assert(disabled.rgba[1] == 1 and disabled.desaturation == 0)
+            assert(disabled.rgba[1] < normal.rgba[1] and disabled.desaturation == 1)
             icon.mappedButtonKey = "PAD2"
             icon:RefreshIconTextures(); drain()
             assert(normal.rgba[1] == 1 and normal.rgba[2] == 0.25)
+            addon.db.faceGlyphStyle = "native"
             normal.atlas = "gamepad-ps4-cross-normal"
             icon:RefreshIconTextures(); drain()
             assert(normal.rgba[1] == 1 and normal.desaturation == 0)
@@ -108,7 +115,7 @@ class AddonTests(unittest.TestCase):
 
     def test_disable_restores_original_visual_properties(self):
         self.check('''
-            addon.db.skinButtons = false; addon.db.colorGlyphs = false
+            addon.db.skinButtons = false; addon.db.faceGlyphStyle = "native"
             addon.db.cooldownFont = false
             addon:QueueRefresh(); drain()
             assert(button.normal.rgba[1] == 1 and button.normal.desaturation == 0)
@@ -161,6 +168,99 @@ class AddonTests(unittest.TestCase):
             addon.db.font = "Custom"
             media.callback("LibSharedMedia_Registered", "font", "Custom"); drain()
             assert(countdown.values[1] == "Fonts/Custom.otf")
+        ''')
+
+    def test_independent_glyph_scale_and_style(self):
+        self.check('''
+            addon.db.faceGlyphScale = 1.8
+            addon.db.dpadGlyphScale = .7
+            addon.db.dpadGlyphStyle = "xboxAccent"
+            addon:QueueRefresh(); drain()
+            assert(icon:GetScale() == 1.8)
+            icon.mappedButtonKey = "PADDUP"
+            icon:RefreshIconTextures(); drain()
+            assert(icon:GetScale() == .7)
+            assert(normal:GetAtlas() == "gamepad-xbox1-dpadup-normal")
+            assert(normal.rgba[1] == addon.db.accent[1])
+        ''')
+
+    def test_legend_theme_off_restores_glyphs(self):
+        self.check('''
+            GamepadMainActionBarFrame = nil
+            addon.db.faceGlyphScale = 1.8
+            GamepadPersistentInputLegend = { groups = { HUD = { { InputIcon1 = icon } } } }
+            addon:QueueRefresh(); drain()
+            assert(icon:GetScale() == 1.8)
+            addon.db.skinLegend = false; addon:QueueRefresh(); drain()
+            assert(icon:GetScale() == 1)
+            assert(normal.rgba[1] == 1)
+            icon:SetScale(1.4); normal:SetVertexColor(.8, .6, .4, 1)
+            addon:QueueRefresh(); drain()
+            assert(icon:GetScale() == 1.4 and normal.rgba[1] == .8)
+        ''')
+
+    def test_debug_tracing_is_opt_in_and_bounded(self):
+        self.check('''
+            normal:SetVertexColor(.1, .2, .3, 1)
+            assert(not addon:GetDebugReport():find("FontManager.lua"))
+            addon:SetDebugTracing(true)
+            for i = 1, 100 do normal:SetVertexColor(.1, .2, .3, 1) end
+            local report = addon:GetDebugReport()
+            assert(report:find("FontManager.lua"))
+            assert(report:find("SetVertexColor"))
+            local _, count = report:gsub("FontManager.lua", "")
+            assert(count == 40)
+            addon:SetDebugTracing(false)
+            addon:ClearDebugHistory()
+            normal:SetVertexColor(.3, .2, .1, 1)
+            assert(not addon:GetDebugReport():find("FontManager.lua"))
+        ''')
+
+    def test_options_tabs_build_and_open(self):
+        self.check('''
+            widgets = {}
+            local function widget()
+                local w = { scripts = {}, visible = false, text = "" }
+                for _, method in ipairs({"SetPoint", "SetSize", "SetFrameStrata", "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor", "EnableMouse", "SetMovable", "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetWidth", "SetHeight", "SetJustifyH", "SetHighlightTexture", "SetScrollChild", "SetFontObject", "SetMultiLine", "SetAutoFocus", "SetCursorPosition", "ClearFocus", "SetVerticalScroll"}) do
+                    w[method] = function() end
+                end
+                function w:SetScript(name, callback) self.scripts[name] = callback end
+                function w:HookScript(name, callback)
+                    local before = self.scripts[name]
+                    self.scripts[name] = function(...) if before then before(...) end; callback(...) end
+                end
+                function w:SetShown(value)
+                    local changed = self.visible ~= value
+                    self.visible = value
+                    if changed and value and self.scripts.OnShow then self.scripts.OnShow(self) end
+                end
+                function w:Show() self:SetShown(true) end
+                function w:Hide() self:SetShown(false) end
+                function w:SetText(text)
+                    self.text = text
+                    if self.scripts.OnTextChanged then self.scripts.OnTextChanged(self) end
+                end
+                function w:GetNumLines() local _, count = self.text:gsub("\\n", ""); return count + 1 end
+                function w:SetFont() return true end
+                function w:SetChecked(value) self.checked = value end
+                function w:GetChecked() return self.checked end
+                function w:CreateFontString() return widget() end
+                w.Text = { SetText = function() end }
+                table.insert(widgets, w)
+                return w
+            end
+            CreateFrame = function() return widget() end
+            addon:ShowOptions()
+            local function click(text)
+                for _, w in ipairs(widgets) do if w.text == text then w.scripts.OnClick(w); return end end
+                error("Missing button: " .. text)
+            end
+            click("Glyphs")
+            click("Debug")
+            click("Start tracing")
+            assert(addon:IsDebugTracing())
+            click("Refresh")
+            click("General")
         ''')
 
     def test_legend_toggle_success_and_rejection(self):

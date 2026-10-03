@@ -4,10 +4,7 @@ local textureOriginals = setmetatable({}, { __mode = "k" })
 local fontOriginals = setmetatable({}, { __mode = "k" })
 local hooked = setmetatable({}, { __mode = "k" })
 local anchors = { "TopCenteredAnchor", "BottomCenteredAnchor", "LeftCenteredAnchor", "RightCenteredAnchor" }
-local glyphColors = { PAD1 = { 0.25, 1, 0.25 }, PAD2 = { 1, 0.25, 0.25 },
-                      PAD3 = { 0.25, 0.55, 1 }, PAD4 = { 1, 0.85, 0.15 } }
-
-local function Tint(texture, color)
+function addon:Tint(texture, color)
     if not texture or not texture.SetVertexColor then return end
     local original = textureOriginals[texture]
     if color then
@@ -56,32 +53,23 @@ local function Hook(object, method)
     hooksecurefunc(object, method, function() addon:QueueRefresh() end)
 end
 
-local function Glyph(icon, enabled)
-    if not icon then return end
-    Hook(icon, "RefreshIconTextures")
-    for _, texture in pairs(icon.textureStateTextures or {}) do
-        local atlas = texture:GetAtlas()
-        local color = enabled and glyphColors[icon.mappedButtonKey]
-        -- Preserve disabled feedback and PlayStation/other-device artwork.
-        if not atlas or not atlas:find("gamepad%-xbox1%-button") or texture == icon.DisabledTexture then
-            color = nil
-        end
-        Tint(texture, color)
-    end
-end
-
-local function SkinButton(button)
+local function SkinButton(button, label)
     local db = addon.db
     local color = db.skinButtons and db.accent or nil
-    Tint(button:GetNormalTexture(), color)
-    Tint(button:GetPushedTexture(), color)
-    Tint(button.SlotArt, color)
-    Tint(button.SlotBackground, color)
-    Glyph(button.ButtonIcon, db.colorGlyphs)
+    addon:DebugSurface(button:GetNormalTexture(), label .. "/border", "button border")
+    addon:DebugSurface(button:GetPushedTexture(), label .. "/pushed", "button border")
+    addon:DebugSurface(button.SlotArt, label .. "/slot", "empty slot")
+    addon:Tint(button:GetNormalTexture(), color)
+    addon:Tint(button:GetPushedTexture(), color)
+    addon:Tint(button.SlotArt, color)
+    addon:Tint(button.SlotBackground, color)
+    addon:SkinGlyph(button.ButtonIcon, true, label .. "/glyph")
     for _, name in ipairs({ "cooldown", "chargeCooldown", "lossOfControlCooldown" }) do
         local cooldown = button[name]
         if cooldown and cooldown.GetCountdownFontString then
-            Font(cooldown:GetCountdownFontString(), db.cooldownFont, db.fontSize, db.fontFlags)
+            local text = cooldown:GetCountdownFontString()
+            addon:DebugSurface(text, label .. "/" .. name, "cooldown font")
+            Font(text, db.cooldownFont, db.fontSize, db.fontFlags)
         end
     end
     Hook(button, "SetShapeToCircle")
@@ -91,17 +79,20 @@ local function SkinButton(button)
 end
 
 -- Only walk the legend's decorative background, never arbitrary UI frames.
-local function Background(frame, color, depth)
+local function Background(frame, color, depth, label)
     if not frame or depth > 5 then return end
-    for _, region in ipairs({ frame:GetRegions() }) do
-        if region:IsObjectType("Texture") then Tint(region, color) end
+    for index, region in ipairs({ frame:GetRegions() }) do
+        if region:IsObjectType("Texture") then
+            addon:DebugSurface(region, label .. "/region" .. index, "legend background")
+            addon:Tint(region, color)
+        end
     end
-    for _, child in ipairs({ frame:GetChildren() }) do
-        Background(child, color, depth + 1)
+    for index, child in ipairs({ frame:GetChildren() }) do
+        Background(child, color, depth + 1, label .. "/child" .. index)
     end
 end
 
-function addon:RefreshSkin()
+local function RefreshSkin(self)
     if not self.db or InCombatLockdown() then return end
     self:ObserveSharedMedia()
     local main = GamepadMainActionBarFrame
@@ -115,7 +106,7 @@ function addon:RefreshSkin()
                     local quad = bar[side]
                     for index = 1, 4 do
                         local button = quad and quad["ActionButton" .. index]
-                        if button then SkinButton(button) end
+                        if button then SkinButton(button, name .. "/" .. side .. index) end
                     end
                 end
             end
@@ -126,16 +117,25 @@ function addon:RefreshSkin()
         Hook(legend, "PostVariableSetUp")
         Hook(legend, "CreateEntry")
         Hook(legend, "CreateBackground")
-        for _, group in pairs(legend.groups or {}) do
-            for _, frame in ipairs(group) do
-                Glyph(frame.InputIcon1, self.db.skinLegend and self.db.colorGlyphs)
-                Glyph(frame.InputIcon2, self.db.skinLegend and self.db.colorGlyphs)
+        for name, group in pairs(legend.groups or {}) do
+            for index, frame in ipairs(group) do
+                local label = "Legend/" .. name .. "/" .. index
+                self:SkinGlyph(frame.InputIcon1, self.db.skinLegend, label .. "/icon1")
+                self:SkinGlyph(frame.InputIcon2, self.db.skinLegend, label .. "/icon2")
                 local text = frame.ControlDescText and frame.ControlDescText.FontString
                 -- Preserve native legend text size and positioning.
+                self:DebugSurface(text, label .. "/text", "legend font")
                 Font(text, self.db.skinLegend)
-                Background(frame.Background, self.db.skinLegend and self.db.accent or nil, 0)
-                Tint(frame.HeaderTrim, self.db.skinLegend and self.db.accent or nil)
+                Background(frame.Background, self.db.skinLegend and self.db.accent or nil, 0, label .. "/background")
+                addon:Tint(frame.HeaderTrim, self.db.skinLegend and self.db.accent or nil)
             end
         end
     end
+end
+
+function addon:RefreshSkin()
+    self.applyingSkin = true
+    local ok, message = pcall(RefreshSkin, self)
+    self.applyingSkin = false
+    if not ok then error(message, 0) end
 end
