@@ -262,6 +262,9 @@ class AddonTests(unittest.TestCase):
             addon.db.squareMinimap = false; addon:QueueRefresh(); drain()
             assert(Minimap.mask == "updated-native-circle")
             assert(MinimapCompassTexture.alpha == 1)
+            assert(MinimapCompassTexture.rgba[1] == .65)
+            addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
+            assert(MinimapCompassTexture.rgba[1] == 1)
         ''')
 
     def test_theme_font_panel_and_full_restore(self):

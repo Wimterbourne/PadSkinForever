@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.4.1-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.4.2-alpha**.
 
 ## Wat zit erin?
 
@@ -46,11 +46,15 @@ Een stack toont code die bij een call betrokken is, geen volledige eigenaarshist
 
 In **Buttons** kies je Modern minimal of Blizzard borders. De toggle voor button skinning in General schakelt beide uit en herstelt de oorspronkelijke assets. Glyphs, cooldownfont en legendatheming zijn afzonderlijke instellingen. Instelbare **border-types van de legenda** staan op de lijst voor een volgende versie. Handmatige glyph-offsets en automatische ruimte in de legenda volgen afzonderlijk; zie issue #4.
 
+## Ronde minimap — 0.4.2 alpha
+
+Square minimap uit behoudt nu de minimapskin: de native ronde kaartmasker blijft, met een gedesatureerde grijze kompasrand. Minimap skin uit herstelt ook de oorspronkelijke randkleur en onderlaag. De ronde skin is een eerste uitvoering; decoratie rond de overige minimapknoppen wordt later afgewerkt.
+
 ## Debug-fix — 0.4.1 alpha
 
 De Debug-tab controleert getterwaarden met `issecretvalue` voordat ze als tekst worden verwerkt. Afgeschermde waarden verschijnen als `[restricted]`; getters die niet gelezen kunnen worden als `[unavailable]`. Dit herstelt de gemelde concat-fout uit 0.4.0. De themavormgeving blijft in deze patch gelijk.
 
-## Xbox-thema — 0.4.1 alpha
+## Xbox-thema — 0.4.2 alpha
 
 De **Theme-tab** schakelt ieder onderdeel apart: minimap, vierkante minimapvorm, player/pet/target/focus, questlog en tracker, chat en invoer, tooltips, lootvenster, item-loottoasts en het geselecteerde font voor deze vensters. De eerste themaversie gebruikt donkere antracietpanelen, dunne grijze randen en lichte tekst. De native indeling blijft staan; het conceptbeeld is een visuele richting, geen exacte schermreconstructie.
 

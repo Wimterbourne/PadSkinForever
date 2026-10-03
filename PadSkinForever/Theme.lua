@@ -218,7 +218,9 @@ local function Map(enabled)
     end
     addon:ThemeCard(map, square, "Minimap", 2)
     addon:ThemeAlpha(MinimapCompassTexture, square)
-    addon:ThemeAlpha(MinimapCompassTextureUnderlay, square)
+    addon:ThemeAlpha(MinimapCompassTextureUnderlay, enabled)
+    -- Round and square are shape choices within the same independent skin.
+    addon:Tint(MinimapCompassTexture, enabled and not square and { .65, .68, .72 } or nil)
     if MinimapCluster then
         addon:ThemeAlpha(MinimapCluster.BorderTop, enabled)
         Fonts(MinimapCluster.ZoneTextButton, enabled, 0)
