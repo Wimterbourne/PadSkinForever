@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een kleine, zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Eerste testversie: **0.1.0-alpha**.
+Een kleine, zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Eerste testversie: **0.1.1-alpha**.
 
 ## Wat zit erin?
 
@@ -20,7 +20,9 @@ De addon verandert geen actionbar-indeling, spells, targeting, lootvensters of n
 3. Controleer dat het pad eindigt op `Interface/AddOns/PadSkinForever/PadSkinForever.toc`.
 4. Start WoW opnieuw, schakel PadSkinForever in en open **`/psf`**.
 
-Geen libraries verplicht. Font Manager en een beschikbare LibSharedMedia-library zijn optioneel. Font Manager 1.1.1 levert zelf geen LibSharedMedia mee; daarom leest de fontkiezer ook zijn fontlijst en opgeslagen custom bestandsnamen. Fontbestanden worden niet meegeleverd.
+Geen libraries verplicht. Font Manager en een beschikbare LibSharedMedia-library zijn optioneel. Font Manager 1.1.1 levert zelf geen LibSharedMedia mee; daarom leest de fontkiezer ook zijn opgeslagen custom bestandsnamen. Fontbestanden worden niet meegeleverd.
+
+De lijst toont fontnamen zonder previews; openen ervan laadt geen fontbestanden. De optionele Font Manager-placeholder `Custom.ttf` wordt niet automatisch toegevoegd.
 
 Selecteer je bestaande **FOT-Rodin Pro DB** in de lijst. Als je een font toevoegt terwijl je speelt, open `/psf` opnieuw om de lijst te vernieuwen. Een ontbrekend of niet laadbaar geselecteerd font valt terug op het Blizzard-font. Font Manager kan bij een globale fontoverride opnieuw fonts wijzigen; controleer zijn instellingen als je selectie niet blijft staan.
 
@@ -36,7 +38,7 @@ De native gamepad-bindingstack kan voorrang hebben op gewone addonbindings. Deze
 
 Gebouwd na broncodecontrole van Forever **1.60.1 (70205)**, [Gethe/wow-ui-source, commit e3ecc27](https://github.com/Gethe/wow-ui-source/commit/e3ecc27). TOC-interface: **16001**.
 
-Lokaal gecontroleerd: Lua 5.1-syntax, XML en zeven logictests voor glyphkleuren, disabled-weergave, herstel van visuals, combat-uitstel, Font Manager `.otf`-paden, late LibSharedMedia-registratie en de legendatoggle. **Nog niet in een echte WoW-client getest.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
+Lokaal gecontroleerd: Lua 5.1-syntax, XML en acht logictests voor glyphkleuren, disabled-weergave, herstel van visuals, combat-uitstel, Font Manager `.otf`-paden, late LibSharedMedia-registratie en de legendatoggle. **Nog niet in een echte WoW-client getest.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
 
 Skinwijzigingen worden buiten combat toegepast. Post-hooks op de betrokken frames vragen alleen een latere visuele refresh aan; native functies worden niet vervangen. Dit is een conservatieve aanpak, geen bewijs dat de addon taintvrij is.
 

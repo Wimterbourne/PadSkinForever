@@ -17,12 +17,9 @@ function addon:GetFonts()
     -- available when there is no shared-media library, or it loaded later.
     -- Read its public data only; do not change its settings or copy its code.
     local directory = "Interface\\AddOns\\FontManager\\Fonts\\"
-    for _, entry in ipairs(FontManager_Files or {}) do
-        if type(entry.file) == "string" then
-            local name = entry.name or entry.file
-            fonts[name] = fonts[name] or directory .. entry.file
-        end
-    end
+    -- Do not import FontManager_Files: it includes the optional Custom.ttf
+    -- placeholder even when that file does not exist. Bundled fonts are
+    -- discovered through LSM; only explicitly added user filenames are fallback.
     local manager = FontManagerDB
     for _, file in ipairs(type(manager) == "table" and manager.userFonts or {}) do
         if type(file) == "string" then

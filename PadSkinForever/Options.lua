@@ -51,7 +51,8 @@ local function RefreshFontList()
             panel.fontRows[index] = row
         end
         row.label:SetText((name == addon.db.font and "|cff59bfff> " or "|cffffffff") .. name .. "|r")
-        row.label:SetFont(fonts[name], 14, "")
+        -- Names only: opening the list must not load every registered asset.
+        row.label:SetFont(STANDARD_TEXT_FONT, 14, "")
         row:SetScript("OnClick", function()
             addon.db.font = name
             panel.selected:SetText("Selected font: " .. name)
@@ -82,7 +83,7 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.1.0 alpha", 22, -20)
+        Label(panel, "PadSkinForever — 0.1.1 alpha", 22, -20)
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         Label(panel, "Blizzard layout and gamepad behavior remain native.", 22, -56)
         panel.checks = {}

@@ -137,6 +137,15 @@ class AddonTests(unittest.TestCase):
             assert(countdown.values[1] == STANDARD_TEXT_FONT)
         ''')
 
+    def test_optional_fontmanager_placeholder_is_not_offered(self):
+        self.check(r'''
+            FontManager_Files = { { name = "Custom", file = "Custom.ttf" } }
+            FontManagerDB = { userFonts = { "FOT-Rodin Pro DB.otf" } }
+            local fonts = addon:GetFonts()
+            assert(fonts.Custom == nil)
+            assert(fonts["FOT-Rodin Pro DB"] ~= nil)
+        ''')
+
     def test_shared_media_font_added_after_login(self):
         self.check('''
             local media = { fonts = {} }
