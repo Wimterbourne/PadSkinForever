@@ -812,11 +812,25 @@ class AddonTests(unittest.TestCase):
             addon:ShowOptions(); focused:SmartNavigationCloseHandler()
             assert(manager.hidden == 3 and not focused:IsShown())
             GameMenuFrame = widget()
+            GameMenuFrame.visible = true
+            GameMenuFrame.buttons = { widget(), widget() }
+            function GameMenuFrame:InitButtons() end
+            SMART_NAV_INPUT_DIRECTION = { UP = { dirKey = "UP" }, DOWN = { dirKey = "DOWN" } }
+            function SmartNavigation_AddJumpNavigationOverride(source, direction, destination)
+                source.routes = source.routes or {}
+                source.routes[direction.dirKey] = destination
+            end
+            function SmartNavigation_ClearJumpNavigationOverrides(source) source.routes = nil end
             HideUIPanel = forbidden
             addon:CreateGameMenuButton()
+            GameMenuFrame:InitButtons(); drain()
             local gameMenuButton = addon:GetGameMenuButton()
             assert(gameMenuButton and gameMenuButton.text == "PADSKINFOREVER")
             assert(gameMenuButton.PSFSubtitle and gameMenuButton.PSFSubtitle.text == "ADDON SETTINGS")
+            assert(GameMenuFrame.buttons[1].routes.UP == gameMenuButton)
+            assert(gameMenuButton.routes.DOWN == GameMenuFrame.buttons[1])
+            assert(gameMenuButton.routes.UP == GameMenuFrame.buttons[2])
+            assert(GameMenuFrame.buttons[2].routes.DOWN == gameMenuButton)
             gameMenuButton.scripts.OnClick(gameMenuButton)
             assert(manager.shown == 4 and manager.focusedFrame == focused)
         ''')

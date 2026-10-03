@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.1-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.2-alpha**.
 
 ## Wat zit erin?
 
@@ -81,15 +81,15 @@ Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderli
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
 
-## PSF-menu — 0.6.1-alpha
+## PSF-menu — 0.6.2-alpha
 
 Het `/psf`-venster gebruikt dezelfde antracietvulling, afgeronde grijze 1px-rand, groene focusaccenten en Inter-typografie als de vernieuwde inputlegenda. Tabs, knoppen, vinkjes en fontregels zijn addon-eigen controls en blijven onderdeel van Blizzards native SmartNavigation. De geselecteerde tab en het element onder controllerfocus zijn zichtbaar gemarkeerd.
 
-Boven het native ESC-menu staat een brede **PadSkinForever**-kaart met PSF-badge, `ADDON SETTINGS` en een groen `A OPEN`-label. De sterkere groene rand licht verder op onder controllerfocus. Vanuit de native knop **Options** navigeer je omhoog naar PSF. Dit is bewust geen item in `GameMenuFrame.buttons`: die rode lijst wordt door Blizzard gepoold, opnieuw opgebouwd en aan de gamepadbindingstack gekoppeld. PSF wijzigt de pool, callbacks, navigatiemethoden en bindinggroepen daarom niet. SmartNavigation ontdekt onze zichtbare child-knop zelf.
+Boven het native ESC-menu staat een brede **PadSkinForever**-kaart met PSF-badge, `ADDON SETTINGS` en een groen `A OPEN`-label. De sterkere groene rand licht verder op onder controllerfocus. Vanuit de native knop **Options** navigeer je omhoog naar PSF; omlaag keert terug naar Options. De verticale wrap loopt PSF → laatste rode knop → … → Options → PSF. Dit is bewust geen item in `GameMenuFrame.buttons`: die rode lijst wordt door Blizzard gepoold, opnieuw opgebouwd en aan de gamepadbindingstack gekoppeld. PSF wijzigt de pool, klikcallbacks, acties en bindinggroepen niet. Alleen de publieke SmartNavigation-routehelpers leggen na iedere native menurebuild vier richtingsrelaties op de eerste knop, laatste knop en PSF-kaart vast; bij sluiten ruimt Blizzard zijn eigen routes op en wist PSF zijn eigen route.
 
 Na het activeren blijft het ESC-menu onder PSF open. Daardoor hoeft addoncode `HideUIPanel(GameMenuFrame)` niet aan te roepen en kan sluiten met B veilig terugkeren naar het native menu. Tijdens combat weigert de kaart het openen met een chatmelding. De bestaande `/psf`-route blijft beschikbaar.
 
-Voor deze versie zijn `UI.lua` en `GameMenu.lua` nieuw; sluit WoW daarom volledig af na het ophalen en start het opnieuw. Test daarna:
+Kom je van een versie ouder dan 0.6.0, sluit WoW dan volledig af omdat `UI.lua` en `GameMenu.lua` nieuwe bestanden zijn. Vanaf 0.6.0 of 0.6.1 volstaat ophalen en `/reload`. Test daarna:
 
 1. ESC openen, met de controller naar **PadSkinForever** navigeren en bevestigen.
 2. Alle vijf tabs, vinkjes, plus/min-knoppen en de fontlijst bedienen.

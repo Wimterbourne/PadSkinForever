@@ -2,6 +2,22 @@ local _, addon = ...
 
 local menuButton
 
+local function ApplyMenuNavigation()
+    if not menuButton or not GameMenuFrame or not GameMenuFrame:IsShown() then return end
+    if not SmartNavigation_AddJumpNavigationOverride or not SMART_NAV_INPUT_DIRECTION then return end
+    local buttons = GameMenuFrame.buttons
+    local first = buttons and buttons[1]
+    local last = buttons and buttons[#buttons]
+    if not first or not last then return end
+
+    -- Extend Blizzard's vertical wrap with our addon-owned card. These public
+    -- helpers only write SmartNavigation route data; no binding is installed.
+    SmartNavigation_AddJumpNavigationOverride(first, SMART_NAV_INPUT_DIRECTION.UP, menuButton)
+    SmartNavigation_AddJumpNavigationOverride(menuButton, SMART_NAV_INPUT_DIRECTION.DOWN, first)
+    SmartNavigation_AddJumpNavigationOverride(menuButton, SMART_NAV_INPUT_DIRECTION.UP, last)
+    SmartNavigation_AddJumpNavigationOverride(last, SMART_NAV_INPUT_DIRECTION.DOWN, menuButton)
+end
+
 function addon:CreateGameMenuButton()
     if menuButton or not GameMenuFrame or not self.CreatePSFButton then return end
 
@@ -76,6 +92,19 @@ function addon:CreateGameMenuButton()
     badgeText:SetTextColor(unpack(self.uiColors.accent))
     SetMenuState(false)
     menuButton:Show()
+
+    -- InitButtons can run again while the menu is open. Defer until Blizzard
+    -- has finished rebuilding its pool and its own first/last-button wrap.
+    if type(GameMenuFrame.InitButtons) == "function" then
+        hooksecurefunc(GameMenuFrame, "InitButtons", function()
+            C_Timer.After(0, ApplyMenuNavigation)
+        end)
+    end
+    GameMenuFrame:HookScript("OnHide", function()
+        if SmartNavigation_ClearJumpNavigationOverrides then
+            SmartNavigation_ClearJumpNavigationOverrides(menuButton)
+        end
+    end)
 end
 
 function addon:GetGameMenuButton()
