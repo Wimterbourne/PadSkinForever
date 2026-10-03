@@ -469,6 +469,25 @@ class AddonTests(unittest.TestCase):
             assert(not addon:GetDebugReport():find("FontManager.lua"))
         ''')
 
+    def test_debug_redacts_secret_getters_before_string_conversion(self):
+        self.check(r'''
+            local secret = setmetatable({}, { __tostring = function() error("Secret converted") end })
+            function issecretvalue(value) return rawequal(value, secret) end
+            local object = {
+                GetName = function() return "RestrictedSurface" end,
+                GetAlpha = function() return secret end,
+                GetScale = function() error("Unavailable getter") end,
+                GetFont = function() return secret, 18, "OUTLINE" end,
+                GetVertexColor = function() return .5, secret, .8 end,
+            }
+            addon:DebugSurface(object, "Restricted test", "test")
+            local report = addon:GetDebugReport()
+            assert(report:find("alpha=%[restricted%]"))
+            assert(report:find("scale=%[unavailable%]"))
+            assert(report:find("font=%[restricted%] size=18 flags=OUTLINE"))
+            assert(report:find("RestrictedSurface"))
+        ''')
+
     def test_options_tabs_build_and_open(self):
         self.check('''
             widgets = {}
