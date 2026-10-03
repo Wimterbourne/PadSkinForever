@@ -3,6 +3,15 @@ PadSkinForever = addon -- Used only by our Bindings.xml command.
 addon.name = addonName
 addon.defaults = {
     skinButtons = true,
+    themeMinimap = true,
+    squareMinimap = true,
+    themeUnits = true,
+    themeQuests = true,
+    themeChat = true,
+    themeTooltip = true,
+    themeLoot = true,
+    lootToasts = true,
+    themeFonts = true,
     buttonStyle = "minimal",
     glyphOutside = true,
     disabledGlyphIntensity = .7,
@@ -64,6 +73,11 @@ events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
 events:RegisterEvent("UPDATE_BINDINGS")
 events:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
+events:RegisterEvent("QUEST_LOG_UPDATE")
+events:RegisterEvent("LOOT_OPENED")
+events:RegisterEvent("LOOT_SLOT_CLEARED")
+events:RegisterEvent("PLAYER_TARGET_CHANGED")
+events:RegisterEvent("CVAR_UPDATE")
 events:SetScript("OnEvent", function(_, event, name)
     if event == "ADDON_LOADED" and name == addonName then
         if type(PadSkinForeverDB) ~= "table" then PadSkinForeverDB = {} end

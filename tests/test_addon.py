@@ -96,12 +96,71 @@ function button:GetPushedTexture() return self.pushed end
 GamepadMainActionBarFrame = { PageUnit = { TopCenteredAnchor = { Bar = { Right = { ActionButton1 = button } } } } }
 '''
 
+THEME_MOCKS = r'''
+UIParent = {}
+uiwidgets = {}
+local function Surface(kind, parent)
+    local w = { kind = kind or "Frame", parent = parent, children = {}, regions = {}, alpha = 1,
+        visible = true, scripts = {}, values = {STANDARD_TEXT_FONT, 12, ""}, color = {.2,.2,.2,1}, level = 5 }
+    if parent and parent.children then table.insert(parent.children, w) end
+    function w:GetRegions() return unpack(self.regions) end
+    function w:GetChildren() return unpack(self.children) end
+    function w:IsObjectType(value) return value == self.kind end
+    function w:GetFrameLevel() return self.level end
+    function w:SetFrameLevel(value) self.level = value end
+    function w:GetAlpha() return self.alpha end
+    function w:SetAlpha(value) self.alpha = value end
+    function w:SetSize(...) self.size = {...} end
+    function w:SetPoint(...) self.point = {...} end
+    function w:EnableMouse(value) self.mouse = value end
+    function w:SetBackdrop(value) self.backdrop = value end
+    function w:SetBackdropColor(...) self.bg = {...} end
+    function w:SetBackdropBorderColor(...) self.border = {...} end
+    function w:SetFrameStrata(value) self.strata = value end
+    function w:SetScript(key, value) self.scripts[key] = value end
+    function w:HookScript(key, value) self.scripts[key] = value end
+    function w:SetShown(value) self.visible = value end
+    function w:IsShown() return self.visible end
+    function w:Show() self.visible = true end
+    function w:Hide() self.visible = false end
+    function w:SetTexture(value) self.file = value; self.atlas = nil end
+    function w:GetTexture() return self.file end
+    function w:SetAtlas(value) self.atlas = value end
+    function w:GetAtlas() return self.atlas end
+    function w:SetTexCoord(...) self.coords = {...} end
+    function w:GetTexCoord() return unpack(self.coords or {0,1,0,1}) end
+    function w:SetVertexColor(...) self.rgba = {...} end
+    function w:GetVertexColor() return unpack(self.rgba or {1,1,1,1}) end
+    function w:SetDesaturation(value) self.desaturation = value end
+    function w:GetDesaturation() return self.desaturation or 0 end
+    function w:GetFont() return unpack(self.values) end
+    function w:SetFont(...) self.values = {...}; return true end
+    function w:GetTextColor() return unpack(self.color) end
+    function w:SetTextColor(...) self.color = {...} end
+    function w:SetText(value) self.text = value end
+    function w:SetWidth(value) self.width = value end
+    function w:SetJustifyH(value) self.justify = value end
+    function w:CreateFontString()
+        local region = Surface("FontString"); table.insert(self.regions, region); return region
+    end
+    function w:CreateTexture()
+        local region = Surface("Texture"); table.insert(self.regions, region); return region
+    end
+    function w:GetStatusBarTexture() return self.barTexture end
+    function w:SetStatusBarTexture(value) self.barTexture:SetTexture(value) end
+    table.insert(uiwidgets, w)
+    return w
+end
+surface = Surface
+CreateFrame = function(_, _, parent) return Surface("Frame", parent) end
+'''
+
 
 class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Skin.lua", "Options.lua"):
+        for name in ("Core.lua", "Fonts.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "Toasts.lua", "Skin.lua", "Options.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
@@ -187,6 +246,110 @@ class AddonTests(unittest.TestCase):
             addon.db.vividGlyphs = true; addon.db.faceGlyphStyle = "native"
             addon:QueueRefresh(); drain()
             assert(normal.rgba[4] == .8 and normal.rgba[1] == 1)
+        ''')
+
+    def test_square_minimap_real_mask_and_restoration(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            Minimap = surface(); Minimap.mask = "native-circle"
+            function Minimap:SetMaskTexture(value) self.mask = value end
+            MinimapCompassTexture = surface("Texture")
+            addon:QueueRefresh(); drain()
+            assert(Minimap.mask:find("WHITE8X8", 1, true))
+            assert(MinimapCompassTexture.alpha == 0)
+            Minimap:SetMaskTexture("updated-native-circle"); drain()
+            assert(Minimap.mask:find("WHITE8X8", 1, true))
+            addon.db.squareMinimap = false; addon:QueueRefresh(); drain()
+            assert(Minimap.mask == "updated-native-circle")
+            assert(MinimapCompassTexture.alpha == 1)
+        ''')
+
+    def test_theme_font_panel_and_full_restore(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            QuestLogFrame = surface()
+            QuestLogFrame.Background = surface("Texture")
+            local title = QuestLogFrame:CreateFontString()
+            local originalClick = function() end
+            QuestLogFrame.scripts.OnClick = originalClick
+            addon:QueueRefresh(); drain()
+            assert(QuestLogFrame.Background.alpha == 0)
+            assert(title.color[1] == .94)
+            assert(QuestLogFrame.scripts.OnClick == originalClick)
+            addon.db.themeQuests = false; addon:QueueRefresh(); drain()
+            assert(QuestLogFrame.Background.alpha == 1 and title.color[1] == .2)
+            assert(QuestLogFrame.children[1].visible == false)
+        ''')
+
+    def test_unitbar_texture_restore_preserves_values_and_portrait(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            local bar = surface("StatusBar"); bar.barTexture = surface("Texture")
+            bar.barTexture.atlas = "health-atlas"; bar.barTexture.file = 123
+            bar.value = 376
+            PlayerFrame = surface()
+            PlayerFrame.PlayerFrameContainer = surface("Frame", PlayerFrame)
+            local container = PlayerFrame.PlayerFrameContainer
+            container.FrameTexture = surface("Texture")
+            container.PlayerPortrait = surface("Texture")
+            container.PlayerPortrait.file = "portrait"
+            PlayerFrame.PlayerFrameContent = surface("Frame", PlayerFrame)
+            PlayerFrame.PlayerFrameContent.PlayerFrameContentMain = { HealthBarsContainer = {HealthBar = bar} }
+            addon:QueueRefresh(); drain()
+            assert(bar.barTexture.file:find("WHITE8X8", 1, true))
+            assert(bar.value == 376 and container.PlayerPortrait.file == "portrait")
+            addon.db.themeUnits = false; addon:QueueRefresh(); drain()
+            assert(bar.barTexture.atlas == "health-atlas" and bar.value == 376)
+            assert(container.FrameTexture.alpha == 1)
+        ''')
+
+    def test_loot_parser_self_quantity_and_localized_reorder(self):
+        self.check('''
+            local link = "|cffffffff|Hitem:2770:0|h[Copper Ore]|h|r"
+            LOOT_ITEM_SELF = "You receive loot: %s."
+            LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
+            local item = addon:ParseSelfLoot("You receive loot: " .. link .. "x4.")
+            assert(item.link == link and item.count == 4)
+            assert(addon:ParseSelfLoot("Otherplayer receives loot: " .. link .. ".") == nil)
+            LOOT_ITEM_SELF_MULTIPLE = "Reçu %2$d exemplaires de %1$s."
+            item = addon:ParseSelfLoot("Reçu 3 exemplaires de " .. link .. ".")
+            assert(item.link == link and item.count == 3)
+        ''')
+
+    def test_toast_merge_expiry_disable_and_gathering_event(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            C_Item = {GetItemInfo = function() return "Copper Ore", nil, 1, nil, nil, nil, nil, nil, nil, 134566 end}
+            ITEM_QUALITY_COLORS = {[1] = {r=1,g=1,b=1}}
+            local link = "|cffffffff|Hitem:2770:0|h[Copper Ore]|h|r"
+            LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
+            frames[2].OnEvent(frames[2], "CHAT_MSG_LOOT", "You receive loot: " .. link .. "x2.")
+            addon:TickToasts(.1)
+            local visibleToast
+            for _, w in ipairs(uiwidgets) do if w.icon and w.visible then visibleToast = w end end
+            assert(visibleToast and visibleToast.title.text == "Copper Ore")
+            addon:ShowLootToast({link=link,key=link,count=3})
+            assert(visibleToast.count.text == "×5")
+            addon:TickToasts(5); assert(not visibleToast.visible)
+            addon:PreviewLootToasts(); addon:TickToasts(.1)
+            addon.db.lootToasts = false; addon:RefreshToasts()
+            for _, w in ipairs(uiwidgets) do if w.icon then assert(not w.visible) end end
+        ''')
+
+    def test_native_loot_click_untouched_and_skin_restore(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            LootFrame = surface(); LootFrame.Background = surface("Texture")
+            local row = surface(); row.NameFrame = texture("loot-bg"); row.NameFrame.alpha = .9
+            function row.NameFrame:GetAlpha() return self.alpha end
+            function row.NameFrame:SetAlpha(value) self.alpha = value end
+            local click = function() error("Native click should not run during skinning") end
+            row.Item = { OnClick = click }
+            LootFrame.ScrollBox = {ForEachFrame = function(_, callback) callback(row) end}
+            addon:QueueRefresh(); drain()
+            assert(row.Item.OnClick == click and row.NameFrame.alpha == 0)
+            addon.db.themeLoot = false; addon:QueueRefresh(); drain()
+            assert(row.NameFrame.alpha == .9 and row.Item.OnClick == click)
         ''')
 
     def test_xbox_colors_and_disabled_feedback(self):
@@ -346,6 +509,8 @@ class AddonTests(unittest.TestCase):
                 error("Missing button: " .. text)
             end
             click("Glyphs")
+            click("Buttons")
+            click("Theme")
             click("Debug")
             click("Start tracing")
             assert(addon:IsDebugTracing())

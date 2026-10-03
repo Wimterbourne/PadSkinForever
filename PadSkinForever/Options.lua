@@ -84,17 +84,18 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.3.3 alpha", 22, -20)
+        Label(panel, "PadSkinForever — 0.4.0 alpha", 22, -20)
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}
         panel.settings = CreateFrame("Frame", nil, panel)
         panel.settings:SetPoint("TOPLEFT", 0, -36)
         panel.settings:SetPoint("BOTTOMRIGHT")
         panel.pages.general = panel.settings
-        Button(panel, "General", 22, -50, 100, function() ShowTab("general") end)
-        Button(panel, "Glyphs", 128, -50, 100, function() ShowTab("glyphs") end)
-        Button(panel, "Buttons", 234, -50, 100, function() ShowTab("buttons") end)
-        Button(panel, "Debug", 340, -50, 100, function() ShowTab("debug") end)
+        Button(panel, "General", 22, -50, 82, function() ShowTab("general") end)
+        Button(panel, "Glyphs", 110, -50, 82, function() ShowTab("glyphs") end)
+        Button(panel, "Buttons", 198, -50, 82, function() ShowTab("buttons") end)
+        Button(panel, "Theme", 286, -50, 82, function() ShowTab("theme") end)
+        Button(panel, "Debug", 374, -50, 82, function() ShowTab("debug") end)
         Label(panel.settings, "Blizzard layout and gamepad behavior remain native.", 22, -56)
         panel.checks = {}
         panel.settings.checks = panel.checks
@@ -204,6 +205,26 @@ function addon:ShowOptions()
         buttonPage:HookScript("OnShow", UpdateButtonStyle)
         local buttonHelp = Label(buttonPage, "Grey D-pad borders; A/B/X/Y borders in Xbox colors.\nDark empty slots. Native button shapes remain.\nEnable button skinning on General to apply this style.\nCooldowns, spell highlights and input behavior stay with Blizzard.", 22, -108)
         buttonHelp:SetWidth(465); buttonHelp:SetJustifyH("LEFT")
+
+        local themePage = CreateFrame("Frame", nil, panel)
+        themePage:SetPoint("TOPLEFT", 0, -90); themePage:SetPoint("BOTTOMRIGHT")
+        themePage.checks = {}; panel.pages.theme = themePage
+        Label(themePage, "Xbox-inspired native UI theme", 22, -10)
+        for index, entry in ipairs({
+            { "Minimap skin", "themeMinimap" }, { "Square minimap", "squareMinimap" },
+            { "Player, pet, target and focus frames", "themeUnits" },
+            { "Quest log and objective tracker", "themeQuests" },
+            { "Chat and input panels", "themeChat" }, { "Tooltips", "themeTooltip" },
+            { "Compact native loot window skin", "themeLoot" },
+            { "Received item loot toasts", "lootToasts" },
+            { "Use selected font in themed windows", "themeFonts" },
+        }) do Checkbox(themePage, entry[1], entry[2], -44 - (index - 1) * 34) end
+        Button(themePage, "Preview loot toasts", 22, -365, 240, function() addon:PreviewLootToasts() end)
+        local themeHelp = Label(themePage, "Modules restore their visual changes when disabled.\nSquare map changes the actual map mask.\nNative layout, quest actions and loot clicks stay with WoW.\nToasts observe received items, including gathering/autoloot.\nTheme changes wait until combat ends.", 22, -410)
+        themeHelp:SetWidth(465); themeHelp:SetJustifyH("LEFT")
+        themePage:SetScript("OnShow", function()
+            for key, check in pairs(themePage.checks) do check:SetChecked(addon.db[key]) end
+        end)
 
         local debugPage = CreateFrame("Frame", nil, panel)
         debugPage:SetPoint("TOPLEFT", 0, -90)

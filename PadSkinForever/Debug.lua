@@ -1,6 +1,6 @@
 local _, addon = ...
 local surfaces = setmetatable({}, { __mode = "k" })
-local methods = { "SetAtlas", "SetTexture", "SetVertexColor", "SetDesaturation", "SetFont", "SetFontObject", "SetScale" }
+local methods = { "SetAtlas", "SetTexture", "SetVertexColor", "SetDesaturation", "SetFont", "SetFontObject", "SetScale", "SetAlpha", "SetTextColor", "SetMaskTexture", "SetStatusBarTexture" }
 local history = {}
 local enabled = false
 
@@ -48,6 +48,7 @@ local function Snapshot(object)
         local path, size, flags = object:GetFont()
         parts[#parts + 1] = "font=" .. tostring(path) .. " size=" .. tostring(size) .. " flags=" .. tostring(flags)
     end
+    if object.GetAlpha then parts[#parts + 1] = "alpha=" .. tostring(object:GetAlpha()) end
     if object.GetScale then parts[#parts + 1] = "scale=" .. string.format("%.2f", object:GetScale()) end
     if object.GetVertexColor then
         local r, g, b = object:GetVertexColor()
@@ -57,7 +58,7 @@ local function Snapshot(object)
 end
 
 function addon:GetDebugReport()
-    local lines = { "PadSkinForever 0.2.0 alpha",
+    local lines = { "PadSkinForever 0.4.0 alpha",
         "Tracing: " .. (enabled and "ON" or "OFF"),
         "Legend theming: " .. (self.db.skinLegend and "ON" or "OFF"),
         "Selected font: " .. self.db.font,

@@ -105,6 +105,7 @@ end
 local function RefreshSkin(self)
     if not self.db or InCombatLockdown() then return end
     self:ObserveSharedMedia()
+    self:RefreshTheme()
     local main = GamepadMainActionBarFrame
     local page = main and main.PageUnit
     if page then
