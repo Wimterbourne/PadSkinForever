@@ -42,6 +42,16 @@ local function SetControllerFocus(control)
         controllerFocus:SetPSFControllerFocused(true)
         EnsureControlVisible(controllerFocus)
     end
+    -- PSF owns this marker. Never move or reconfigure Blizzard's focus cursor.
+    local arrow = panel and panel.PSFFocusArrow
+    if arrow then
+        arrow:Hide()
+        if controllerFocus then
+            arrow:ClearAllPoints()
+            arrow:SetPoint("RIGHT", controllerFocus, "LEFT", -4, 0)
+            arrow:Show()
+        end
+    end
 end
 
 local function RegisterControl(control)
@@ -243,9 +253,16 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever", 22, -18, true, 17)
-        local version = Label(panel, "0.6.5 alpha", 182, -20, false, 12)
+        panel.PSFLogo = addon:CreatePSFLogo(panel, 36)
+        panel.PSFLogo:SetPoint("TOPLEFT", 22, -18)
+        Label(panel, "PadSkinForever", 66, -18, true, 17)
+        local version = Label(panel, "0.6.6 alpha", 230, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
+        panel.PSFFocusArrow = panel:CreateTexture(nil, "OVERLAY")
+        panel.PSFFocusArrow:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFFocusChevron.tga")
+        panel.PSFFocusArrow:SetSize(12, 24)
+        panel.PSFFocusArrow:SetVertexColor(unpack(addon.uiColors.accent))
+        panel.PSFFocusArrow:Hide()
         Button(panel, "Close", 408, -14, 80, CloseOptions)
         panel.pages = {}
         panel.tabs = {}

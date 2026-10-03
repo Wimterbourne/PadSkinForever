@@ -87,7 +87,9 @@ local function Panel(background)
         end
     end
     panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    panel.title:SetPoint("TOPLEFT", 16, -14); panel.title:SetText("Controller")
+    panel.PSFLogo = addon:CreatePSFLogo(panel, 28)
+    panel.PSFLogo:SetPoint("TOPLEFT", 16, -14)
+    panel.title:SetPoint("TOPLEFT", 52, -14); panel.title:SetText("Controller")
     panel.line = panel:CreateTexture(nil, "ARTWORK")
     panel.line:SetTexture(WHITE); panel.line:SetVertexColor(.24, .28, .25, 1)
     panel.line:SetHeight(1)
@@ -204,6 +206,7 @@ function addon:LayoutLegend(legend)
             end
             local panel = Panel(background)
             panel.title:SetShown(not header)
+            panel.PSFLogo:SetShown(not header)
             if not header then panel.title:SetFont(self:GetLegendHeaderFontPath(), self.db.legendFontSize + 2, "") end
             local lineY = header and offsets[0] + rows[0] + 6 or pad + self.db.legendFontSize + 7
             panel.line:ClearAllPoints()

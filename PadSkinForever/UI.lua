@@ -20,6 +20,14 @@ local function Color(region, color)
     region:SetVertexColor(unpack(color))
 end
 
+function addon:CreatePSFLogo(parent, width)
+    local logo = parent:CreateTexture(nil, "OVERLAY")
+    logo:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFLogo.tga")
+    logo:SetSize(width, width / 2)
+    logo:SetVertexColor(1, 1, 1, 1)
+    return logo
+end
+
 local function Rect(parent, layer, color, a, b, x1, y1, x2, y2)
     local texture = parent:CreateTexture(nil, layer)
     texture:SetTexture(WHITE)

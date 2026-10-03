@@ -81,6 +81,8 @@ local function CreateToast(index)
     frame.caption:SetPoint("TOPLEFT", 56, -31); frame.caption:SetText(LOOT or "Loot"); frame.caption:SetTextColor(.6, .63, .68)
     frame.count = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     frame.count:SetPoint("RIGHT", -10, 0)
+    frame.PSFLogo = addon:CreatePSFLogo(frame, 22)
+    frame.PSFLogo:SetPoint("BOTTOMRIGHT", -10, 6)
     frame:Hide()
     return frame
 end

@@ -1,6 +1,12 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.5-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.6.6-alpha**.
+
+### Logo en focus — 0.6.6-alpha
+
+Het vaste PSF-logo is concept 03: de platte infinity-controller met geïntegreerde P en S. De echte vector-master staat in `PadSkinForever/Media/PSFLogo.svg` (uitsluitend paden, transparant, geen ingebedde bitmap). De addon gebruikt de meegeleverde transparante TGA in het instellingenvenster, de ESC-kaart, de eigen legendakop en loot-toasts. `python tools/generate_brand_assets.py` rendert de textures opnieuw met Inkscape en Pillow.
+
+De geïsoleerde controllerbediening heeft nu een eigen mintgroene focuschevron. Die volgt de geselecteerde PSF-control, inclusief gescrolde fontregels, en verdwijnt bij sluiten of combat. Blizzards gele focuscursor blijft ongewijzigd; PSF roept geen native focus- of gamepadbindingmanager aan. De launcher blijft bewust **naast** de rode menukolom. Een mockup met een knop in de rode kolom was geen weergave van de implementatie.
 
 ## Wat zit erin?
 

@@ -751,6 +751,7 @@ class AddonTests(unittest.TestCase):
                 function w:IsVisible() return self.visible and (not self.parent or not self.parent.IsVisible or self.parent:IsVisible()) end
                 function w:IsEnabled() return self.enabled ~= false end
                 function w:SetPoint(_, a, b, c, d)
+                    self.anchorTarget = type(a) == "table" and a or nil
                     if type(a) == "number" then self.x, self.y = a, b
                     else self.x, self.y = c or 0, d or 0 end
                 end
@@ -834,6 +835,8 @@ class AddonTests(unittest.TestCase):
             local general
             for _, w in ipairs(widgets) do if w.text == "General" then general = w end end
             assert(general and general.PSFControllerFocused)
+            assert(focused.PSFLogo and focused.PSFFocusArrow:IsShown())
+            assert(focused.PSFFocusArrow.anchorTarget == general)
             local function click(text)
                 for _, w in ipairs(widgets) do if w.text == text then w.scripts.OnClick(w); return end end
                 error("Missing button: " .. text)
@@ -853,8 +856,11 @@ class AddonTests(unittest.TestCase):
             local moved = false
             for _, w in ipairs(widgets) do if w ~= general and w.PSFControllerFocused then moved = true end end
             assert(moved)
+            assert(focused.PSFFocusArrow:IsShown())
+            assert(focused.PSFFocusArrow.anchorTarget.PSFControllerFocused)
             namedWidgets.PadSkinForeverControllerBack:Click()
             assert(not focused:IsShown() and bindingOwner.attrs["psf-active"] == false)
+            assert(not focused.PSFFocusArrow:IsShown())
             assert(next(bindingOwner.bindings) == nil)
             addon:ShowOptions()
             assert(focused:IsShown() and bindingOwner.attrs["psf-active"] == true and stateDrivers == 1)
@@ -863,6 +869,7 @@ class AddonTests(unittest.TestCase):
             combat = true
             focused.scripts.OnEvent(focused, "PLAYER_REGEN_DISABLED")
             assert(not focused:IsShown())
+            assert(not focused.PSFFocusArrow:IsShown())
             combat = false
             bindingOwner:SetAttribute("state-combat", "nocombat")
             assert(next(bindingOwner.bindings) == nil)
@@ -875,6 +882,7 @@ class AddonTests(unittest.TestCase):
             local gameMenuButton = addon:GetGameMenuButton()
             assert(gameMenuButton and gameMenuButton.text == "PADSKINFOREVER")
             assert(gameMenuButton.PSFSubtitle and gameMenuButton.PSFSubtitle.text == "ADDON SETTINGS")
+            assert(gameMenuButton.PSFLogo)
             assert(GameMenuFrame.buttons[1].routes == nil)
             assert(GameMenuFrame.buttons[2].routes == nil)
             assert(GameMenuFrame.scripts.OnHide == nil)

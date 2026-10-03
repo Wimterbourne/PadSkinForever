@@ -65,17 +65,8 @@ function addon:CreateGameMenuButton()
     menuButton:SetScript("OnEnter", function() SetMenuState(true) end)
     menuButton:SetScript("OnLeave", function() SetMenuState(false) end)
 
-    local badge = CreateFrame("Frame", nil, menuButton, "BackdropTemplate")
-    badge:SetPoint("LEFT", 10, 0); badge:SetSize(32, 32)
-    badge:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    badge:SetBackdropColor(.055, .062, .073, 1)
-    badge:SetBackdropBorderColor(unpack(self.uiColors.accent))
-    local badgeText = badge:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    badgeText:SetPoint("CENTER"); badgeText:SetText("PSF")
-    if not badgeText:SetFont(self:GetUIFontPath(true), 10, "") then
-        badgeText:SetFont(STANDARD_TEXT_FONT, 10, "")
-    end
-    badgeText:SetTextColor(unpack(self.uiColors.accent))
+    menuButton.PSFLogo = self:CreatePSFLogo(menuButton, 36)
+    menuButton.PSFLogo:SetPoint("LEFT", 10, 0)
     SetMenuState(false)
     menuButton:Show()
 end
