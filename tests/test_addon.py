@@ -166,14 +166,37 @@ class AddonTests(unittest.TestCase):
             end
         ''')
 
+    def test_minimal_border_palette_and_neutral_slots(self):
+        self.check('''
+            for key, color in pairs(addon.xboxColors) do
+                icon.mappedButtonKey = key; addon:QueueRefresh(); drain()
+                for channel = 1, 3 do assert(button.normal.rgba[channel] == color[channel]) end
+                assert(button.SlotArt.rgba[1] == 1 and button.SlotArt.rgba[2] == 1)
+            end
+            icon.mappedButtonKey = "PADDUP"; addon:QueueRefresh(); drain()
+            assert(button.normal.rgba[1] == .65 and button.normal.rgba[2] == .68 and button.normal.rgba[3] == .72)
+            addon.db.buttonStyle = "native"; addon:QueueRefresh(); drain()
+            assert(button.normal.rgba[1] == addon.db.accent[1])
+        ''')
+
+    def test_vivid_glyph_alpha_toggle_and_native_restore(self):
+        self.check('''
+            assert(normal.rgba[4] == 1 and disabled.rgba[4] == 1)
+            addon.db.vividGlyphs = false; addon:QueueRefresh(); drain()
+            assert(normal.rgba[4] == .8)
+            addon.db.vividGlyphs = true; addon.db.faceGlyphStyle = "native"
+            addon:QueueRefresh(); drain()
+            assert(normal.rgba[4] == .8 and normal.rgba[1] == 1)
+        ''')
+
     def test_xbox_colors_and_disabled_feedback(self):
         self.check('''
-            assert(normal.rgba[1] == 0.25 and normal.rgba[2] == 1)
-            assert(normal.rgba[4] == 0.8)
+            assert(normal.rgba[1] == 0.12 and normal.rgba[2] == 1)
+            assert(normal.rgba[4] == 1)
             assert(disabled.rgba[1] < normal.rgba[1] and disabled.desaturation == 1)
             icon.mappedButtonKey = "PAD2"
             icon:RefreshIconTextures(); drain()
-            assert(normal.rgba[1] == 1 and normal.rgba[2] == 0.25)
+            assert(normal.rgba[1] == 1 and normal.rgba[2] == 0.12)
             addon.db.faceGlyphStyle = "native"
             normal.atlas = "gamepad-ps4-cross-normal"
             icon:RefreshIconTextures(); drain()

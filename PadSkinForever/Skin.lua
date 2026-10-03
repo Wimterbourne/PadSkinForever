@@ -4,7 +4,7 @@ local textureOriginals = setmetatable({}, { __mode = "k" })
 local fontOriginals = setmetatable({}, { __mode = "k" })
 local hooked = setmetatable({}, { __mode = "k" })
 local anchors = { "TopCenteredAnchor", "BottomCenteredAnchor", "LeftCenteredAnchor", "RightCenteredAnchor" }
-function addon:Tint(texture, color)
+function addon:Tint(texture, color, alpha)
     if not texture or not texture.SetVertexColor then return end
     local original = textureOriginals[texture]
     if color then
@@ -14,7 +14,7 @@ function addon:Tint(texture, color)
             textureOriginals[texture] = original
         end
         texture:SetDesaturation(1)
-        texture:SetVertexColor(color[1], color[2], color[3], original[4])
+        texture:SetVertexColor(color[1], color[2], color[3], alpha or original[4])
     elseif original then
         texture:SetDesaturation(original[5])
         texture:SetVertexColor(original[1], original[2], original[3], original[4])
@@ -59,13 +59,20 @@ local function SkinButton(button, label)
     local db = addon.db
     addon:SkinButtonAssets(button)
     local color = db.skinButtons and db.accent or nil
+    local minimal = db.skinButtons and db.buttonStyle == "minimal"
+    if minimal then
+        local key = button.ButtonIcon and button.ButtonIcon.mappedButtonKey
+        color = addon.xboxColors[key] or addon:IsDpadKey(key) and { .65, .68, .72 } or db.accent
+    end
+    -- Empty slot assets stay dark and neutral; only the borders use button colors.
+    local slotColor = minimal and { 1, 1, 1 } or color
     addon:DebugSurface(button:GetNormalTexture(), label .. "/border", "button border")
     addon:DebugSurface(button:GetPushedTexture(), label .. "/pushed", "button border")
     addon:DebugSurface(button.SlotArt, label .. "/slot", "empty slot")
     addon:Tint(button:GetNormalTexture(), color)
     addon:Tint(button:GetPushedTexture(), color)
-    addon:Tint(button.SlotArt, color)
-    addon:Tint(button.SlotBackground, color)
+    addon:Tint(button.SlotArt, slotColor)
+    addon:Tint(button.SlotBackground, slotColor)
     addon:SkinGlyph(button.ButtonIcon, true, label .. "/glyph", button)
     for _, name in ipairs({ "cooldown", "chargeCooldown", "lossOfControlCooldown" }) do
         local cooldown = button[name]

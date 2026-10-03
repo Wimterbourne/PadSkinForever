@@ -4,7 +4,9 @@ local face = { PAD1 = "buttona", PAD2 = "buttonb", PAD3 = "buttonx", PAD4 = "but
 local dpad = { PADDUP = "dpadup", PADDDOWN = "dpaddown", PADDLEFT = "dpadleft", PADDRIGHT = "dpadright",
                DIRPAD = "dpadall", DIRPADHORIZONTAL = "dpadleftright", DIRPADVERTICAL = "dpadupdown" }
 local states = { "normal", "over", "down", "focus", "disabled" }
-local colors = { PAD1 = { .25, 1, .25 }, PAD2 = { 1, .25, .25 }, PAD3 = { .25, .55, 1 }, PAD4 = { 1, .85, .15 } }
+local colors = { PAD1 = { .12, 1, .12 }, PAD2 = { 1, .12, .12 }, PAD3 = { .12, .5, 1 }, PAD4 = { 1, .9, .05 } }
+addon.xboxColors = colors
+function addon:IsDpadKey(key) return dpad[key] ~= nil end
 addon.faceStyles = { "native", "xbox", "xboxColor" }
 addon.faceStyleLabels = { "Blizzard default", "Xbox monochrome", "Xbox colored" }
 addon.dpadStyles = { "native", "xbox", "xboxAccent" }
@@ -96,7 +98,7 @@ function addon:SkinGlyph(icon, enabled, label, button)
         if color and texture == icon.DisabledTexture then
             color = { color[1] * self.db.disabledGlyphIntensity, color[2] * self.db.disabledGlyphIntensity, color[3] * self.db.disabledGlyphIntensity }
         end
-        self:Tint(texture, color)
+        self:Tint(texture, color, color and self.db.vividGlyphs and 1 or nil)
     end
     original.overridden = overriding
 end

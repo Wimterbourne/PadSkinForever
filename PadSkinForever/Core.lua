@@ -6,6 +6,7 @@ addon.defaults = {
     buttonStyle = "minimal",
     glyphOutside = true,
     disabledGlyphIntensity = .7,
+    vividGlyphs = true,
     colorGlyphs = true, -- Legacy setting, migrated to faceGlyphStyle.
     faceGlyphScale = 1,
     dpadGlyphScale = 1,
