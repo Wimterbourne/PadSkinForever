@@ -138,9 +138,9 @@ class AddonTests(unittest.TestCase):
 
     def test_outside_glyph_anchors_restore_and_native_update(self):
         self.check('''
-            assert(icon.points[1][1] == "BOTTOMLEFT" and icon.points[1][2] == button)
+            assert(icon.points[1][1] == "TOPRIGHT" and icon.points[1][4] == 0)
             addon.db.faceGlyphScale = 2; addon:QueueRefresh(); drain()
-            assert(icon.points[1][4] == 1 and icon.points[1][5] == 1)
+            assert(icon.points[1][4] == 10 and icon.points[1][5] == 10)
             addon.db.glyphOutside = false; addon:QueueRefresh(); drain()
             assert(icon.points[1][1] == "TOPRIGHT")
             icon:ClearAllPoints(); icon:SetPoint("LEFT", button, "RIGHT", 7, 3); drain()
@@ -148,6 +148,22 @@ class AddonTests(unittest.TestCase):
             addon.db.glyphOutside = false; addon:QueueRefresh(); drain()
             assert(icon.points[1][1] == "LEFT" and icon.points[1][4] == 7)
             assert(#timers == 0)
+        ''')
+
+    def test_glyph_growth_follows_all_native_anchor_directions(self):
+        self.check('''
+            local directions = { LEFT = {-1, 0}, RIGHT = {1, 0}, TOP = {0, 1}, BOTTOM = {0, -1}, TOPRIGHT = {1, 1} }
+            addon.db.glyphOutside = false; addon:QueueRefresh(); drain()
+            for point, direction in pairs(directions) do
+                icon:ClearAllPoints(); icon:SetPoint(point, button, point, -1, -3); drain()
+                addon.db.faceGlyphScale = 1.5; addon.db.glyphOutside = true
+                addon:QueueRefresh(); drain()
+                assert(icon.points[1][1] == point)
+                assert(math.abs(icon.points[1][4] - (-1 + direction[1] * 10)/1.5) < .001)
+                assert(math.abs(icon.points[1][5] - (-3 + direction[2] * 10)/1.5) < .001)
+                addon.db.glyphOutside = false; addon:QueueRefresh(); drain()
+                assert(icon.points[1][4] == -1 and icon.points[1][5] == -3)
+            end
         ''')
 
     def test_xbox_colors_and_disabled_feedback(self):

@@ -1,11 +1,11 @@
 # PadSkinForever
 
-Een kleine, zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.3.0-alpha**.
+Een kleine, zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.3.1-alpha**.
 
 ## Wat zit erin?
 
 - Een **Modern minimal** knopstijl: eigen dunne borders en donkere lege slots, in de bestaande ronde/vierkante vorm. **Blizzard borders** behoudt de oorspronkelijke textures met blauwe tint. Beide vallen onder de schakelaar voor button skinning.
-- Actionbar-glyphs staan standaard buiten de rechterbovenhoek van het skill-icoon. De buitenrand blijft op afstand bij vergroten. Zet **Place actionbar glyphs outside the skill icon** uit om de native positie terug te krijgen. Legenda-glyphs houden hun eigen native anchors.
+- Actionbar-glyphs behouden de native kant/hoek. Bij vergroten schuiven ze mee zodat de binnenrand op zijn oorspronkelijke positie blijft; alle glyphs naar dezelfde rechterbovenhoek verplaatsen veroorzaakte overlap in 0.3.0. Zet **Move enlarged glyphs outward from their native anchor** uit om de native positie terug te krijgen. Legenda-glyphs houden hun eigen native anchors.
 - Disabled-glyphhelderheid naar keuze: **45%, 70% of 100%** van de tint (standaard 70%). De native disabled-status en artwork blijven bestaan.
 - A/B/X/Y-glyphkeuze: **Blizzard standaard**, **Xbox monochroom** of **Xbox gekleurd** (A groen, B rood, X blauw, Y geel). De gekleurde disabled-toestand blijft gedimd; Blizzard bepaalt de interactiestatus.
 - D-pad-iconkeuze: **Blizzard standaard**, **Xbox monochroom** of **Xbox blauw**.
@@ -56,7 +56,7 @@ De native gamepad-bindingstack kan voorrang hebben op gewone addonbindings. Deze
 
 Gebouwd na broncodecontrole van Forever **1.60.1 (70205)**, [Gethe/wow-ui-source, commit e3ecc27](https://github.com/Gethe/wow-ui-source/commit/e3ecc27). TOC-interface: **16001**.
 
-Lokaal gecontroleerd: Lua 5.1-syntax, XML en vijftien logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De nieuwe knopstijl en glyphplaatsing van 0.3.0 moeten nog in WoW worden getest.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
+Lokaal gecontroleerd: Lua 5.1-syntax, XML en zestien logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De nieuwe knopstijl en glyphplaatsing van 0.3.0 moeten nog in WoW worden getest.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
 
 Skinwijzigingen worden buiten combat toegepast. Post-hooks op de betrokken frames vragen alleen een latere visuele refresh aan; native functies worden niet vervangen. Dit is een conservatieve aanpak, geen bewijs dat de addon taintvrij is.
 

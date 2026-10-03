@@ -84,7 +84,7 @@ function addon:ShowOptions()
         panel:RegisterForDrag("LeftButton")
         panel:SetScript("OnDragStart", panel.StartMoving)
         panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-        Label(panel, "PadSkinForever — 0.3.0 alpha", 22, -20)
+        Label(panel, "PadSkinForever — 0.3.1 alpha", 22, -20)
         Button(panel, "Close", 408, -14, 80, function() panel:Hide() end)
         panel.pages = {}
         panel.settings = CreateFrame("Frame", nil, panel)
@@ -171,7 +171,7 @@ function addon:ShowOptions()
         Group("A / B / X / Y", "faceGlyphStyle", "faceGlyphScale", addon.faceStyles, addon.faceStyleLabels, -56)
         Group("D-pad", "dpadGlyphStyle", "dpadGlyphScale", addon.dpadStyles, addon.dpadStyleLabels, -202)
         glyphPage.checks = {}
-        Checkbox(glyphPage, "Place actionbar glyphs outside the skill icon", "glyphOutside", -325)
+        Checkbox(glyphPage, "Move enlarged glyphs outward from their native anchor", "glyphOutside", -325)
         local intensity
         intensity = Button(glyphPage, "", 22, -367, 330, function()
             local current = addon.db.disabledGlyphIntensity

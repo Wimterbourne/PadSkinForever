@@ -57,11 +57,21 @@ function addon:SkinGlyph(icon, enabled, label, button)
         icon:SetScale(original.scale)
         original.scaled = false
     end
-    -- Only actionbar prompts move. Legend icons belong to a separate layout.
+    -- Preserve the native side/corner rather than moving every prompt to one corner.
+    -- Compensate for added width/height so the inner edge stays at its native position.
     if enabled and button and self.db.glyphOutside and (isFace or isDpad) then
+        local width, height = icon:GetSize()
+        local growX = math.max(0, desiredScale - original.scale) * width
+        local growY = math.max(0, desiredScale - original.scale) * height
         icon:ClearAllPoints()
-        -- Offsets use the glyph's scaled coordinates; keep a two-pixel gap.
-        icon:SetPoint("BOTTOMLEFT", button, "TOPRIGHT", 2 / desiredScale, 2 / desiredScale)
+        for _, anchor in ipairs(original.points) do
+            local point, relative, relativePoint, x, y = unpack(anchor)
+            local dx = point:find("RIGHT") and 1 or point:find("LEFT") and -1 or 0
+            local dy = point:find("TOP") and 1 or point:find("BOTTOM") and -1 or 0
+            icon:SetPoint(point, relative or button, relativePoint,
+                ((x or 0) * original.scale + dx * growX) / desiredScale,
+                ((y or 0) * original.scale + dy * growY) / desiredScale)
+        end
         original.positioned = true
     elseif original.positioned then
         icon:ClearAllPoints()
