@@ -219,7 +219,7 @@ local function Map(enabled)
     addon:ThemeCard(map, square, "Minimap", 2)
     addon:ThemeAlpha(MinimapCompassTextureUnderlay, enabled)
     -- Round and square are shape choices within the same independent skin.
-    addon:Tint(MinimapCompassTexture, enabled and not square and { .65, .68, .72 } or nil)
+    addon:Tint(MinimapCompassTexture, enabled and { .65, .68, .72 } or nil)
     -- Vertex tint restoration can also restore texture alpha: visibility goes last.
     addon:ThemeAlpha(MinimapCompassTexture, square)
     if MinimapCluster then
@@ -330,6 +330,9 @@ local function Quests(enabled)
     local border = WorldMapFrame and WorldMapFrame.BorderFrame
     if border then
         addon:ThemeCard(border, enabled, "MapQuestWindow", 0)
+        -- BorderFrame sits above the map canvas: an opaque card here covers it.
+        -- Keep only the outline; the separate quest pane owns its background.
+        if cards[border] then cards[border]:SetBackdrop({ edgeFile = white, edgeSize = 1 }) end
         Chrome(border, enabled)
         addon:ThemeFont(border.TitleText or (border.TitleContainer and border.TitleContainer.TitleText), enabled, true)
         -- The native portrait remains; only its decorative gold ring is neutralized.

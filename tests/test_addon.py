@@ -270,6 +270,8 @@ class AddonTests(unittest.TestCase):
             assert(MinimapCompassTexture.alpha == 0)
             assert(Minimap.mask:find("WHITE8X8", 1, true))
             addon.db.squareMinimap = false; addon:QueueRefresh(); drain()
+            addon:QueueRefresh(); drain()
+            assert(MinimapCompassTexture.alpha == 1)
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
             assert(MinimapCompassTexture.rgba[1] == 1)
         ''')
@@ -294,6 +296,9 @@ class AddonTests(unittest.TestCase):
             quests.DetailsFrame.scripts.OnClick = click
             addon:QueueRefresh(); drain()
             assert(WorldMapFrame.BorderFrame.NineSlice.alpha == 0)
+            for _, child in ipairs(WorldMapFrame.BorderFrame.children) do
+                if child.backdrop then assert(child.backdrop.bgFile == nil) end
+            end
             assert(quests.ScrollFrame.BorderFrame.alpha == 0)
             assert(quests.DetailsFrame.Bg.alpha == 0)
             assert(description.color[1] == .94)
