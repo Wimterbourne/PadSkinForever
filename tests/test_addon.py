@@ -248,6 +248,43 @@ class AddonTests(unittest.TestCase):
             assert(background.height < height and background.Background.alpha == 0)
         ''')
 
+    def test_legend_border_edges_have_explicit_one_unit_thickness(self):
+        self.legend_setup()
+        self.check(r'''
+            addon:QueueRefresh(); drain()
+            local panel = background.children[#background.children]
+            local edges = 0
+            for _, region in ipairs(panel.children) do
+                if region.file == "Interface\\Buttons\\WHITE8X8" and region.rgba and region.rgba[1] == .40 then
+                    edges = edges + 1
+                    assert(region.width == 1 or region.height == 1)
+                    local a, b = region.points[1], region.points[2]
+                    if region.height == 1 then assert(a[5] == b[5]) end
+                    if region.width == 1 then assert(a[4] == b[4]) end
+                end
+            end
+            assert(edges == 4)
+        ''')
+
+    def test_legend_two_icon_header_does_not_indent_body_labels(self):
+        self.legend_setup()
+        self.check('''
+            legend.header = true
+            local header = Entry(0, 0, "PADLSHOULDER", "Shortcut actions")
+            header.InputIcon2 = CreateFrame("Frame", nil, header)
+            header.InputIcon2:SetPoint("LEFT", header.InputIcon1, "RIGHT", 4, 0)
+            header.InputIcon2.mappedButtonKey = "PADRSHOULDER"
+            header.IconDivider1 = CreateFrame("Frame", nil, header)
+            header.IconDivider1:SetSize(16, 16)
+            header.IconDivider1:SetPoint("LEFT", header.InputIcon1, "RIGHT", 4, 0)
+            local left = Entry(0, 1, "PADDUP", "Next action page")
+            legend.groups.GAMEPLAY = {background, header, left}
+            addon:QueueRefresh(); drain()
+            assert(header.ControlDescText.points[1][4] == 18 + 16 + 18 + 10 + 12)
+            assert(left.ControlDescText.points[1][4] == 18 + 12)
+            assert(header.ControlDescText.points[1][4] > left.ControlDescText.points[1][4])
+        ''')
+
     def test_legend_global_size_scales_shoulders_and_combines_face_setting(self):
         self.legend_setup()
         self.check('''

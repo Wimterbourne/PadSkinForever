@@ -1,6 +1,6 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.0-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.5.1-alpha**.
 
 ## Wat zit erin?
 
@@ -56,7 +56,7 @@ De questskin bereikt nu ook de geneste detail-/rewardsvensters, zoekveld, catego
 
 Bij ronde → vierkante minimap wordt zichtbaarheid na de kleurherstelling toegepast. Dat voorkomt dat het herstel van de ronde borderkleur diens alpha terugzet boven de vierkante kaart. Test meerdere rond/vierkantwissels met minimapskin voortdurend aan.
 
-30 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
+32 logictests slagen, inclusief alpha-reset door vertexkleuren en questdetails/herstel zonder kaartcanvaswijziging. De nieuwe questvormgeving en echte controllerfocus moeten nog in WoW worden getest. Radial theming en overige conceptafwerking blijven op de lijst.
 
 ## Ronde minimap — 0.4.2 alpha
 
@@ -80,7 +80,9 @@ Theming uit herstelt de opgeslagen visuals van de ontdekte elementen. Afzonderli
 
 Na deze update **WoW volledig afsluiten en opnieuw starten**: de TOC laadt nieuwe Lua-bestanden. Open daarna `/psf` → Theme, test de vierkante kaart, elk venster, het uitschakelen per onderdeel, handmatig looten, autoloot en mining. Controleer daarna reload, combat en BugSack. De bestaande glyph-, cooldownfont- en legendatests blijven relevant.
 
-## Inputlegenda — 0.5.0-alpha
+## Inputlegenda — 0.5.1-alpha
+
+Screenshotcorrecties na 0.5.0: rechte randstukken krijgen expliciet een dikte van 1 UI-eenheid, passend bij de afgeronde hoeken. De gecombineerde LB+RB-kop bepaalt niet langer de inspringing van de labels eronder. De tester heeft de interne uitlijning en het meegroeien bij 170%/150% glyphs bevestigd. Een eigen PSF-icoon in de kop is een volgende ontwerpstap.
 
 Open `/psf` → General → **Legend style and spacing...** (ook bereikbaar via Theme).
 
@@ -110,7 +112,7 @@ De native gamepad-bindingstack kan voorrang hebben op gewone addonbindings. Deze
 
 Gebouwd na broncodecontrole van Forever **1.60.1 (70205)**, [Gethe/wow-ui-source, commit e3ecc27](https://github.com/Gethe/wow-ui-source/commit/e3ecc27). TOC-interface: **16001**.
 
-Lokaal gecontroleerd: Lua 5.1-syntax, XML en 30 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
+Lokaal gecontroleerd: Lua 5.1-syntax, XML en 32 logictests, waaronder native assetherstel na vormwissels, glyphplaatsing/herstel, combat-uitstel, fonts, legenda en debug. De tester heeft in 0.2.0 de glyphkleuren en vergroting bevestigd, inclusief behoud van 150%/170% na reload. Legendatoggle, blauwe randen en FOT-Rodin-Pro-B.otf-cooldownfont waren eerder bevestigd; zie [issue #1](https://github.com/Wimterbourne/PadSkinForever/issues/1). **De tester heeft de verbeterde glyphposities, minimalistische borders en Xbox-borderkleuren bevestigd. De dikkere ronde borders uit 0.3.3 en de nieuwe themamodules uit 0.4.0 wachten nog op een test in WoW.** Mocks kunnen Blizzard's secure/taint-model niet reproduceren.
 
 Skinwijzigingen worden buiten combat toegepast. Post-hooks op de betrokken frames vragen alleen een latere visuele refresh aan; native functies worden niet vervangen. Dit is een conservatieve aanpak, geen bewijs dat de addon taintvrij is.
 

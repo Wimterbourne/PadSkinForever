@@ -66,17 +66,24 @@ local function Panel(background)
         local function Rect(a, b, x1, y1, x2, y2)
             local t = panel:CreateTexture(nil, "BACKGROUND")
             t:SetTexture(WHITE); t:SetVertexColor(unpack(color))
+            -- Anchors along one edge constrain only the long axis. Explicitly
+            -- size the short axis; WHITE8X8 otherwise remains eight pixels thick.
+            if a:find("TOP") and b:find("TOP") or a:find("BOTTOM") and b:find("BOTTOM") then
+                t:SetHeight(math.abs(y2 - y1)); y2 = y1
+            elseif a:find("LEFT") and b:find("LEFT") or a:find("RIGHT") and b:find("RIGHT") then
+                t:SetWidth(math.abs(x2 - x1)); x2 = x1
+            end
             t:SetPoint(a, panel, a, x1, y1); t:SetPoint(b, panel, b, x2, y2)
         end
         if layer == "Fill" then
             Rect("TOPLEFT", "BOTTOMRIGHT", 8, 0, -8, 0)
             Rect("TOPLEFT", "BOTTOMLEFT", 0, -8, 8, 8)
-            Rect("TOPRIGHT", "BOTTOMRIGHT", -8, -8, 0, 8)
+            Rect("TOPRIGHT", "BOTTOMRIGHT", 0, -8, -8, 8)
         else
             Rect("TOPLEFT", "TOPRIGHT", 8, 0, -8, -1)
-            Rect("BOTTOMLEFT", "BOTTOMRIGHT", 8, 1, -8, 0)
+            Rect("BOTTOMLEFT", "BOTTOMRIGHT", 8, 0, -8, 1)
             Rect("TOPLEFT", "BOTTOMLEFT", 0, -8, 1, 8)
-            Rect("TOPRIGHT", "BOTTOMRIGHT", -1, -8, 0, 8)
+            Rect("TOPRIGHT", "BOTTOMRIGHT", 0, -8, -1, 8)
         end
     end
     panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -143,9 +150,11 @@ function addon:LayoutLegend(legend)
                 end
                 rows[row] = math.max(rows[row] or 0, math.ceil(height))
                 local width = text:GetStringWidth()
-                columns[col] = math.max(columns[col] or 0, width)
-                iconColumns[col] = math.max(iconColumns[col] or 0, iconWidth)
+                local layoutCol = header and row == 0 and -1 or col
+                columns[layoutCol] = math.max(columns[layoutCol] or 0, width)
+                iconColumns[layoutCol] = math.max(iconColumns[layoutCol] or 0, iconWidth)
                 original.row, original.col, original.iconWidth = row, col, iconWidth
+                original.layoutCol = layoutCol
                 Watch(frame)
                 self:DebugSurface(frame, "Legend/" .. name .. "/row" .. row .. "/col" .. col, "legend row layout")
             end
@@ -162,7 +171,7 @@ function addon:LayoutLegend(legend)
                 colX[col] = width
                 width = width + math.ceil((columns[col] or columnWidth) + (iconColumns[col] or 0) + 12) + (col < count - 1 and 24 or 0)
             end
-            width = math.max(240, width + pad)
+            width = math.max(240, width + pad, (columns[-1] or 0) + (iconColumns[-1] or 0) + 12 + pad * 2)
             for _, frame in ipairs(entries) do
                 local original = saved[frame]
                 local rowHeight = rows[original.row]
@@ -177,9 +186,9 @@ function addon:LayoutLegend(legend)
                     end
                 end
                 local textFrame, text = frame.ControlDescText, frame.ControlDescText.FontString
-                Position(textFrame, frame, iconColumns[original.col] + 12, (rowHeight - text:GetStringHeight()) / 2)
+                Position(textFrame, frame, iconColumns[original.layoutCol] + 12, (rowHeight - text:GetStringHeight()) / 2)
                 textFrame:SetSize(text:GetStringWidth(), text:GetStringHeight())
-                frame:SetSize(iconColumns[original.col] + 12 + text:GetStringWidth(), rowHeight)
+                frame:SetSize(iconColumns[original.layoutCol] + 12 + text:GetStringWidth(), rowHeight)
             end
             Capture(background); background:SetSize(width, height)
             local decoration = Capture(background.Background)
