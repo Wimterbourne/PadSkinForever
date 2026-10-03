@@ -217,10 +217,11 @@ local function Map(enabled)
         map:SetMaskTexture(minimapMask); minimapChanged = false
     end
     addon:ThemeCard(map, square, "Minimap", 2)
-    addon:ThemeAlpha(MinimapCompassTexture, square)
     addon:ThemeAlpha(MinimapCompassTextureUnderlay, enabled)
     -- Round and square are shape choices within the same independent skin.
     addon:Tint(MinimapCompassTexture, enabled and not square and { .65, .68, .72 } or nil)
+    -- Vertex tint restoration can also restore texture alpha: visibility goes last.
+    addon:ThemeAlpha(MinimapCompassTexture, square)
     if MinimapCluster then
         addon:ThemeAlpha(MinimapCluster.BorderTop, enabled)
         Fonts(MinimapCluster.ZoneTextButton, enabled, 0)
@@ -268,23 +269,85 @@ local function Loot(enabled)
     end
 end
 
+-- Walk only the quest pane, never the map canvas or its pins/input handlers.
+local function QuestDecorations(frame, enabled, depth)
+    if not frame or depth > 8 or not frame.GetRegions then return end
+    Chrome(frame, enabled)
+    for _, key in ipairs({ "Border", "TopDetail", "Shadow", "Divider", "Top", "Bottom", "SealMaterialBG" }) do
+        addon:ThemeAlpha(frame[key], enabled)
+    end
+    local header = frame.GetNormalTexture and frame.CollapseButton
+    if header then
+        addon:ThemeCard(frame, enabled, "QuestHeader", 0)
+        addon:ThemeAlpha(frame:GetNormalTexture(), enabled)
+        for _, key in ipairs({ "Left", "Middle", "Right" }) do addon:ThemeAlpha(frame[key], enabled) end
+        addon:ThemeFont(frame.ButtonText or frame.Text, enabled, true)
+    end
+    if frame.GetNormalTexture and not header and not frame.Checkbox then
+        addon:Tint(frame:GetNormalTexture(), enabled and grey or nil)
+        if frame.GetPushedTexture then addon:Tint(frame:GetPushedTexture(), enabled and { .2, .3, .24 } or nil) end
+    end
+    if frame.GetHighlightTexture then addon:Tint(frame:GetHighlightTexture(), enabled and { .2, .85, .3 } or nil) end
+    -- Retain native visibility/selection of highlights, checkbox and quest tags.
+    for _, key in ipairs({ "HighlightTexture", "SelectedHighlight", "SelectedTexture" }) do
+        addon:Tint(frame[key], enabled and { .2, .85, .3 } or nil)
+    end
+    if frame.Checkbox then addon:Tint(frame.Checkbox.CheckMark, enabled and { .2, .95, .3 } or nil) end
+    for _, region in ipairs({ frame:GetRegions() }) do
+        if region:IsObjectType("FontString") then addon:ThemeFont(region, enabled) end
+    end
+    for _, child in ipairs({ frame:GetChildren() }) do
+        if child ~= cards[frame] then QuestDecorations(child, enabled, depth + 1) end
+    end
+end
+
+local questHooks = {}
+local function Quests(enabled)
+    for _, frame in pairs({ QuestLogFrame = QuestLogFrame, QuestMapFrame = QuestMapFrame,
+        QuestLogPopupDetailFrame = QuestLogPopupDetailFrame }) do
+        Panel(frame, enabled, "QuestLog")
+        QuestDecorations(frame, enabled, 0)
+        local quests = frame.QuestsFrame
+        local scroll = quests and quests.ScrollFrame
+        if scroll then
+            addon:ThemeCard(scroll, enabled, "QuestList", 0)
+            addon:ThemeAlpha(scroll.BorderFrame, enabled)
+            addon:ThemeCard(scroll.SearchBox, enabled, "QuestSearch", 0)
+            if scroll.SearchBox then
+                for _, key in ipairs({ "Left", "Middle", "Right" }) do addon:ThemeAlpha(scroll.SearchBox[key], enabled) end
+            end
+            Hook(scroll, "UpdateBackground")
+        end
+        local details = frame.DetailsFrame or (quests and quests.DetailsFrame)
+        if details then
+            Panel(details, enabled, "QuestDetails")
+            addon:ThemeAlpha(details.BorderFrame, enabled)
+            local container = details.RewardsFrameContainer
+            if container then Panel(container.RewardsFrame, enabled, "QuestRewards") end
+        end
+    end
+    -- Style the surrounding window chrome without traversing ScrollContainer.
+    local border = WorldMapFrame and WorldMapFrame.BorderFrame
+    if border then
+        addon:ThemeCard(border, enabled, "MapQuestWindow", 0)
+        Chrome(border, enabled)
+        addon:ThemeFont(border.TitleText or (border.TitleContainer and border.TitleContainer.TitleText), enabled, true)
+        -- The native portrait remains; only its decorative gold ring is neutralized.
+        addon:Tint(border.PortraitContainer and border.PortraitContainer.PortraitRing, enabled and grey or nil)
+    end
+    for _, name in ipairs({ "QuestMapFrame_UpdateAll", "QuestLogQuests_Update", "QuestMapFrame_ShowQuestDetails" }) do
+        if type(_G[name]) == "function" and not questHooks[name] then
+            questHooks[name] = true
+            hooksecurefunc(name, function() if not addon.applyingSkin then addon:QueueRefresh() end end)
+        end
+    end
+end
+
 function addon:RefreshTheme()
     if not self.db or InCombatLockdown() then return end
     Map(self.db.themeMinimap)
     Units(self.db.themeUnits)
-    for _, frame in pairs({ QuestLogFrame = QuestLogFrame, QuestMapFrame = QuestMapFrame }) do
-        Panel(frame, self.db.themeQuests, "QuestLog")
-        if frame.QuestsFrame then
-            local scroll = frame.QuestsFrame.ScrollFrame
-            Chrome(scroll, self.db.themeQuests)
-            Fonts(scroll, self.db.themeQuests, 0)
-            Hook(scroll, "Update")
-        end
-        if frame.DetailsFrame then
-            Chrome(frame.DetailsFrame, self.db.themeQuests)
-            Chrome(frame.DetailsFrame.ScrollFrame, self.db.themeQuests)
-        end
-    end
+    Quests(self.db.themeQuests)
     Panel(ObjectiveTrackerFrame, self.db.themeQuests, "QuestTracker")
     Hook(ObjectiveTrackerFrame, "Update")
     Chat(self.db.themeChat)

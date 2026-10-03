@@ -254,6 +254,9 @@ class AddonTests(unittest.TestCase):
             Minimap = surface(); Minimap.mask = "native-circle"
             function Minimap:SetMaskTexture(value) self.mask = value end
             MinimapCompassTexture = surface("Texture")
+            function MinimapCompassTexture:SetVertexColor(r,g,b,a)
+                self.rgba = {r,g,b,a}; self.alpha = a
+            end
             addon:QueueRefresh(); drain()
             assert(Minimap.mask:find("WHITE8X8", 1, true))
             assert(MinimapCompassTexture.alpha == 0)
@@ -263,8 +266,43 @@ class AddonTests(unittest.TestCase):
             assert(Minimap.mask == "updated-native-circle")
             assert(MinimapCompassTexture.alpha == 1)
             assert(MinimapCompassTexture.rgba[1] == .65)
+            addon.db.squareMinimap = true; addon:QueueRefresh(); drain()
+            assert(MinimapCompassTexture.alpha == 0)
+            assert(Minimap.mask:find("WHITE8X8", 1, true))
+            addon.db.squareMinimap = false; addon:QueueRefresh(); drain()
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
             assert(MinimapCompassTexture.rgba[1] == 1)
+        ''')
+
+    def test_quest_details_and_border_skin_do_not_touch_map_canvas(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            WorldMapFrame = surface()
+            WorldMapFrame.BorderFrame = surface(nil, WorldMapFrame)
+            WorldMapFrame.BorderFrame.NineSlice = surface(nil, WorldMapFrame.BorderFrame)
+            WorldMapFrame.ScrollContainer = surface(nil, WorldMapFrame)
+            local mapText = WorldMapFrame.ScrollContainer:CreateFontString()
+            QuestMapFrame = surface()
+            QuestMapFrame.QuestsFrame = surface(nil, QuestMapFrame)
+            local quests = QuestMapFrame.QuestsFrame
+            quests.ScrollFrame = surface(nil, quests)
+            quests.ScrollFrame.BorderFrame = surface(nil, quests.ScrollFrame)
+            quests.DetailsFrame = surface(nil, quests)
+            quests.DetailsFrame.Bg = surface("Texture", quests.DetailsFrame)
+            local description = quests.DetailsFrame:CreateFontString()
+            local click = function() end
+            quests.DetailsFrame.scripts.OnClick = click
+            addon:QueueRefresh(); drain()
+            assert(WorldMapFrame.BorderFrame.NineSlice.alpha == 0)
+            assert(quests.ScrollFrame.BorderFrame.alpha == 0)
+            assert(quests.DetailsFrame.Bg.alpha == 0)
+            assert(description.color[1] == .94)
+            assert(mapText.color[1] == .2 and WorldMapFrame.ScrollContainer.alpha == 1)
+            assert(quests.DetailsFrame.scripts.OnClick == click)
+            addon.db.themeQuests = false; addon:QueueRefresh(); drain()
+            assert(quests.DetailsFrame.Bg.alpha == 1)
+            assert(WorldMapFrame.BorderFrame.NineSlice.alpha == 1)
+            assert(description.color[1] == .2)
         ''')
 
     def test_theme_font_panel_and_full_restore(self):
