@@ -10,4 +10,3 @@ Core.lua
 Fonts.lua
 Skin.lua
 Options.lua
-Bindings.xml
