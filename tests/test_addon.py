@@ -110,8 +110,15 @@ local function Surface(kind, parent)
     function w:SetFrameLevel(value) self.level = value end
     function w:GetAlpha() return self.alpha end
     function w:SetAlpha(value) self.alpha = value end
-    function w:SetSize(...) self.size = {...} end
-    function w:SetPoint(...) self.point = {...} end
+    function w:SetSize(width, height) self.size = {width, height}; self.width = width; self.height = height end
+    function w:SetWidth(value) self.width = value end
+    function w:SetHeight(value) self.height = value end
+    function w:GetWidth() return self.width or (self.size and self.size[1]) or 0 end
+    function w:GetHeight() return self.height or (self.size and self.size[2]) or 0 end
+    function w:SetPoint(...) self.point = {...}; self.clearCount = self.clearCount or 0 end
+    function w:GetPoint() return unpack(self.point or {}) end
+    function w:ClearAllPoints() self.point = nil; self.clearCount = (self.clearCount or 0) + 1 end
+    function w:SetAllPoints() self.allPoints = true end
     function w:EnableMouse(value) self.mouse = value end
     function w:SetBackdrop(value) self.backdrop = value end
     function w:SetBackdropColor(...) self.bg = {...} end
@@ -138,8 +145,12 @@ local function Surface(kind, parent)
     function w:GetTextColor() return unpack(self.color) end
     function w:SetTextColor(...) self.color = {...} end
     function w:SetText(value) self.text = value end
-    function w:SetWidth(value) self.width = value end
     function w:SetJustifyH(value) self.justify = value end
+    function w:SetClampedToScreen(value) self.clamped = value end
+    function w:SetMovable(value) self.movable = value end
+    function w:RegisterForDrag(...) self.dragButtons = {...} end
+    function w:StartMoving() self.moving = true end
+    function w:StopMovingOrSizing() self.moving = false end
     function w:CreateFontString()
         local region = Surface("FontString"); table.insert(self.regions, region); return region
     end
@@ -147,12 +158,23 @@ local function Surface(kind, parent)
         local region = Surface("Texture"); table.insert(self.regions, region); return region
     end
     function w:GetStatusBarTexture() return self.barTexture end
-    function w:SetStatusBarTexture(value) self.barTexture:SetTexture(value) end
+    function w:SetStatusBarTexture(value)
+        if not self.barTexture then self.barTexture = Surface("Texture"); table.insert(self.regions, self.barTexture) end
+        self.barTexture:SetTexture(value)
+    end
+    function w:SetStatusBarColor(...) self.barColor = {...} end
+    function w:GetStatusBarColor() return unpack(self.barColor or {1,1,1,1}) end
+    function w:SetMinMaxValues(minimum, maximum) self.minimum, self.maximum = minimum, maximum end
+    function w:SetValue(value) self.value = value end
     table.insert(uiwidgets, w)
     return w
 end
 surface = Surface
-CreateFrame = function(_, _, parent) return Surface("Frame", parent) end
+CreateFrame = function(_, name, parent)
+    local frame = Surface("Frame", parent)
+    if name then _G[name] = frame end
+    return frame
+end
 '''
 
 LEGEND_MOCKS = r'''
@@ -211,7 +233,7 @@ class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "UI.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua", "GameMenu.lua"):
+        for name in ("Core.lua", "Fonts.lua", "UI.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "CombatHUD.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua", "GameMenu.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
@@ -567,7 +589,12 @@ class AddonTests(unittest.TestCase):
             ITEM_QUALITY_COLORS = {[1] = {r=1,g=1,b=1}}
             local link = "|cffffffff|Hitem:2770:0|h[Copper Ore]|h|r"
             LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
-            frames[2].OnEvent(frames[2], "CHAT_MSG_LOOT", "You receive loot: " .. link .. "x2.")
+            local lootEvents
+            for _, frame in ipairs(frames) do
+                if frame.events.CHAT_MSG_LOOT then lootEvents = frame end
+            end
+            assert(lootEvents)
+            lootEvents.OnEvent(lootEvents, "CHAT_MSG_LOOT", "You receive loot: " .. link .. "x2.")
             addon:TickToasts(.1)
             local visibleToast
             for _, w in ipairs(uiwidgets) do if w.icon and w.visible then visibleToast = w end end
@@ -897,6 +924,85 @@ class AddonTests(unittest.TestCase):
             cvarAllowed = false
             assert(not addon:ToggleLegend() and legendVisible)
             assert(#messages == 1)
+        ''')
+
+    def test_combat_hud_skins_each_native_timer_without_moving_it_and_updates_resources(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            UIParent = surface("Frame")
+            EditModeManagerFrame = surface("Frame", UIParent); EditModeManagerFrame:Hide()
+            HEALTH, POWER, FOCUS = "Health", "Power", "Focus"
+            PowerBarColor = { FOCUS = {r=1, g=.5, b=.1}, [2] = {r=1, g=.5, b=.1} }
+            function UnitHealth(unit) return unit == "pet" and 80 or 406 end
+            function UnitHealthMax(unit) return unit == "pet" and 100 or 406 end
+            function UnitPower(unit) return unit == "pet" and 60 or 375 end
+            function UnitPowerMax(unit) return unit == "pet" and 100 or 375 end
+            function UnitPowerType() return 2, "FOCUS" end
+            function UnitExists(unit) return unit == "player" or unit == "pet" end
+            function UnitName(unit) return unit == "pet" and "Ghostfang" or "Vaelith" end
+            function SetPortraitTexture(texture, unit) texture.portraitUnit = unit end
+
+            local function Swing(nativeTexture)
+                local frame = surface("Frame", UIParent)
+                frame.Background = surface("Texture", frame); frame.Background:SetAlpha(.7)
+                frame.Border = surface("Texture", frame); frame.Border:SetAlpha(.8)
+                frame.StatusBar = surface("StatusBar", frame)
+                frame.StatusBar:SetStatusBarTexture(nativeTexture)
+                frame.StatusBar.Pip = surface("Texture", frame.StatusBar)
+                frame.StatusBar.Pip:SetAtlas("native-pip")
+                frame.StatusBar.TypeLabel = surface("FontString", frame.StatusBar)
+                frame.StatusBar.TimeLabel = surface("FontString", frame.StatusBar)
+                frame.StatusBar.TypeLabelShadow = surface("Texture", frame.StatusBar)
+                frame.StatusBar.TypeLabelShadow:SetAlpha(.6)
+                function frame:GetStatusBar() return self.StatusBar end
+                function frame:GetStatusBarPip() return self.StatusBar.Pip end
+                function frame:GetTypeLabel() return self.StatusBar.TypeLabel end
+                function frame:GetTimeLabel() return self.StatusBar.TimeLabel end
+                function frame:GetTypeLabelShadow() return self.StatusBar.TypeLabelShadow end
+                function frame:InitializeBarPresentation() self.StatusBar:SetStatusBarTexture(nativeTexture) end
+                function frame:ApplyRangePresentation()
+                    self.Background:SetAlpha(.4); self.Border:SetAlpha(.4); self.StatusBar:SetAlpha(.4)
+                end
+                frame:SetPoint("TOP", UIParent, "TOP", 13, -27)
+                return frame
+            end
+            SwingTimerMainHandFrame = Swing("native-main")
+            SwingTimerOffHandFrame = Swing("native-off")
+            SwingTimerRangedFrame = Swing("native-ranged")
+            local originalPoint = {SwingTimerMainHandFrame:GetPoint()}
+
+            addon:RefreshCombatHUD()
+            for _, frame in ipairs({SwingTimerMainHandFrame, SwingTimerOffHandFrame, SwingTimerRangedFrame}) do
+                assert(frame.Background.alpha == 0 and frame.Border.alpha == 0, "native chrome")
+                assert(frame.StatusBar.barTexture.file == [[Interface\\Buttons\\WHITE8X8]], "bar texture")
+                local card
+                for _, child in ipairs(frame.children) do if child.PSFRoundedPanel then card = child end end
+                assert(card and card.visible, "rounded skin")
+                assert(frame.clearCount == 0, "native anchor changed")
+            end
+            local point = {SwingTimerMainHandFrame:GetPoint()}
+            assert(point[1] == originalPoint[1] and point[4] == originalPoint[4] and point[5] == originalPoint[5])
+            SwingTimerMainHandFrame:ApplyRangePresentation()
+            assert(SwingTimerMainHandFrame.Background.alpha == 0 and SwingTimerMainHandFrame.StatusBar.alpha == .4)
+
+            local resources = PadSkinForeverResourceDisplay
+            assert(resources and resources.visible and resources.height == 58)
+            assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)
+            assert(resources.petHealth.value == 80 and resources.petPower.value == 60)
+            assert(resources.petHealth.left.text == "Ghostfang" and resources.petPortrait.portraitUnit == "pet")
+            EditModeManagerFrame.scripts.OnShow()
+            assert(resources.editMode and resources.mouse and resources.editLabel.visible)
+            resources:SetPoint("BOTTOM", UIParent, "BOTTOM", 12, 244)
+            resources.scripts.OnDragStop(resources)
+            assert(addon.db.resourceAnchor[3] == 12 and addon.db.resourceAnchor[4] == 244)
+
+            addon.db.themeSwingTimers = false
+            addon:RefreshCombatHUD()
+            assert(SwingTimerMainHandFrame.StatusBar.barTexture.file == "native-main")
+            assert(SwingTimerMainHandFrame.Background.alpha == .4)
+            local hiddenCard
+            for _, child in ipairs(SwingTimerMainHandFrame.children) do if child.PSFRoundedPanel then hiddenCard = child end end
+            assert(hiddenCard and not hiddenCard.visible)
         ''')
 
     def test_legend_preserves_font_size_and_restores(self):

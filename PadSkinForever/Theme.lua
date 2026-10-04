@@ -348,6 +348,7 @@ end
 
 function addon:RefreshTheme()
     if not self.db or InCombatLockdown() then return end
+    self:RefreshCombatHUD()
     Map(self.db.themeMinimap)
     Units(self.db.themeUnits)
     Quests(self.db.themeQuests)

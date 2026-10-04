@@ -10,6 +10,9 @@ addon.defaults = {
     themeChat = true,
     themeTooltip = true,
     themeLoot = true,
+    themeSwingTimers = true,
+    resourceDisplay = true,
+    resourceAnchor = { "BOTTOM", "BOTTOM", 0, 228 },
     lootToasts = true,
     themeFonts = true,
     buttonStyle = "minimal",
@@ -82,6 +85,7 @@ events:RegisterEvent("LOOT_OPENED")
 events:RegisterEvent("LOOT_SLOT_CLEARED")
 events:RegisterEvent("PLAYER_TARGET_CHANGED")
 events:RegisterEvent("CVAR_UPDATE")
+events:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
 events:SetScript("OnEvent", function(_, event, name)
     if event == "ADDON_LOADED" and name == addonName then
         if type(PadSkinForeverDB) ~= "table" then PadSkinForeverDB = {} end
@@ -119,6 +123,11 @@ events:SetScript("OnEvent", function(_, event, name)
         local color = addon.db.accent
         if type(color) ~= "table" or type(color[1]) ~= "number" or type(color[2]) ~= "number" or type(color[3]) ~= "number" then
             addon.db.accent = { unpack(addon.defaults.accent) }
+        end
+        local anchor = addon.db.resourceAnchor
+        if type(anchor) ~= "table" or type(anchor[1]) ~= "string" or type(anchor[2]) ~= "string"
+            or type(anchor[3]) ~= "number" or type(anchor[4]) ~= "number" then
+            addon.db.resourceAnchor = { unpack(addon.defaults.resourceAnchor) }
         end
     end
     -- Blizzard_GameMenu normally exists before regular addons, but retry on
