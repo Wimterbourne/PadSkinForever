@@ -91,7 +91,10 @@ local function MakeView(root, unit, compact)
         view.portraitRing:SetPoint("CENTER")
         view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
     end
-    local barWidth = compact and size or width - portraitSize - (targetOfTarget and 8 or 12)
+    -- Boss-style bars meet the portrait instead of stopping beside it. The
+    -- ring is drawn above this slight overlap, turning both parts into one
+    -- silhouette while the visible left cap keeps its fixed proportions.
+    local barWidth = compact and size or width - portraitSize + 3
     if compact then
         view.health = HealthBar(view, barWidth, 12)
         view.health:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 6)
@@ -99,7 +102,7 @@ local function MakeView(root, unit, compact)
         view.barWell = CreateFrame("Frame", nil, view)
         view.barWell:EnableMouse(false)
         view.barWell:SetSize(barWidth, targetOfTarget and 12 or 14)
-        view.barWell:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, targetOfTarget and 3 or 4)
+        view.barWell:SetPoint("LEFT", view, "LEFT", 0, 0)
         addon:CreateRoundedPanel(view.barWell, {
             fill = { .018, .022, .028, .92 }, border = { .55, .60, .66, .24 },
         }, targetOfTarget and 6 or 7)

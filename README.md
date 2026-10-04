@@ -1,6 +1,12 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.5-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.6-alpha**.
+
+### Samengevoegde boss-framecompositie — 0.8.6-alpha
+
+De target-, focus- en target-of-targetbalk liggen nu op dezelfde verticale hartlijn als hun portrait-ring. De balk loopt enkele pixels onder de ring door, zodat er geen zwevende opening meer tussen beide onderdelen zit en het geheel als één boss-style component leest.
+
+Na ophalen volstaat `/reload`. Controleer vooral de aansluiting tussen de rechterkant van de balk en de portrait-ring bij target en focus.
 
 ### Secret-safe ronde fills en grotere 3D-portretten — 0.8.5-alpha
 
