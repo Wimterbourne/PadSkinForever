@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.1-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.2-alpha**.
+
+### Boss-style target en complete controllerfocus — 0.8.2-alpha
+
+Target en focus hebben nu een 460 px brede, 40 px hoge encounterpresentatie: een lange dunne healthlijn, gecentreerde naam en een ronde gekleurde portret-eindkap. De visual groeit symmetrisch rond de bestaande native Edit Mode-anchor. Target-of-target is een afzonderlijke tag van 170 × 28 px onder zijn native root, zodat hij de brede targetbalk niet bedekt.
+
+Controllerfocus blijft nu ook actief op secundaire PSF-pagina's zonder eigen tabkop, zoals **Input legend**. PSF gebruikt hiervoor uitsluitend zijn eigen tijdelijke D-pad/A/B-bindings; Blizzard-roots, Edit Mode-anchors, clicks en beschermde gamepadfuncties blijven onaangeraakt.
+
+Na ophalen volstaat `/reload`. Test target/focus/target-of-target met 2D- en 3D-portretten, hun Edit Mode-posities, en open **Input legend settings…** uitsluitend met de gamepad.
 
 ### Compactere resources en target — 0.8.1-alpha
 

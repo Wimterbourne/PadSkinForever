@@ -61,6 +61,22 @@ local function RegisterControl(control)
     return control
 end
 
+local function IsDescendantOf(control, ancestor)
+    local current = control
+    while current do
+        if current == ancestor then return true end
+        current = (current.GetParent and current:GetParent()) or current.parent
+    end
+    return false
+end
+
+local function FirstUsableControl(page)
+    if not page then return nil end
+    for _, control in ipairs(panel.PSFControls or {}) do
+        if IsDescendantOf(control, page) and ControlIsUsable(control) then return control end
+    end
+end
+
 local function MoveControllerFocus(direction)
     if not panel or not panel:IsShown() then return end
     if not ControlIsUsable(controllerFocus) then
@@ -256,7 +272,7 @@ function addon:ShowOptions()
         panel.PSFLogo = addon:CreatePSFLogo(panel, 36)
         panel.PSFLogo:SetPoint("TOPLEFT", 22, -18)
         Label(panel, "PadSkinForever", 66, -18, true, 17)
-        local version = Label(panel, "0.8.1 alpha", 230, -20, false, 12)
+        local version = Label(panel, "0.8.2 alpha", 230, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
         panel.PSFFocusArrow = panel:CreateTexture(nil, "OVERLAY")
         panel.PSFFocusArrow:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFFocusChevron.tga")
@@ -549,5 +565,10 @@ end
 ShowTab = function(name)
     for key, page in pairs(panel.pages) do page:SetShown(key == name) end
     for key, tab in pairs(panel.tabs or {}) do tab:SetPSFSelected(key == name) end
-    if controllerActive then SetControllerFocus(panel.tabs and panel.tabs[name]) end
+    panel.currentPage = name
+    if controllerActive then
+        -- Secondary pages such as Legend have no top tab. Hand controller
+        -- focus directly to their first control instead of dropping it.
+        SetControllerFocus((panel.tabs and panel.tabs[name]) or FirstUsableControl(panel.pages[name]))
+    end
 end

@@ -32,30 +32,67 @@ local function MakeView(root, unit, compact)
     view = CreateFrame("Frame", nil, root)
     view:EnableMouse(false)
     view:SetFrameLevel(root:GetFrameLevel() + 5)
-    view:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
     local small = unit == "pet"
     local targetOfTarget = unit == "targettarget"
     local size = small and 60 or 92
-    local width = compact and size + 12 or (targetOfTarget and 150 or 320)
-    local height = compact and size + 40 or (targetOfTarget and 36 or 44)
+    local width = compact and size + 12 or (targetOfTarget and 170 or 460)
+    local height = compact and size + 40 or (targetOfTarget and 28 or 40)
     view:SetSize(width, height)
-    addon:CreateRoundedPanel(view, { fill = { .025, .03, .038, .95 }, border = { .55, .60, .66, .28 } }, 8)
+    if compact then
+        view:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
+        addon:CreateRoundedPanel(view, { fill = { .025, .03, .038, .95 }, border = { .55, .60, .66, .28 } }, 8)
+    elseif targetOfTarget then
+        -- The native ToT root sits inside the target layout. Put our compact
+        -- secondary tag just below it so a wide target bar never overlaps it.
+        view:SetPoint("TOPLEFT", root, "BOTTOMLEFT", 0, -2)
+    else
+        -- Grow around the native target/focus center. Their native roots and
+        -- Edit Mode anchors remain untouched and stay the interaction owners.
+        view:SetPoint("TOP", root, "TOP", 0, 0)
+    end
     view.unit, view.root, view.compact = unit, root, compact
     view.chrome = {}
     view.portrait = view:CreateTexture(nil, "ARTWORK")
     view.portrait:SetTexCoord(.08, .92, .08, .92)
     view.model = CreateFrame("PlayerModel", nil, view)
     view.model:EnableMouse(false)
-    local portraitSize = compact and size or (targetOfTarget and 26 or 34)
+    local portraitSize = compact and size or (targetOfTarget and 24 or 40)
     view.portrait:SetSize(portraitSize, portraitSize)
-    view.portrait:SetPoint(compact and "TOPLEFT" or "TOPRIGHT", view, compact and "TOPLEFT" or "TOPRIGHT", compact and 6 or -6, -6)
+    view.portrait:SetPoint(compact and "TOPLEFT" or "RIGHT", view, compact and "TOPLEFT" or "RIGHT", compact and 6 or -1, compact and -6 or 0)
     view.model:SetAllPoints(view.portrait)
-    view.health = HealthBar(view, compact and size or width - portraitSize - 24, compact and 12 or 10)
-    view.health:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 6)
+    if not compact then
+        view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
+        view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        view.portraitMask:SetAllPoints(view.portrait)
+        view.portrait:AddMaskTexture(view.portraitMask)
+        view.portraitRingFrame = CreateFrame("Frame", nil, view)
+        view.portraitRingFrame:EnableMouse(false)
+        view.portraitRingFrame:SetFrameLevel(view:GetFrameLevel() + 3)
+        view.portraitRingFrame:SetAllPoints(view.portrait)
+        view.portraitRing = view.portraitRingFrame:CreateTexture(nil, "OVERLAY")
+        view.portraitRing:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga")
+        view.portraitRing:SetPoint("CENTER")
+        view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
+    end
+    local barWidth = compact and size or width - portraitSize - (targetOfTarget and 8 or 12)
+    if compact then
+        view.health = HealthBar(view, barWidth, 12)
+        view.health:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 6)
+    else
+        view.barWell = CreateFrame("Frame", nil, view)
+        view.barWell:EnableMouse(false)
+        view.barWell:SetSize(barWidth, targetOfTarget and 12 or 14)
+        view.barWell:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 0, targetOfTarget and 3 or 4)
+        addon:CreateRoundedPanel(view.barWell, {
+            fill = { .018, .022, .028, .92 }, border = { .55, .60, .66, .24 },
+        }, targetOfTarget and 6 or 7)
+        view.health = HealthBar(view.barWell, barWidth - 4, targetOfTarget and 8 or 10)
+        view.health:SetPoint("CENTER")
+    end
     view.nameText = view:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    view.nameText:SetPoint(compact and "BOTTOMLEFT" or "TOPLEFT", view, compact and "BOTTOMLEFT" or "TOPLEFT", 6, compact and 22 or -7)
-    view.nameText:SetWidth(compact and size or width - portraitSize - 24)
-    view.nameText:SetJustifyH("LEFT")
+    view.nameText:SetPoint(compact and "BOTTOMLEFT" or "TOPLEFT", view, compact and "BOTTOMLEFT" or "TOPLEFT", compact and 6 or 0, compact and 22 or -1)
+    view.nameText:SetWidth(compact and size or barWidth)
+    view.nameText:SetJustifyH(compact and "LEFT" or "CENTER")
     views[root] = view
     return view
 end
@@ -103,6 +140,7 @@ local function UpdateView(view)
         end
     end
     view.health:SetStatusBarColor(unpack(color))
+    if view.portraitRing then view.portraitRing:SetVertexColor(unpack(color)) end
     local ok = pcall(view.health.valueText.SetFormattedText, view.health.valueText, "%d / %d", current, maximum)
     if not ok then view.health.valueText:SetText("—") end
     local model = addon.db.unitPortraitMode == "3d"

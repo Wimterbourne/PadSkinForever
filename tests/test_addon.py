@@ -613,9 +613,12 @@ class AddonTests(unittest.TestCase):
             assert(view.portrait.visible and not view.model.visible)
             assert(PlayerFrame.PlayerFrameContent.alpha == 0)
             assert(targetView and totView and TargetFrameToT.HealthBar.alpha == 0)
-            assert(targetView.width == 320 and targetView.height == 44)
-            assert(targetView.portrait.width == 34 and targetView.health.height == 10)
-            assert(totView.width == 150 and totView.height == 36)
+            assert(targetView.width == 460 and targetView.height == 40)
+            assert(targetView.portrait.width == 40 and targetView.health.height == 10)
+            assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
+            assert(targetView.point[1] == "TOP" and targetView.point[3] == "TOP")
+            assert(totView.width == 170 and totView.height == 28)
+            assert(totView.point[1] == "TOPLEFT" and totView.point[3] == "BOTTOMLEFT")
             assert(PlayerFrame.clearCount == 0 and PlayerFrame.width == 205)
             assert(PlayerFrame.point[4] == 21 and PlayerFrame.point[5] == -37)
             addon.db.unitPortraitMode = "3d"
@@ -960,6 +963,14 @@ class AddonTests(unittest.TestCase):
             click("Buttons")
             click("Theme")
             click("Input legend settings...")
+            local legendCheck
+            for _, w in ipairs(widgets) do
+                if w.frameType == "CheckButton" and w.Text and w.Text.text == "Theme native input legend" then legendCheck = w end
+            end
+            assert(legendCheck and legendCheck.PSFControllerFocused)
+            local previousLegendSetting = addon.db.skinLegend
+            namedWidgets.PadSkinForeverControllerAccept:Click()
+            assert(addon.db.skinLegend ~= previousLegendSetting)
             click("Toggle native legend")
             click("Debug")
             click("Start tracing")
