@@ -105,6 +105,8 @@ local function UpdateRoundedBar(data)
         or type(width) ~= "number" or type(height) ~= "number" then
         for _, region in ipairs(data.regions) do region:Hide() end
         if data.texture then data.texture:SetAlpha(data.alpha or 1) end
+        local r, g, b = data.bar:GetStatusBarColor()
+        data.bar:SetStatusBarColor(r, g, b, data.colorAlpha or 1)
         data.width, data.height = nil, nil
         return
     end
@@ -113,13 +115,17 @@ local function UpdateRoundedBar(data)
         data.texture, data.alpha = texture, texture:GetAlpha()
         data.width, data.height = nil, nil
     end
+    -- Also suppress the StatusBar renderer's color alpha: it may reapply its
+    -- own tint when values interpolate, independently of Texture:SetAlpha.
+    local r, g, b, a = data.bar:GetStatusBarColor()
+    if a ~= 0 then data.bar:SetStatusBarColor(r, g, b, 0) end
     if texture:GetAlpha() ~= 0 then texture:SetAlpha(0) end
     if data.width == width and data.height == height then return end
     data.width, data.height = width, height
     local visible = width > .1 and height > .1
     for _, region in ipairs(data.regions) do region:SetShown(visible) end
     if not visible then return end
-    local radius = math.min(6, width / 2, height / 2)
+    local radius = math.min(width / 2, height / 2)
     for i, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
         local region = data.regions[i]
         region:ClearAllPoints()
@@ -143,26 +149,32 @@ function addon:SetRoundedBar(bar, enabled, color)
             data.updater:Hide()
             for _, region in ipairs(data.regions) do region:Hide() end
             if data.texture then data.texture:SetAlpha(data.alpha or 1) end
+            local r, g, b = bar:GetStatusBarColor()
+            bar:SetStatusBarColor(r, g, b, data.colorAlpha or 1)
             data.width, data.height = nil, nil
         end
         return
     end
     if not data then
-        data = { bar = bar, regions = {} }
+        data = { bar = bar, regions = {}, colorAlpha = select(4, bar:GetStatusBarColor()) }
+        -- StatusBar's native fill can render above regions on the bar itself.
+        -- A mouse-transparent child gives our fill a deterministic render level.
+        data.updater = CreateFrame("Frame", nil, bar)
+        data.updater:SetAllPoints(bar)
+        data.updater:SetFrameLevel(bar:GetFrameLevel() + 1)
+        data.updater:EnableMouse(false)
         for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
-            local region = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+            local region = data.updater:CreateTexture(nil, "BACKGROUND")
             region:SetTexture(CORNER .. "Fill.tga")
             local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
             region:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
             table.insert(data.regions, region)
         end
         for i = 1, 3 do
-            local region = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+            local region = data.updater:CreateTexture(nil, "BACKGROUND")
             region:SetTexture(WHITE)
             table.insert(data.regions, region)
         end
-        data.updater = CreateFrame("Frame", nil, bar)
-        data.updater:EnableMouse(false)
         data.updater:SetScript("OnUpdate", function() UpdateRoundedBar(data) end)
         roundedBars[bar] = data
     end

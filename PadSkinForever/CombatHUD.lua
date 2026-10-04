@@ -3,6 +3,7 @@ local _, addon = ...
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local swingStates = setmetatable({}, { __mode = "k" })
 local swingHooks = setmetatable({}, { __mode = "k" })
+local swingLabels = setmetatable({}, { __mode = "k" })
 local swingCards = setmetatable({}, { __mode = "k" })
 local resourceFrame
 local editModeHooked
@@ -64,6 +65,8 @@ local function KeepNativeSwingChromeHidden(frame)
     if not addon.db or not addon.db.themeSwingTimers then return end
     if frame.Background then frame.Background:SetAlpha(0) end
     if frame.Border then frame.Border:SetAlpha(0) end
+    local pip = frame:GetStatusBarPip()
+    if pip then pip:SetAlpha(0) end
 end
 
 local function HookSwingTimer(frame)
@@ -104,6 +107,9 @@ local function SkinSwingTimer(frame, enabled)
             state = {
                 backgroundAlpha = frame.Background and frame.Background:GetAlpha(),
                 borderAlpha = frame.Border and frame.Border:GetAlpha(),
+                pipAlpha = frame:GetStatusBarPip() and frame:GetStatusBarPip():GetAlpha(),
+                typeParent = frame:GetTypeLabel():GetParent(),
+                timeParent = frame:GetTimeLabel():GetParent(),
                 shadowAlpha = frame.GetTypeLabelShadow and frame:GetTypeLabelShadow():GetAlpha(),
                 typeFont = SaveFont(frame:GetTypeLabel()),
                 timeFont = SaveFont(frame:GetTimeLabel()),
@@ -120,7 +126,16 @@ local function SkinSwingTimer(frame, enabled)
         local texture = statusBar:GetStatusBarTexture()
         if texture then texture:SetTexCoord(0, 1, 0, 1) end
         addon:SetRoundedBar(statusBar, true, addon.barColors.neutral)
-        addon:Tint(frame:GetStatusBarPip(), { .92, .94, .96 })
+        local labels = swingLabels[frame]
+        if not labels then
+            labels = CreateFrame("Frame", nil, statusBar)
+            labels:EnableMouse(false)
+            labels:SetAllPoints(statusBar)
+            labels:SetFrameLevel(statusBar:GetFrameLevel() + 2)
+            swingLabels[frame] = labels
+        end
+        frame:GetTypeLabel():SetParent(labels)
+        frame:GetTimeLabel():SetParent(labels)
         addon:ThemeFont(frame:GetTypeLabel(), true, true)
         addon:ThemeFont(frame:GetTimeLabel(), true, true)
         addon:DebugSurface(frame, "CombatHUD/SwingTimer", "native Edit Mode swing timer")
@@ -130,7 +145,10 @@ local function SkinSwingTimer(frame, enabled)
         addon:SetRoundedBar(statusBar, false)
         local card = swingCards[frame]
         if card then card:Hide() end
-        addon:Tint(frame:GetStatusBarPip(), nil)
+        local pip = frame:GetStatusBarPip()
+        if pip then pip:SetAlpha(state.pipAlpha or 1) end
+        frame:GetTypeLabel():SetParent(state.typeParent)
+        frame:GetTimeLabel():SetParent(state.timeParent)
         addon:ThemeFont(frame:GetTypeLabel(), false)
         addon:ThemeFont(frame:GetTimeLabel(), false)
         RestoreFont(frame:GetTypeLabel(), state.typeFont)
@@ -159,12 +177,18 @@ local function CreateBar(parent, width, height)
     bar:SetStatusBarTexture(WHITE)
     bar:SetMinMaxValues(0, 1)
     bar:SetValue(1)
-    bar.left = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    bar.labels = CreateFrame("Frame", nil, bar)
+    bar.labels:SetAllPoints(bar)
+    bar.labels:SetFrameLevel(bar:GetFrameLevel() + 2)
+    bar.labels:EnableMouse(false)
+    bar.left = bar.labels:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     bar.left:SetPoint("LEFT", well, "LEFT", 8, 0)
+    bar.left:SetHeight(height - 4)
     bar.left:SetJustifyH("LEFT")
-    bar.right = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    bar.right = bar.labels:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     bar.right:SetPoint("RIGHT", well, "RIGHT", -8, 0)
     bar.right:SetWidth(math.floor(width * .46))
+    bar.right:SetHeight(height - 4)
     bar.right:SetJustifyH("RIGHT")
     bar.left:SetPoint("RIGHT", bar.right, "LEFT", -6, 0)
     bar.left:SetTextColor(unpack(addon.uiColors.text))

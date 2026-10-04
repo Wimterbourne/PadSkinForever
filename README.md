@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.3-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.4-alpha**.
+
+### Centrale HUD-correcties — 0.7.4-alpha
+
+De afgeronde vulling tekent nu op een eigen, muistransparante laag boven de native statusbar. Labels staan op een volgende laag, zodat kleurvulling geen tekst meer bedekt. De ronde uiteinden gebruiken de halve balkhoogte als radius; bij bijna lege vullingen krimpt die radius mee. De native geometrie en timerwaarden blijven leidend.
+
+De uitstekende native swingtimer-pip is verborgen wanneer de PSF-skin actief is. Uitschakelen herstelt de oorspronkelijke pip-alpha en de oorspronkelijke ouders van de native labels. Range-dimming blijft via de gemeenschappelijke statusbar-parent werken. Edit Mode-posities blijven behouden.
+
+Test na `/reload`: zichtbare resource-labels en waarden, ronde uiteinden bij volle/halfvolle/bijna lege balken, ranged tijdens aanvallen, range-dimming, en swingtimerskin uit/aan. De visuele uitkomst moet ingame worden bevestigd.
 
 ### Centrale HUD-balken — 0.7.3-alpha
 

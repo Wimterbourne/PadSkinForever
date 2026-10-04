@@ -106,6 +106,8 @@ local function Surface(kind, parent)
     function w:GetRegions() return unpack(self.regions) end
     function w:GetChildren() return unpack(self.children) end
     function w:IsObjectType(value) return value == self.kind end
+    function w:GetParent() return self.parent end
+    function w:SetParent(value) self.parent = value end
     function w:GetFrameLevel() return self.level end
     function w:SetFrameLevel(value) self.level = value end
     function w:SetToplevel(value) self.toplevel = value end
@@ -983,6 +985,8 @@ class AddonTests(unittest.TestCase):
             for _, frame in ipairs({SwingTimerMainHandFrame, SwingTimerOffHandFrame, SwingTimerRangedFrame}) do
                 assert(frame.Background.alpha == 0 and frame.Border.alpha == 0, "native chrome")
                 assert(frame.StatusBar.barTexture.file == [[Interface\\Buttons\\WHITE8X8]], "bar texture")
+                assert(frame.StatusBar.Pip.alpha == 0, "native pip must be hidden")
+                assert(frame.StatusBar.TypeLabel:GetParent():GetFrameLevel() > frame.StatusBar:GetFrameLevel() + 1)
                 assert(frame.StatusBar.barColor[1] == addon.barColors.neutral[1], "neutral timer color")
                 local card
                 for _, child in ipairs(frame.children) do if child.PSFRoundedPanel then card = child end end
@@ -996,6 +1000,8 @@ class AddonTests(unittest.TestCase):
 
             local resources = PadSkinForeverResourceDisplay
             assert(resources and resources.visible and resources.height == 62)
+            assert(resources.playerHealth.labels:GetFrameLevel() == resources.playerHealth:GetFrameLevel() + 2)
+            assert(resources.playerHealth.left.height == 18)
             assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)
             assert(resources.playerHealth.barColor[2] == addon.barColors.health[2])
             assert(resources.playerPower.barColor[1] == addon.barColors.focus[1])
@@ -1024,6 +1030,8 @@ class AddonTests(unittest.TestCase):
             addon:RefreshCombatHUD()
             assert(SwingTimerMainHandFrame.StatusBar.barTexture.file == "native-main")
             assert(SwingTimerMainHandFrame.Background.alpha == .4)
+            assert(SwingTimerMainHandFrame.StatusBar.Pip.alpha == 1)
+            assert(SwingTimerMainHandFrame.StatusBar.TypeLabel:GetParent() == SwingTimerMainHandFrame.StatusBar)
             local hiddenCard
             for _, child in ipairs(SwingTimerMainHandFrame.children) do if child.PSFRoundedPanel then hiddenCard = child end end
             assert(hiddenCard and not hiddenCard.visible)
@@ -1036,11 +1044,13 @@ class AddonTests(unittest.TestCase):
             bar:SetStatusBarTexture("native")
             local fill = bar:GetStatusBarTexture()
             fill:SetSize(120, 16); fill:SetAlpha(.8)
+            bar:SetStatusBarColor(.2, .8, .3, .7)
             addon:SetRoundedBar(bar, true, addon.barColors.health)
-            assert(fill:GetAlpha() == 0)
+            assert(fill:GetAlpha() == 0 and select(4, bar:GetStatusBarColor()) == 0)
             local updater = bar.children[1]
-            local corner = bar.regions[2]
-            assert(corner:GetWidth() == 6 and corner.visible)
+            assert(updater.level == bar.level + 1 and updater.mouse == false)
+            local corner = updater.regions[1]
+            assert(corner:GetWidth() == 8 and corner.visible)
             fill:SetSize(3, 16)
             updater.scripts.OnUpdate()
             assert(corner:GetWidth() == 1.5, "tiny fill corners must shrink")
@@ -1050,10 +1060,11 @@ class AddonTests(unittest.TestCase):
             fill:SetSize(60, 16)
             combat = true
             updater.scripts.OnUpdate()
-            assert(corner.visible and corner:GetWidth() == 6)
+            assert(corner.visible and corner:GetWidth() == 8)
             combat = false
             addon:SetRoundedBar(bar, false)
             assert(fill:GetAlpha() == .8 and not updater.visible and not corner.visible)
+            assert(select(4, bar:GetStatusBarColor()) == .7, "restore renderer alpha")
             addon:SetRoundedBar(bar, true, addon.barColors.mana)
             assert(corner.visible and corner.rgba[3] == addon.barColors.mana[3])
         ''')
