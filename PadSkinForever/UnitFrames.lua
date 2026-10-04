@@ -5,17 +5,17 @@ local _, addon = ...
 local views = setmetatable({}, { __mode = "k" })
 local iconBorders = setmetatable({}, { __mode = "k" })
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local MASK = "Interface\\AddOns\\PadSkinForever\\Media\\ResourceFillMask.tga"
+local CIRCLE_FILL = "Interface\\AddOns\\PadSkinForever\\Media\\CircleEmpty.tga"
 
 local function HealthBar(parent, width, height)
     local bar = CreateFrame("StatusBar", nil, parent)
     bar:EnableMouse(false)
     bar:SetSize(width, height)
     bar:SetStatusBarTexture(WHITE)
-    local mask = bar:CreateMaskTexture(nil, "ARTWORK")
-    mask:SetTexture(MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    mask:SetAllPoints(bar:GetStatusBarTexture())
-    bar:GetStatusBarTexture():AddMaskTexture(mask)
+    -- The shared renderer builds the fill from fixed-size corner pieces and a
+    -- stretchable centre. Wide target bars therefore keep the same end radius
+    -- as compact resource and swing-timer bars.
+    addon:SetRoundedBar(bar, true, addon.barColors.health)
     local textLayer = CreateFrame("Frame", nil, bar)
     textLayer:EnableMouse(false)
     textLayer:SetAllPoints(bar)
@@ -52,6 +52,13 @@ local function MakeView(root, unit, compact)
     end
     view.unit, view.root, view.compact = unit, root, compact
     view.chrome = {}
+    if not compact then
+        view.portraitBackground = view:CreateTexture(nil, "BACKGROUND")
+        view.portraitBackground:SetTexture(CIRCLE_FILL)
+        -- CircleEmpty already carries the PSF dark-neutral fill; preserve its
+        -- authored colour instead of multiplying it nearly to black.
+        view.portraitBackground:SetVertexColor(1, 1, 1, .98)
+    end
     view.portrait = view:CreateTexture(nil, "ARTWORK")
     view.portrait:SetTexCoord(.08, .92, .08, .92)
     view.model = CreateFrame("PlayerModel", nil, view)
@@ -59,7 +66,17 @@ local function MakeView(root, unit, compact)
     local portraitSize = compact and size or (targetOfTarget and 24 or 40)
     view.portrait:SetSize(portraitSize, portraitSize)
     view.portrait:SetPoint(compact and "TOPLEFT" or "RIGHT", view, compact and "TOPLEFT" or "RIGHT", compact and 6 or -1, compact and -6 or 0)
-    view.model:SetAllPoints(view.portrait)
+    if compact then
+        view.model:SetAllPoints(view.portrait)
+    else
+        -- PlayerModel regions cannot receive Texture masks. Keep the model in
+        -- an inset square viewport; with its fog cleared, only the subject is
+        -- drawn over the circular backing and remains inside the ring.
+        local inset = targetOfTarget and 2 or 3
+        view.model:SetPoint("TOPLEFT", view.portrait, "TOPLEFT", inset, -inset)
+        view.model:SetPoint("BOTTOMRIGHT", view.portrait, "BOTTOMRIGHT", -inset, inset)
+        view.portraitBackground:SetAllPoints(view.portrait)
+    end
     if not compact then
         view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
         view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
@@ -140,6 +157,7 @@ local function UpdateView(view)
         end
     end
     view.health:SetStatusBarColor(unpack(color))
+    addon:SetRoundedBar(view.health, true, color)
     if view.portraitRing then view.portraitRing:SetVertexColor(unpack(color)) end
     local ok = pcall(view.health.valueText.SetFormattedText, view.health.valueText, "%d / %d", current, maximum)
     if not ok then view.health.valueText:SetText("—") end
@@ -150,7 +168,7 @@ local function UpdateView(view)
     if model then
         if view.modelDirty then
             view.model:SetUnit(unit)
-            view.model:SetPortraitZoom(1)
+            view.model:SetPortraitZoom(view.compact and 1 or 1.12)
             -- PlayerModel reapplies unit-specific fog when SetUnit runs. That
             -- fog becomes an opaque disc behind boss-style target portraits.
             -- Compact player/pet cards keep their native model presentation.

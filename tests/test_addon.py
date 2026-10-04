@@ -617,6 +617,8 @@ class AddonTests(unittest.TestCase):
             assert(targetView.width == 460 and targetView.height == 40)
             assert(targetView.portrait.width == 40 and targetView.health.height == 10)
             assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
+            assert(targetView.portraitBackground and targetView.model.point[1] == "BOTTOMRIGHT")
+            assert(#targetView.health.children > 0 and not targetView.health.barTexture.mask)
             assert(targetView.point[1] == "TOP" and targetView.point[3] == "TOP")
             assert(totView.width == 170 and totView.height == 28)
             assert(totView.point[1] == "TOPLEFT" and totView.point[3] == "BOTTOMLEFT")
@@ -626,6 +628,7 @@ class AddonTests(unittest.TestCase):
             addon:RefreshUnitFrames()
             assert(view.model.visible and not view.portrait.visible)
             assert(view.model.modelUnit == "player" and view.model.portraitZoom == 1)
+            assert(targetView.model.portraitZoom == 1.12)
             assert(not view.model.fogCleared and targetView.model.fogCleared and totView.model.fogCleared)
             combat = true
             fire("UNIT_HEALTH", "player")

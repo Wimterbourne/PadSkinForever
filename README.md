@@ -1,6 +1,12 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.3-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.4-alpha**.
+
+### Vaste barkappen en ingesloten 3D-portretten — 0.8.4-alpha
+
+De target-, focus- en target-of-targetbalken gebruiken dezelfde vaste ronde eindkappen als de swingtimers. Alleen het midden rekt mee met de breedte, zodat begin en einde altijd in verhouding blijven. De 3D-portretten staan in een ingesprongen viewport op een ronde PSF-achtergrond binnen de gekleurde ring.
+
+Na ophalen volstaat `/reload`. Test volle en bijna lege healthbalken, brede target/focusbalken, target-of-target en zowel 2D- als 3D-portretten.
 
 ### Schone 3D targetportretten — 0.8.3-alpha
 
