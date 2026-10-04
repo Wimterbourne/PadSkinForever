@@ -613,6 +613,9 @@ class AddonTests(unittest.TestCase):
             assert(view.portrait.visible and not view.model.visible)
             assert(PlayerFrame.PlayerFrameContent.alpha == 0)
             assert(targetView and totView and TargetFrameToT.HealthBar.alpha == 0)
+            assert(targetView.width == 320 and targetView.height == 44)
+            assert(targetView.portrait.width == 34 and targetView.health.height == 10)
+            assert(totView.width == 150 and totView.height == 36)
             assert(PlayerFrame.clearCount == 0 and PlayerFrame.width == 205)
             assert(PlayerFrame.point[4] == 21 and PlayerFrame.point[5] == -37)
             addon.db.unitPortraitMode = "3d"
@@ -1078,7 +1081,9 @@ class AddonTests(unittest.TestCase):
             assert(SwingTimerMainHandFrame.Background.alpha == 0 and SwingTimerMainHandFrame.StatusBar.alpha == .4)
 
             local resources = PadSkinForeverResourceDisplay
-            assert(resources and resources.visible and resources.height == 64)
+            assert(resources and resources.visible and resources.height == 58)
+            local resourceGap = resources.height - 6 - resources.playerHealthWell.height - resources.petHealthWell.height - 6
+            assert(resourceGap == 2)
             assert(resources.playerHealth.labels:GetFrameLevel() == resources.playerHealth:GetFrameLevel() + 2)
             assert(resources.playerHealth.left.height == 18)
             assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)

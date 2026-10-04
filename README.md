@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.0-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.1-alpha**.
+
+### Compactere resources en target — 0.8.1-alpha
+
+De twee gelijke player/pet-resourceregels hebben nu exact 2 px tussenruimte. Met twee regels is het paneel daardoor 58 px hoog; zonder pet blijft de bestaande compacte hoogte behouden.
+
+Target en focus zijn verbreed naar 320 px en verlaagd naar 44 px. Hun portret is 34 px en de healthbalk 10 px hoog. Target-of-target blijft een afzonderlijke compactere variant van 150 × 36 px. Native rootposities, targeting, clicks en Edit Mode-layout worden niet gewijzigd.
+
+Na ophalen volstaat `/reload`. Test met en zonder pet, target/focus, target-of-target, wisselen tijdens combat, controllerselectie, Edit Mode en BugSack.
 
 ### Compacte unitframes — 0.8.0-alpha
 

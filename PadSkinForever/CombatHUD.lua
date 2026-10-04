@@ -280,7 +280,9 @@ end
 local function EnsureResourceFrame()
     if resourceFrame or not UIParent or not UnitHealth then return resourceFrame end
     local frame = CreateFrame("Frame", "PadSkinForeverResourceDisplay", UIParent)
-    frame:SetSize(486, 64)
+    -- Two equal 22 px rows, 6 px outer padding and exactly 2 px between
+    -- player and pet. This keeps the resources visually one compact block.
+    frame:SetSize(486, 58)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
@@ -405,7 +407,7 @@ function addon:UpdateResourceDisplay()
         frame.petPortrait:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFLogo.tga")
     end
     if SetPortraitTexture then SetPortraitTexture(frame.playerPortrait, "player") end
-    frame:SetHeight((hasPet or frame.editMode) and 64 or 34)
+    frame:SetHeight((hasPet or frame.editMode) and 58 or 34)
     self:UpdateResourceVisibility()
     local font = self:GetUIFontPath(false)
     for _, bar in ipairs({ frame.playerHealth, frame.playerPower, frame.petHealth, frame.petPower }) do
