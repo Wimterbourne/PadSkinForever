@@ -16,6 +16,21 @@ addon.uiColors = {
     muted = { .64, .67, .71, 1 },
 }
 
+-- One semantic palette for every PSF bar family. Native bars keep their own
+-- values and behavior; these colors only define presentation.
+addon.barColors = {
+    neutral = { .67, .72, .78, 1 },
+    health = { .18, .82, .31, 1 },
+    mana = { .16, .48, 1, 1 },
+    enemy = { .92, .18, .18, 1 },
+    energy = { 1, .78, .12, 1 },
+    rage = { .92, .20, .18, 1 },
+    focus = { 1, .48, .12, 1 },
+    runic = { .12, .78, 1, 1 },
+    lunar = { .64, .36, 1, 1 },
+    experience = { .52, .25, .88, 1 },
+}
+
 local function Color(region, color)
     region:SetVertexColor(unpack(color))
 end
@@ -42,32 +57,36 @@ local function Rect(parent, layer, color, a, b, x1, y1, x2, y2)
     return texture
 end
 
-function addon:CreateRoundedPanel(parent)
+function addon:CreateRoundedPanel(parent, palette, radius)
     if parent.PSFRoundedPanel then return parent.PSFRoundedPanel end
     -- Draw directly on the owner so its child controls and header regions stay
     -- above the background without adding another focusable frame layer.
     local panel = parent
     local colors = self.uiColors
-    for _, layerInfo in ipairs({ { "BACKGROUND", colors.fill, "Fill" }, { "BORDER", colors.border, "Border" } }) do
+    radius = radius or PANEL_RADIUS
+    palette = palette or colors
+    local fill = palette.fill or colors.fill
+    local border = palette.border or colors.border
+    for _, layerInfo in ipairs({ { "BACKGROUND", fill, "Fill" }, { "BORDER", border, "Border" } }) do
         local drawLayer, color, asset = unpack(layerInfo)
         for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
             local texture = panel:CreateTexture(nil, drawLayer)
             texture:SetTexture(CORNER .. asset .. ".tga")
-            texture:SetSize(PANEL_RADIUS, PANEL_RADIUS)
+            texture:SetSize(radius, radius)
             texture:SetPoint(corner, panel, corner)
             local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
             texture:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
             Color(texture, color)
         end
         if asset == "Fill" then
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMRIGHT", PANEL_RADIUS, 0, -PANEL_RADIUS, 0)
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -PANEL_RADIUS, PANEL_RADIUS, PANEL_RADIUS)
-            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -PANEL_RADIUS, -PANEL_RADIUS, PANEL_RADIUS)
+            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMRIGHT", radius, 0, -radius, 0)
+            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -radius, radius, radius)
+            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -radius, -radius, radius)
         else
-            Rect(panel, drawLayer, color, "TOPLEFT", "TOPRIGHT", PANEL_RADIUS, 0, -PANEL_RADIUS, -1)
-            Rect(panel, drawLayer, color, "BOTTOMLEFT", "BOTTOMRIGHT", PANEL_RADIUS, 0, -PANEL_RADIUS, 1)
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -PANEL_RADIUS, 1, PANEL_RADIUS)
-            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -PANEL_RADIUS, -1, PANEL_RADIUS)
+            Rect(panel, drawLayer, color, "TOPLEFT", "TOPRIGHT", radius, 0, -radius, -1)
+            Rect(panel, drawLayer, color, "BOTTOMLEFT", "BOTTOMRIGHT", radius, 0, -radius, 1)
+            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -radius, 1, radius)
+            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -radius, -1, radius)
         end
     end
     parent.PSFRoundedPanel = panel

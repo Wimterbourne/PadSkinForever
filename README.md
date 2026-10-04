@@ -1,10 +1,18 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.1-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.2-alpha**.
 
-### Edit Mode-selectie — 0.7.1-alpha
+### Native selectie en raster — 0.7.2-alpha
 
-Het PSF player/pet-resourcepaneel krijgt binnen Blizzard Edit Mode een eigen groene selectielaag op hetzelfde hoge weergaveniveau als native Edit Mode-selecties. Het paneel is daar met muis of touch direct vast te pakken en te verplaatsen; buiten Edit Mode onderschept het geen invoer. De positie blijft opgeslagen in `PadSkinForeverDB`.
+Het PSF player/pet-resourcepaneel gebruikt in Edit Mode nu Blizzards eigen selectie-artwork. Klik of tik het paneel om het daadwerkelijk te selecteren en sleep het daarna zoals een normaal Edit Mode-element. Wanneer **Snap to grid** in Edit Mode aan staat, wordt het midden van het paneel bij loslaten op de dichtstbijzijnde zichtbare rasterlijn vastgezet. Elke actieve Edit Mode-layout krijgt een eigen opgeslagen PSF-positie; bestaande 0.7.1-posities blijven als uitgangspunt behouden.
+
+PSF registreert nog steeds geen nieuw systeem in Blizzards private layouttabellen en roept geen gamepadfocus- of protected interact-functies aan. De selectie en rasterafronding beheren uitsluitend het PSF-frame.
+
+Dezelfde versie introduceert de vaste semantische balktaal uit het HUD-concept: zachte antraciete capsules met een subtiele, transparante rand. Swingtimers zijn neutraal zilvergrijs; health is groen, mana blauw, energy geel, rage rood, focus oranje en verwante resources volgen dezelfde centrale PSF-palette. De player/pet-module en de drie losse swingtimers horen daardoor zichtbaar bij één familie zonder hun zelfstandige Edit Mode-posities te verliezen. Ook de generieke themepanelen gebruiken nu de zachtere afgeronde rand in plaats van een harde rechthoek.
+
+### Eerste Edit Mode-selectie — 0.7.1-alpha
+
+De eerste versie gaf het PSF player/pet-resourcepaneel een eigen groene sleeplaag. In 0.7.2 is die vervangen door native selectie-artwork, een geselecteerde toestand, raster-snapping en posities per actieve Edit Mode-layout.
 
 PSF registreert het paneel niet met Blizzards private `EditModeManagerFrame:RegisterSystemFrame()` en schrijft niet naar de native layouttabellen. Daarmee vermijden we taint en de eerder aangetroffen protected-actionproblemen. Het paneel wordt dus binnen Edit Mode beheerd, maar verschijnt niet in Blizzards eigen systeeminstellingendialoog.
 

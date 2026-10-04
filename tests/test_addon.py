@@ -116,6 +116,8 @@ local function Surface(kind, parent)
     function w:SetHeight(value) self.height = value end
     function w:GetWidth() return self.width or (self.size and self.size[1]) or 0 end
     function w:GetHeight() return self.height or (self.size and self.size[2]) or 0 end
+    function w:GetScale() return self.scale or 1 end
+    function w:GetCenter() return unpack(self.center or {0, 0}) end
     function w:SetPoint(...) self.point = {...}; self.clearCount = self.clearCount or 0 end
     function w:GetPoint() return unpack(self.point or {}) end
     function w:ClearAllPoints() self.point = nil; self.clearCount = (self.clearCount or 0) + 1 end
@@ -930,8 +932,12 @@ class AddonTests(unittest.TestCase):
     def test_combat_hud_skins_each_native_timer_without_moving_it_and_updates_resources(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
-            UIParent = surface("Frame")
+            UIParent = surface("Frame"); UIParent.center = {960, 540}
             EditModeManagerFrame = surface("Frame", UIParent); EditModeManagerFrame:Hide()
+            EditModeManagerFrame.Grid = {gridSpacing = 20}
+            function EditModeManagerFrame:IsSnapEnabled() return true end
+            function EditModeManagerFrame:SelectSystem() end
+            C_EditMode = { GetLayouts = function() return {activeLayout = 4} end }
             HEALTH, POWER, FOCUS = "Health", "Power", "Focus"
             PowerBarColor = { FOCUS = {r=1, g=.5, b=.1}, [2] = {r=1, g=.5, b=.1} }
             function UnitHealth(unit) return unit == "pet" and 80 or 406 end
@@ -976,6 +982,7 @@ class AddonTests(unittest.TestCase):
             for _, frame in ipairs({SwingTimerMainHandFrame, SwingTimerOffHandFrame, SwingTimerRangedFrame}) do
                 assert(frame.Background.alpha == 0 and frame.Border.alpha == 0, "native chrome")
                 assert(frame.StatusBar.barTexture.file == [[Interface\\Buttons\\WHITE8X8]], "bar texture")
+                assert(frame.StatusBar.barColor[1] == addon.barColors.neutral[1], "neutral timer color")
                 local card
                 for _, child in ipairs(frame.children) do if child.PSFRoundedPanel then card = child end end
                 assert(card and card.visible, "rounded skin")
@@ -989,16 +996,26 @@ class AddonTests(unittest.TestCase):
             local resources = PadSkinForeverResourceDisplay
             assert(resources and resources.visible and resources.height == 58)
             assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)
+            assert(resources.playerHealth.barColor[2] == addon.barColors.health[2])
+            assert(resources.playerPower.barColor[1] == addon.barColors.focus[1])
             assert(resources.petHealth.value == 80 and resources.petPower.value == 60)
             assert(resources.petHealth.left.text == "Ghostfang" and resources.petPortrait.portraitUnit == "pet")
             EditModeManagerFrame.scripts.OnShow()
             assert(resources.editMode and resources.editSelection.visible)
             assert(resources.editSelection.mouse and resources.editSelection.level == 1000)
+            resources.editSelection.scripts.OnMouseDown(resources.editSelection, "LeftButton")
+            assert(resources.editSelection.isSelected)
             resources.editSelection.scripts.OnDragStart()
             assert(resources.moving)
-            resources:SetPoint("BOTTOM", UIParent, "BOTTOM", 12, 244)
+            resources.center = {973, 793}
+            resources:SetPoint("BOTTOM", UIParent, "BOTTOM", 13, 253)
             resources.editSelection.scripts.OnDragStop()
-            assert(addon.db.resourceAnchor[3] == 12 and addon.db.resourceAnchor[4] == 244)
+            assert(addon.db.resourceAnchor[1] == "CENTER")
+            assert(addon.db.resourceAnchor[3] == 20 and addon.db.resourceAnchor[4] == 260)
+            assert(addon.db.resourceAnchors["4"][3] == 20 and addon.db.resourceAnchors["4"][4] == 260)
+            resources.editSelection.isSelected = true
+            EditModeManagerFrame:SelectSystem()
+            assert(not resources.editSelection.isSelected)
             EditModeManagerFrame.scripts.OnHide()
             assert(not resources.editSelection.visible)
 

@@ -13,6 +13,7 @@ addon.defaults = {
     themeSwingTimers = true,
     resourceDisplay = true,
     resourceAnchor = { "BOTTOM", "BOTTOM", 0, 228 },
+    resourceAnchors = {},
     lootToasts = true,
     themeFonts = true,
     buttonStyle = "minimal",
@@ -129,6 +130,7 @@ events:SetScript("OnEvent", function(_, event, name)
             or type(anchor[3]) ~= "number" or type(anchor[4]) ~= "number" then
             addon.db.resourceAnchor = { unpack(addon.defaults.resourceAnchor) }
         end
+        if type(addon.db.resourceAnchors) ~= "table" then addon.db.resourceAnchors = {} end
     end
     -- Blizzard_GameMenu normally exists before regular addons, but retry on
     -- later events as well in case its load order changes in a beta build.

@@ -6,6 +6,18 @@ local swingHooks = setmetatable({}, { __mode = "k" })
 local swingCards = setmetatable({}, { __mode = "k" })
 local resourceFrame
 local editModeHooked
+local nativeSelectionHooked
+local powerColors = {
+    MANA = addon.barColors.mana,
+    RAGE = addon.barColors.rage,
+    FOCUS = addon.barColors.focus,
+    ENERGY = addon.barColors.energy,
+    RUNIC_POWER = addon.barColors.runic,
+    LUNAR_POWER = addon.barColors.lunar,
+    INSANITY = addon.barColors.lunar,
+    FURY = addon.barColors.lunar,
+    PAIN = addon.barColors.focus,
+}
 
 local function SafeNumber(value)
     if issecretvalue and issecretvalue(value) then return nil end
@@ -21,6 +33,8 @@ end
 local function PowerColor(unit)
     if not UnitPowerType then return .16, .48, 1 end
     local _, token, r, g, b = UnitPowerType(unit)
+    local semantic = powerColors[token]
+    if semantic then return semantic[1], semantic[2], semantic[3] end
     local color = PowerBarColor and (PowerBarColor[token] or PowerBarColor[select(1, UnitPowerType(unit))])
     if color then return color.r, color.g, color.b end
     if r then return r, g, b end
@@ -72,7 +86,10 @@ local function SwingCard(frame)
     card:EnableMouse(false)
     card:SetAllPoints(frame)
     card:SetFrameLevel(math.max(0, frame:GetFrameLevel()))
-    addon:CreateRoundedPanel(card)
+    addon:CreateRoundedPanel(card, {
+        fill = { .025, .03, .038, .90 },
+        border = { .67, .72, .78, .30 },
+    }, 9)
     swingCards[frame] = card
     return card
 end
@@ -99,7 +116,7 @@ local function SkinSwingTimer(frame, enabled)
         local shadow = frame:GetTypeLabelShadow()
         if shadow then shadow:SetAlpha(0) end
         statusBar:SetStatusBarTexture(WHITE)
-        statusBar:SetStatusBarColor(unpack(addon.uiColors.accent))
+        statusBar:SetStatusBarColor(unpack(addon.barColors.neutral))
         local texture = statusBar:GetStatusBarTexture()
         if texture then texture:SetTexCoord(0, 1, 0, 1) end
         addon:Tint(frame:GetStatusBarPip(), { .92, .94, .96 })
@@ -128,14 +145,15 @@ local function SkinSwingTimer(frame, enabled)
 end
 
 local function CreateBar(parent, width, height)
-    local well = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    local well = CreateFrame("Frame", nil, parent)
     well:SetSize(width, height)
-    well:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-    well:SetBackdropColor(.018, .022, .028, .95)
-    well:SetBackdropBorderColor(unpack(addon.uiColors.borderSoft))
+    addon:CreateRoundedPanel(well, {
+        fill = { .018, .022, .028, .78 },
+        border = { .55, .60, .66, .24 },
+    }, math.floor(height / 2))
     local bar = CreateFrame("StatusBar", nil, well)
-    bar:SetPoint("TOPLEFT", 2, -2)
-    bar:SetPoint("BOTTOMRIGHT", -2, 2)
+    bar:SetPoint("TOPLEFT", 3, -3)
+    bar:SetPoint("BOTTOMRIGHT", -3, 3)
     bar:SetStatusBarTexture(WHITE)
     bar:SetMinMaxValues(0, 1)
     bar:SetValue(1)
@@ -148,8 +166,21 @@ local function CreateBar(parent, width, height)
     return well, bar
 end
 
+local function ActiveLayoutKey()
+    if C_EditMode and C_EditMode.GetLayouts then
+        local layouts = C_EditMode.GetLayouts()
+        if layouts and layouts.activeLayout then return tostring(layouts.activeLayout) end
+    end
+    return "default"
+end
+
+local function ResourceAnchor()
+    local anchors = addon.db.resourceAnchors
+    return type(anchors) == "table" and anchors[ActiveLayoutKey()] or addon.db.resourceAnchor
+end
+
 local function ApplyResourceAnchor(frame)
-    local anchor = addon.db.resourceAnchor
+    local anchor = ResourceAnchor()
     frame:ClearAllPoints()
     frame:SetPoint(anchor[1], UIParent, anchor[2], anchor[3], anchor[4])
 end
@@ -157,13 +188,44 @@ end
 local function SaveResourceAnchor(frame)
     local point, relative, relativePoint, x, y = frame:GetPoint(1)
     if relative and relative ~= UIParent then return end
-    addon.db.resourceAnchor = { point or "BOTTOM", relativePoint or "BOTTOM", x or 0, y or 228 }
+    local anchor = { point or "BOTTOM", relativePoint or "BOTTOM", x or 0, y or 228 }
+    addon.db.resourceAnchor = anchor
+    addon.db.resourceAnchors = addon.db.resourceAnchors or {}
+    addon.db.resourceAnchors[ActiveLayoutKey()] = { unpack(anchor) }
+end
+
+local function SetSelectionState(selected)
+    local selection = resourceFrame and resourceFrame.editSelection
+    if not selection then return end
+    selection.isSelected = selected and true or nil
+    if selected and selection.ShowSelected then
+        selection:ShowSelected(true)
+    elseif selection.ShowHighlighted then
+        selection:ShowHighlighted()
+    end
+end
+
+local function SnapResourceToGrid(frame)
+    local manager = EditModeManagerFrame
+    if not manager or not manager.IsSnapEnabled or not manager:IsSnapEnabled() then return end
+    local grid = manager.Grid
+    if grid and grid.IsShown and not grid:IsShown() then return end
+    local spacing = grid and tonumber(grid.gridSpacing)
+    if not spacing or spacing <= 0 or not frame.GetCenter or not UIParent.GetCenter then return end
+    local centerX, centerY = frame:GetCenter()
+    local parentX, parentY = UIParent:GetCenter()
+    if not centerX or not centerY or not parentX or not parentY then return end
+    local x = math.floor((centerX - parentX) / spacing + .5) * spacing
+    local y = math.floor((centerY - parentY) / spacing + .5) * spacing
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", x, y)
 end
 
 local function SetResourceEditMode(enabled)
     if not resourceFrame then return end
     resourceFrame.editMode = enabled and true or nil
     resourceFrame.editSelection:SetShown(resourceFrame.editMode)
+    if resourceFrame.editMode then SetSelectionState(false) end
     if addon.db and addon.db.resourceDisplay then resourceFrame:Show() end
     if addon.db then addon:UpdateResourceDisplay() end
 end
@@ -176,6 +238,10 @@ local function HookEditMode()
         SetResourceEditMode(false)
         addon:QueueRefresh()
     end)
+    if not nativeSelectionHooked and type(EditModeManagerFrame.SelectSystem) == "function" then
+        nativeSelectionHooked = true
+        hooksecurefunc(EditModeManagerFrame, "SelectSystem", function() SetSelectionState(false) end)
+    end
 end
 
 local function EnsureResourceFrame()
@@ -186,7 +252,10 @@ local function EnsureResourceFrame()
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
     frame:EnableMouse(false)
-    addon:CreateRoundedPanel(frame)
+    addon:CreateRoundedPanel(frame, {
+        fill = { .025, .03, .038, .90 },
+        border = { .55, .60, .66, .28 },
+    }, 12)
     ApplyResourceAnchor(frame)
 
     frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 222, 18)
@@ -202,32 +271,39 @@ local function EnsureResourceFrame()
     frame.petPortrait:SetPoint("BOTTOMLEFT", 6, 5)
     frame.petPortrait:SetTexCoord(.08, .92, .08, .92)
 
-    -- Addons cannot safely register new systems in Blizzard's private Edit Mode
-    -- layout tables. This PSF-owned selection layer mirrors the native selection
-    -- level so it remains clickable above EditModeManagerFrame without tainting it.
-    frame.editSelection = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    -- Use Blizzard's native selection artwork without registering a new system
+    -- in its private Edit Mode layout tables. Registration would expose protected
+    -- gamepad paths to addon taint; this selection owns only PSF's frame.
+    local ok, selection = pcall(CreateFrame, "Frame", nil, frame, "EditModeSystemSelectionTemplate")
+    frame.editSelection = ok and selection or CreateFrame("Frame", nil, frame, "BackdropTemplate")
     frame.editSelection:SetAllPoints(frame)
     frame.editSelection:SetFrameStrata("MEDIUM")
     frame.editSelection:SetFrameLevel(1000)
     if frame.editSelection.SetToplevel then frame.editSelection:SetToplevel(true) end
     frame.editSelection:EnableMouse(true)
     frame.editSelection:RegisterForDrag("LeftButton")
-    frame.editSelection:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 2 })
-    frame.editSelection:SetBackdropColor(addon.uiColors.accent[1], addon.uiColors.accent[2], addon.uiColors.accent[3], .12)
-    frame.editSelection:SetBackdropBorderColor(unpack(addon.uiColors.accent))
-    frame.editSelection.label = frame.editSelection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.editSelection.label:SetPoint("CENTER", 0, 7)
-    frame.editSelection.label:SetText("PSF PLAYER & PET RESOURCES")
-    frame.editSelection.label:SetTextColor(1, 1, 1)
-    frame.editSelection.help = frame.editSelection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.editSelection.help:SetPoint("TOP", frame.editSelection.label, "BOTTOM", 0, -2)
-    frame.editSelection.help:SetText("Drag to move")
-    frame.editSelection.help:SetTextColor(unpack(addon.uiColors.accent))
+    frame.editSelection.system = {
+        GetSystemName = function() return "PSF Player & Pet Resources" end,
+    }
+    if not frame.editSelection.ShowHighlighted then
+        frame.editSelection:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 2 })
+        frame.editSelection:SetBackdropColor(addon.uiColors.accent[1], addon.uiColors.accent[2], addon.uiColors.accent[3], .12)
+        frame.editSelection:SetBackdropBorderColor(unpack(addon.uiColors.accent))
+    end
+    frame.editSelection:SetScript("OnMouseDown", function(_, button)
+        if button == "LeftButton" and frame.editMode and not InCombatLockdown() then
+            SetSelectionState(true)
+        end
+    end)
     frame.editSelection:SetScript("OnDragStart", function()
-        if frame.editMode then frame:StartMoving() end
+        if frame.editMode and not InCombatLockdown() then
+            SetSelectionState(true)
+            frame:StartMoving()
+        end
     end)
     frame.editSelection:SetScript("OnDragStop", function()
         frame:StopMovingOrSizing()
+        SnapResourceToGrid(frame)
         SaveResourceAnchor(frame)
     end)
     frame.editSelection:Hide()
@@ -241,7 +317,7 @@ local function SetBar(bar, unit, kind)
     local current, maximum
     if kind == "health" then
         current, maximum = UnitHealth(unit), UnitHealthMax(unit)
-        bar:SetStatusBarColor(.18, .82, .31)
+        bar:SetStatusBarColor(unpack(addon.barColors.health))
     else
         current, maximum = UnitPower(unit), UnitPowerMax(unit)
         bar:SetStatusBarColor(PowerColor(unit))

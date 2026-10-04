@@ -79,18 +79,19 @@ local function Fonts(frame, enabled, depth)
     end
 end
 
-function addon:ThemeCard(frame, enabled, label, padding)
+function addon:ThemeCard(frame, enabled, label, padding, palette)
     if not frame then return end
     local card = cards[frame]
     if enabled and not card then
-        card = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+        card = CreateFrame("Frame", nil, frame)
         card:EnableMouse(false)
         card:SetFrameLevel(math.max(0, frame:GetFrameLevel() - 1))
         card:SetPoint("TOPLEFT", frame, "TOPLEFT", -(padding or 4), padding or 4)
         card:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", padding or 4, -(padding or 4))
-        card:SetBackdrop({ bgFile = white, edgeFile = white, edgeSize = 1 })
-        card:SetBackdropColor(.055, .065, .08, .92)
-        card:SetBackdropBorderColor(grey[1], grey[2], grey[3], 1)
+        addon:CreateRoundedPanel(card, palette or {
+            fill = { .035, .043, .054, .88 },
+            border = { .58, .63, .69, .28 },
+        }, 10)
         cards[frame] = card
         self:DebugSurface(card, label .. "/card", "theme panel")
     end
@@ -329,10 +330,12 @@ local function Quests(enabled)
     -- Style the surrounding window chrome without traversing ScrollContainer.
     local border = WorldMapFrame and WorldMapFrame.BorderFrame
     if border then
-        addon:ThemeCard(border, enabled, "MapQuestWindow", 0)
-        -- BorderFrame sits above the map canvas: an opaque card here covers it.
-        -- Keep only the outline; the separate quest pane owns its background.
-        if cards[border] then cards[border]:SetBackdrop({ edgeFile = white, edgeSize = 1 }) end
+        -- BorderFrame sits above the map canvas. Keep this rounded card
+        -- transparent so only its soft outline is drawn over the map.
+        addon:ThemeCard(border, enabled, "MapQuestWindow", 0, {
+            fill = { 0, 0, 0, 0 },
+            border = { .58, .63, .69, .28 },
+        })
         Chrome(border, enabled)
         addon:ThemeFont(border.TitleText or (border.TitleContainer and border.TitleContainer.TitleText), enabled, true)
         -- The native portrait remains; only its decorative gold ring is neutralized.
