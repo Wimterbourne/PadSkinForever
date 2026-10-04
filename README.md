@@ -1,6 +1,15 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.6-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.0-alpha**.
+
+### Eerste interfacebrede design-systempass — 0.9.0-alpha
+
+- Eén gedeelde Xbox-geïnspireerde kaartstijl voor PSF-frames, legenda, menu, chat, minimap, tracker, loot, tooltips en loot-toasts.
+- Zachtere semitransparante oppervlakken, vaste hoekradii, subtiele neutrale contouren en kleur alleen waar die betekenis draagt.
+- Compacte speler- en petframes gebruiken ronde portretten plus gelijke health- en resourcebalken.
+- Target, focus en target-of-target behouden hun native positie en interactie, maar delen nu dezelfde geïntegreerde boss-framecompositie.
+- Centrale speler-/petresources en native swingtimers gebruiken dezelfde wells, pill-fills en typografische hiërarchie.
+- Blizzard Edit Mode, native gamepadnavigatie, clicks en protected gameplayfuncties blijven ongemoeid.
 
 ### Samengevoegde boss-framecompositie — 0.8.6-alpha
 

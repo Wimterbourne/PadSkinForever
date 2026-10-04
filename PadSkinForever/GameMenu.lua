@@ -29,9 +29,16 @@ function addon:CreateGameMenuButton()
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         edgeSize = 2,
     })
+    menuButton:SetBackdropColor(0, 0, 0, 0)
+    menuButton:SetBackdropBorderColor(0, 0, 0, 0)
+    self:CreateRoundedPanel(menuButton, self.design.cardStrong, self.design.cardRadius)
     menuButton.PSFText:ClearAllPoints()
     menuButton.PSFText:SetPoint("TOPLEFT", 53, -11)
     menuButton.PSFText:SetTextColor(.95, .98, .96, 1)
+    menuButton.PSFIndicator:ClearAllPoints()
+    menuButton.PSFIndicator:SetPoint("TOPLEFT", 1, -12)
+    menuButton.PSFIndicator:SetPoint("BOTTOMLEFT", 1, 12)
+    menuButton.PSFIndicator:SetWidth(3)
 
     local subtitle = menuButton:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     subtitle:SetPoint("TOPLEFT", 53, -32)
@@ -53,12 +60,10 @@ function addon:CreateGameMenuButton()
 
     local function SetMenuState(focused)
         if focused then
-            menuButton:SetBackdropColor(.08, .18, .11, .99)
-            menuButton:SetBackdropBorderColor(.38, 1, .57, 1)
+            menuButton.PSFIndicator:Show()
             subtitle:SetTextColor(.76, .86, .79, 1)
         else
-            menuButton:SetBackdropColor(.04, .075, .055, .99)
-            menuButton:SetBackdropBorderColor(.24, .68, .38, 1)
+            menuButton.PSFIndicator:Hide()
             subtitle:SetTextColor(.58, .66, .61, 1)
         end
     end

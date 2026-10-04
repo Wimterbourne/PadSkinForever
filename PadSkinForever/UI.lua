@@ -6,11 +6,24 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 local CORNER = "Interface\\AddOns\\PadSkinForever\\Media\\LegendCorner"
 local PANEL_RADIUS = 12
 
+-- 0.9 design system.  All PSF-owned surfaces draw from these tokens so a
+-- unit frame, loot toast and settings panel read as parts of one interface.
+addon.design = {
+    cardRadius = 12,
+    compactRadius = 9,
+    inset = 3,
+    gap = 2,
+    card = { fill = { .025, .031, .040, .91 }, border = { .62, .67, .73, .25 } },
+    cardStrong = { fill = { .020, .026, .034, .97 }, border = { .66, .71, .77, .32 } },
+    well = { fill = { .010, .014, .020, .86 }, border = { .52, .58, .65, .20 } },
+    floating = { fill = { .030, .038, .049, .95 }, border = { .68, .73, .79, .30 } },
+}
+
 addon.uiColors = {
-    fill = { .055, .062, .073, .97 },
-    raised = { .085, .095, .11, .98 },
-    border = { .31, .34, .38, .96 },
-    borderSoft = { .23, .26, .30, .88 },
+    fill = addon.design.cardStrong.fill,
+    raised = { .065, .076, .091, .98 },
+    border = { .42, .47, .53, .82 },
+    borderSoft = { .32, .37, .43, .62 },
     accent = { .34, .86, .49, 1 },
     text = { .94, .95, .96, 1 },
     muted = { .64, .67, .71, 1 },
@@ -64,7 +77,7 @@ function addon:CreateRoundedPanel(parent, palette, radius)
     local panel = parent
     local colors = self.uiColors
     radius = radius or PANEL_RADIUS
-    palette = palette or colors
+    palette = palette or self.design.card
     local fill = palette.fill or colors.fill
     local border = palette.border or colors.border
     for _, layerInfo in ipairs({ { "BACKGROUND", fill, "Fill" }, { "BORDER", border, "Border" } }) do

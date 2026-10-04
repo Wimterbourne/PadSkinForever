@@ -7,7 +7,25 @@ local iconBorders = setmetatable({}, { __mode = "k" })
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local CIRCLE_FILL = "Interface\\AddOns\\PadSkinForever\\Media\\CircleEmpty.tga"
 
-local function HealthBar(parent, width, height)
+local powerColors = {
+    MANA = addon.barColors.mana, RAGE = addon.barColors.rage,
+    FOCUS = addon.barColors.focus, ENERGY = addon.barColors.energy,
+    RUNIC_POWER = addon.barColors.runic, LUNAR_POWER = addon.barColors.lunar,
+}
+
+local function UnitPowerColor(unit)
+    if UnitPowerType then
+        local index, token, r, g, b = UnitPowerType(unit)
+        local semantic = powerColors[token]
+        if semantic then return semantic end
+        local native = PowerBarColor and (PowerBarColor[token] or PowerBarColor[index])
+        if native then return { native.r, native.g, native.b, 1 } end
+        if r then return { r, g, b, 1 } end
+    end
+    return addon.barColors.mana
+end
+
+local function ValueBar(parent, width, height, color)
     local bar = CreateFrame("StatusBar", nil, parent)
     bar:EnableMouse(false)
     bar:SetSize(width, height)
@@ -15,7 +33,7 @@ local function HealthBar(parent, width, height)
     -- The shared renderer builds the fill from fixed-size corner pieces and a
     -- stretchable centre. Wide target bars therefore keep the same end radius
     -- as compact resource and swing-timer bars.
-    addon:SetRoundedBar(bar, true, addon.barColors.health)
+    addon:SetRoundedBar(bar, true, color or addon.barColors.health)
     local textLayer = CreateFrame("Frame", nil, bar)
     textLayer:EnableMouse(false)
     textLayer:SetAllPoints(bar)
@@ -40,7 +58,7 @@ local function MakeView(root, unit, compact)
     view:SetSize(width, height)
     if compact then
         view:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
-        addon:CreateRoundedPanel(view, { fill = { .025, .03, .038, .95 }, border = { .55, .60, .66, .28 } }, 8)
+        addon:CreateRoundedPanel(view, addon.design.card, addon.design.compactRadius)
     elseif targetOfTarget then
         -- The native ToT root sits inside the target layout. Put our compact
         -- secondary tag just below it so a wide target bar never overlaps it.
@@ -49,6 +67,7 @@ local function MakeView(root, unit, compact)
         -- Grow around the native target/focus center. Their native roots and
         -- Edit Mode anchors remain untouched and stay the interaction owners.
         view:SetPoint("TOP", root, "TOP", 0, 0)
+        addon:CreateRoundedPanel(view, addon.design.card, targetOfTarget and 9 or addon.design.cardRadius)
     end
     view.unit, view.root, view.compact = unit, root, compact
     view.chrome = {}
@@ -90,27 +109,36 @@ local function MakeView(root, unit, compact)
         view.portraitRing:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga")
         view.portraitRing:SetPoint("CENTER")
         view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
+    else
+        view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
+        view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        view.portraitMask:SetAllPoints(view.portrait)
+        view.portrait:AddMaskTexture(view.portraitMask)
+        view.portraitRing = view:CreateTexture(nil, "OVERLAY")
+        view.portraitRing:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga")
+        view.portraitRing:SetPoint("CENTER", view.portrait)
+        view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
     end
     -- Boss-style bars meet the portrait instead of stopping beside it. The
     -- ring is drawn above this slight overlap, turning both parts into one
     -- silhouette while the visible left cap keeps its fixed proportions.
     local barWidth = compact and size or width - portraitSize + 3
     if compact then
-        view.health = HealthBar(view, barWidth, 12)
-        view.health:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 6)
+        view.health = ValueBar(view, barWidth, 9, addon.barColors.health)
+        view.health:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 15)
+        view.power = ValueBar(view, barWidth, 7, addon.barColors.mana)
+        view.power:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 6)
     else
         view.barWell = CreateFrame("Frame", nil, view)
         view.barWell:EnableMouse(false)
         view.barWell:SetSize(barWidth, targetOfTarget and 12 or 14)
         view.barWell:SetPoint("LEFT", view, "LEFT", 0, 0)
-        addon:CreateRoundedPanel(view.barWell, {
-            fill = { .018, .022, .028, .92 }, border = { .55, .60, .66, .24 },
-        }, targetOfTarget and 6 or 7)
-        view.health = HealthBar(view.barWell, barWidth - 4, targetOfTarget and 8 or 10)
+        addon:CreateRoundedPanel(view.barWell, addon.design.well, targetOfTarget and 6 or 7)
+        view.health = ValueBar(view.barWell, barWidth - 4, targetOfTarget and 8 or 10, addon.barColors.health)
         view.health:SetPoint("CENTER")
     end
     view.nameText = view:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    view.nameText:SetPoint(compact and "BOTTOMLEFT" or "TOPLEFT", view, compact and "BOTTOMLEFT" or "TOPLEFT", compact and 6 or 0, compact and 22 or -1)
+    view.nameText:SetPoint(compact and "BOTTOMLEFT" or "TOPLEFT", view, compact and "BOTTOMLEFT" or "TOPLEFT", compact and 6 or 10, compact and 28 or -4)
     view.nameText:SetWidth(compact and size or barWidth)
     view.nameText:SetJustifyH(compact and "LEFT" or "CENTER")
     views[root] = view
@@ -164,6 +192,16 @@ local function UpdateView(view)
     if view.portraitRing then view.portraitRing:SetVertexColor(unpack(color)) end
     local ok = pcall(view.health.valueText.SetFormattedText, view.health.valueText, "%d / %d", current, maximum)
     if not ok then view.health.valueText:SetText("—") end
+    if view.power and UnitPower and UnitPowerMax then
+        local power, maximumPower = UnitPower(unit), UnitPowerMax(unit)
+        local powerColor = UnitPowerColor(unit)
+        view.power:SetMinMaxValues(0, maximumPower)
+        view.power:SetValue(power)
+        view.power:SetStatusBarColor(unpack(powerColor))
+        addon:SetRoundedBar(view.power, true, powerColor)
+        local powerOK = pcall(view.power.valueText.SetFormattedText, view.power.valueText, "%d / %d", power, maximumPower)
+        if not powerOK then view.power.valueText:SetText("—") end
+    end
     local model = addon.db.unitPortraitMode == "3d"
     view.model:SetShown(model)
     view.portrait:SetShown(not model)
@@ -201,6 +239,7 @@ function addon:RefreshUnitFrames()
                     local font = self:GetUIFontPath(false)
                     view.nameText:SetFont(font, 11, "")
                     view.health.valueText:SetFont(font, 9, "")
+                    if view.power then view.power.valueText:SetFont(font, 8, "") end
                     UpdateView(view)
                     self:DebugSurface(view, "Units/" .. unit, "PSF visual layer on native unit button")
                 end
@@ -242,6 +281,7 @@ function addon:RefreshUnitIcons()
     for _, viewer in pairs({ EssentialCooldownViewer = EssentialCooldownViewer,
         UtilityCooldownViewer = UtilityCooldownViewer, BuffIconCooldownViewer = BuffIconCooldownViewer }) do
         SkinIcons(viewer, self.db.themeCooldownManager, 0)
+        self:ThemeCard(viewer, self.db.themeCooldownManager, "CooldownManager", 3, self.design.card)
         self:DebugSurface(viewer, "CooldownManager", "native cooldown viewer icon skin")
     end
 end
@@ -249,7 +289,8 @@ end
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED",
     "UNIT_TARGET", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_PET", "UNIT_PORTRAIT_UPDATE", "UNIT_MODEL_CHANGED",
-    "UNIT_NAME_UPDATE", "PLAYER_REGEN_ENABLED", "UNIT_AURA", "ADDON_LOADED" }) do events:RegisterEvent(event) end
+    "UNIT_NAME_UPDATE", "UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER",
+    "PLAYER_REGEN_ENABLED", "UNIT_AURA", "ADDON_LOADED" }) do events:RegisterEvent(event) end
 events:SetScript("OnEvent", function(_, event)
     if not addon.db then return end
     for _, view in pairs(views) do

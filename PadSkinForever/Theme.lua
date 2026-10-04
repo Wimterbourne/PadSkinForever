@@ -88,10 +88,7 @@ function addon:ThemeCard(frame, enabled, label, padding, palette)
         card:SetFrameLevel(math.max(0, frame:GetFrameLevel() - 1))
         card:SetPoint("TOPLEFT", frame, "TOPLEFT", -(padding or 4), padding or 4)
         card:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", padding or 4, -(padding or 4))
-        addon:CreateRoundedPanel(card, palette or {
-            fill = { .035, .043, .054, .88 },
-            border = { .58, .63, .69, .28 },
-        }, 10)
+        addon:CreateRoundedPanel(card, palette or addon.design.card, addon.design.cardRadius)
         cards[frame] = card
         self:DebugSurface(card, label .. "/card", "theme panel")
     end
@@ -193,6 +190,25 @@ local function Units(enabled)
         FlatBar(PetFrameHealthBar, enabled); FlatBar(PetFrameManaBar, enabled)
         addon:ThemeFont(PetName, enabled, true)
         Fonts(PetFrame, enabled, 0)
+    end
+end
+
+-- Party and boss frames stay Blizzard-owned.  This broad first pass gives
+-- their common containers the same material and typography without replacing
+-- unit buttons, changing anchors or registering extra Edit Mode systems.
+local function SupplementalUnits(enabled)
+    local function Style(frame, label)
+        if not frame then return end
+        addon:ThemeCard(frame, enabled, label, 2, addon.design.card)
+        Fonts(frame, enabled, 0)
+        for _, bar in pairs({ frame.HealthBar, frame.healthBar, frame.healthbar,
+            frame.ManaBar, frame.manaBar, frame.manabar, frame.PowerBar, frame.powerBar }) do
+            FlatBar(bar, enabled)
+        end
+    end
+    for index = 1, 5 do
+        Style(_G["CompactPartyFrameMember" .. index], "PartyFrame" .. index)
+        Style(_G["Boss" .. index .. "TargetFrame"], "BossFrame" .. index)
     end
 end
 
@@ -354,6 +370,7 @@ function addon:RefreshTheme()
     self:RefreshCombatHUD()
     Map(self.db.themeMinimap)
     Units(self.db.themeUnits and not self.db.compactUnits)
+    SupplementalUnits(self.db.themeUnits)
     self:RefreshUnitFrames()
     self:RefreshUnitIcons()
     Quests(self.db.themeQuests)

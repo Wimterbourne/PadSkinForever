@@ -4,7 +4,6 @@ local saved = setmetatable({}, { __mode = "k" })
 local panels = setmetatable({}, { __mode = "k" })
 local hooked = setmetatable({}, { __mode = "k" })
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local CORNER = "Interface\\AddOns\\PadSkinForever\\Media\\LegendCorner"
 
 local function Points(frame)
     local result = {}
@@ -52,46 +51,16 @@ local function Panel(background)
     local panel = CreateFrame("Frame", nil, background)
     panel:EnableMouse(false)
     panel:SetAllPoints(background)
-    -- Fixed-size corner pieces avoid stretched corner radii as the content grows.
-    for _, layer in ipairs({ "Fill", "Border" }) do
-        local color = layer == "Fill" and { .055, .062, .073, .96 } or { .40, .43, .47, 1 }
-        for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
-            local t = panel:CreateTexture(nil, "BACKGROUND")
-            t:SetTexture(CORNER .. layer .. ".tga")
-            t:SetSize(8, 8); t:SetPoint(corner, panel, corner)
-            local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
-            t:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
-            t:SetVertexColor(unpack(color))
-        end
-        local function Rect(a, b, x1, y1, x2, y2)
-            local t = panel:CreateTexture(nil, "BACKGROUND")
-            t:SetTexture(WHITE); t:SetVertexColor(unpack(color))
-            -- Anchors along one edge constrain only the long axis. Explicitly
-            -- size the short axis; WHITE8X8 otherwise remains eight pixels thick.
-            if a:find("TOP") and b:find("TOP") or a:find("BOTTOM") and b:find("BOTTOM") then
-                t:SetHeight(math.abs(y2 - y1)); y2 = y1
-            elseif a:find("LEFT") and b:find("LEFT") or a:find("RIGHT") and b:find("RIGHT") then
-                t:SetWidth(math.abs(x2 - x1)); x2 = x1
-            end
-            t:SetPoint(a, panel, a, x1, y1); t:SetPoint(b, panel, b, x2, y2)
-        end
-        if layer == "Fill" then
-            Rect("TOPLEFT", "BOTTOMRIGHT", 8, 0, -8, 0)
-            Rect("TOPLEFT", "BOTTOMLEFT", 0, -8, 8, 8)
-            Rect("TOPRIGHT", "BOTTOMRIGHT", 0, -8, -8, 8)
-        else
-            Rect("TOPLEFT", "TOPRIGHT", 8, 0, -8, -1)
-            Rect("BOTTOMLEFT", "BOTTOMRIGHT", 8, 0, -8, 1)
-            Rect("TOPLEFT", "BOTTOMLEFT", 0, -8, 1, 8)
-            Rect("TOPRIGHT", "BOTTOMRIGHT", 0, -8, -1, 8)
-        end
-    end
+    addon:CreateRoundedPanel(panel, {
+        fill = addon.design.cardStrong.fill,
+        border = { .40, .43, .47, .72 },
+    }, addon.design.cardRadius)
     panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     panel.PSFLogo = addon:CreatePSFLogo(panel, 28)
     panel.PSFLogo:SetPoint("TOPLEFT", 16, -14)
     panel.title:SetPoint("TOPLEFT", 52, -14); panel.title:SetText("Controller")
     panel.line = panel:CreateTexture(nil, "ARTWORK")
-    panel.line:SetTexture(WHITE); panel.line:SetVertexColor(.24, .28, .25, 1)
+    panel.line:SetTexture(WHITE); panel.line:SetVertexColor(.33, .38, .43, .75)
     panel.line:SetHeight(1)
     panels[background] = panel
     addon:DebugSurface(panel, "Legend/panel", "legend theme panel")

@@ -86,10 +86,7 @@ local function SwingCard(frame)
     card:EnableMouse(false)
     card:SetAllPoints(frame)
     card:SetFrameLevel(math.max(0, frame:GetFrameLevel()))
-    addon:CreateRoundedPanel(card, {
-        fill = { .025, .03, .038, .90 },
-        border = { .67, .72, .78, .30 },
-    }, 9)
+    addon:CreateRoundedPanel(card, addon.design.card, addon.design.compactRadius)
     swingCards[frame] = card
     return card
 end
@@ -164,10 +161,7 @@ end
 local function CreateBar(parent, width, height)
     local well = CreateFrame("Frame", nil, parent)
     well:SetSize(width, height)
-    addon:CreateRoundedPanel(well, {
-        fill = { .018, .022, .028, .78 },
-        border = { .55, .60, .66, .24 },
-    }, math.floor(height / 2))
+    addon:CreateRoundedPanel(well, addon.design.well, math.floor(height / 2))
     local bar = CreateFrame("StatusBar", nil, well)
     bar:SetPoint("TOPLEFT", 2, -2)
     bar:SetPoint("BOTTOMRIGHT", -2, 2)
@@ -287,10 +281,7 @@ local function EnsureResourceFrame()
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
     frame:EnableMouse(false)
-    addon:CreateRoundedPanel(frame, {
-        fill = { .025, .03, .038, .90 },
-        border = { .55, .60, .66, .28 },
-    }, 12)
+    addon:CreateRoundedPanel(frame, addon.design.card, addon.design.cardRadius)
     ApplyResourceAnchor(frame)
 
     frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 222, 22)
