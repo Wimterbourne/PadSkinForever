@@ -108,6 +108,7 @@ local function Surface(kind, parent)
     function w:IsObjectType(value) return value == self.kind end
     function w:GetFrameLevel() return self.level end
     function w:SetFrameLevel(value) self.level = value end
+    function w:SetToplevel(value) self.toplevel = value end
     function w:GetAlpha() return self.alpha end
     function w:SetAlpha(value) self.alpha = value end
     function w:SetSize(width, height) self.size = {width, height}; self.width = width; self.height = height end
@@ -991,10 +992,15 @@ class AddonTests(unittest.TestCase):
             assert(resources.petHealth.value == 80 and resources.petPower.value == 60)
             assert(resources.petHealth.left.text == "Ghostfang" and resources.petPortrait.portraitUnit == "pet")
             EditModeManagerFrame.scripts.OnShow()
-            assert(resources.editMode and resources.mouse and resources.editLabel.visible)
+            assert(resources.editMode and resources.editSelection.visible)
+            assert(resources.editSelection.mouse and resources.editSelection.level == 1000)
+            resources.editSelection.scripts.OnDragStart()
+            assert(resources.moving)
             resources:SetPoint("BOTTOM", UIParent, "BOTTOM", 12, 244)
-            resources.scripts.OnDragStop(resources)
+            resources.editSelection.scripts.OnDragStop()
             assert(addon.db.resourceAnchor[3] == 12 and addon.db.resourceAnchor[4] == 244)
+            EditModeManagerFrame.scripts.OnHide()
+            assert(not resources.editSelection.visible)
 
             addon.db.themeSwingTimers = false
             addon:RefreshCombatHUD()

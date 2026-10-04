@@ -163,11 +163,7 @@ end
 local function SetResourceEditMode(enabled)
     if not resourceFrame then return end
     resourceFrame.editMode = enabled and true or nil
-    resourceFrame:EnableMouse(resourceFrame.editMode)
-    if resourceFrame.editMode then resourceFrame:RegisterForDrag("LeftButton")
-    else resourceFrame:RegisterForDrag() end
-    resourceFrame.editLabel:SetShown(resourceFrame.editMode)
-    resourceFrame.editShade:SetShown(resourceFrame.editMode)
+    resourceFrame.editSelection:SetShown(resourceFrame.editMode)
     if addon.db and addon.db.resourceDisplay then resourceFrame:Show() end
     if addon.db then addon:UpdateResourceDisplay() end
 end
@@ -189,6 +185,7 @@ local function EnsureResourceFrame()
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
+    frame:EnableMouse(false)
     addon:CreateRoundedPanel(frame)
     ApplyResourceAnchor(frame)
 
@@ -205,23 +202,35 @@ local function EnsureResourceFrame()
     frame.petPortrait:SetPoint("BOTTOMLEFT", 6, 5)
     frame.petPortrait:SetTexCoord(.08, .92, .08, .92)
 
-    frame.editShade = frame:CreateTexture(nil, "OVERLAY")
-    frame.editShade:SetAllPoints()
-    frame.editShade:SetTexture(WHITE)
-    frame.editShade:SetVertexColor(addon.uiColors.accent[1], addon.uiColors.accent[2], addon.uiColors.accent[3], .12)
-    frame.editLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    frame.editLabel:SetPoint("BOTTOM", frame, "TOP", 0, 4)
-    frame.editLabel:SetText("PSF PLAYER & PET RESOURCES — DRAG TO MOVE")
-    frame.editLabel:SetTextColor(unpack(addon.uiColors.accent))
-    frame.editLabel:Hide(); frame.editShade:Hide()
-
-    frame:SetScript("OnDragStart", function(self)
-        if self.editMode then self:StartMoving() end
+    -- Addons cannot safely register new systems in Blizzard's private Edit Mode
+    -- layout tables. This PSF-owned selection layer mirrors the native selection
+    -- level so it remains clickable above EditModeManagerFrame without tainting it.
+    frame.editSelection = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    frame.editSelection:SetAllPoints(frame)
+    frame.editSelection:SetFrameStrata("MEDIUM")
+    frame.editSelection:SetFrameLevel(1000)
+    if frame.editSelection.SetToplevel then frame.editSelection:SetToplevel(true) end
+    frame.editSelection:EnableMouse(true)
+    frame.editSelection:RegisterForDrag("LeftButton")
+    frame.editSelection:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 2 })
+    frame.editSelection:SetBackdropColor(addon.uiColors.accent[1], addon.uiColors.accent[2], addon.uiColors.accent[3], .12)
+    frame.editSelection:SetBackdropBorderColor(unpack(addon.uiColors.accent))
+    frame.editSelection.label = frame.editSelection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.editSelection.label:SetPoint("CENTER", 0, 7)
+    frame.editSelection.label:SetText("PSF PLAYER & PET RESOURCES")
+    frame.editSelection.label:SetTextColor(1, 1, 1)
+    frame.editSelection.help = frame.editSelection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.editSelection.help:SetPoint("TOP", frame.editSelection.label, "BOTTOM", 0, -2)
+    frame.editSelection.help:SetText("Drag to move")
+    frame.editSelection.help:SetTextColor(unpack(addon.uiColors.accent))
+    frame.editSelection:SetScript("OnDragStart", function()
+        if frame.editMode then frame:StartMoving() end
     end)
-    frame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        SaveResourceAnchor(self)
+    frame.editSelection:SetScript("OnDragStop", function()
+        frame:StopMovingOrSizing()
+        SaveResourceAnchor(frame)
     end)
+    frame.editSelection:Hide()
     resourceFrame = frame
     HookEditMode()
     if EditModeManagerFrame and EditModeManagerFrame:IsShown() then SetResourceEditMode(true) end

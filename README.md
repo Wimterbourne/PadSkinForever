@@ -1,6 +1,12 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.0-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.1-alpha**.
+
+### Edit Mode-selectie — 0.7.1-alpha
+
+Het PSF player/pet-resourcepaneel krijgt binnen Blizzard Edit Mode een eigen groene selectielaag op hetzelfde hoge weergaveniveau als native Edit Mode-selecties. Het paneel is daar met muis of touch direct vast te pakken en te verplaatsen; buiten Edit Mode onderschept het geen invoer. De positie blijft opgeslagen in `PadSkinForeverDB`.
+
+PSF registreert het paneel niet met Blizzards private `EditModeManagerFrame:RegisterSystemFrame()` en schrijft niet naar de native layouttabellen. Daarmee vermijden we taint en de eerder aangetroffen protected-actionproblemen. Het paneel wordt dus binnen Edit Mode beheerd, maar verschijnt niet in Blizzards eigen systeeminstellingendialoog.
 
 ### Combat HUD en Edit Mode — 0.7.0-alpha
 
