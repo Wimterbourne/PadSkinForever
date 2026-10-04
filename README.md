@@ -1,6 +1,16 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.5-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.0-alpha**.
+
+### Compacte unitframes — 0.8.0-alpha
+
+Nieuwe PSF-weergavestijl: een vierkant playerportret met een healthbalk die even breed is als het portret, en een kleinere petvariant. Target en focus krijgen een horizontale healthregel met naam en portret; het native target-of-target krijgt dezelfde compacte balktaal. Mana en andere resources blijven in het centrale combatpaneel bij de swingtimers.
+
+Onder `/psf` → Buttons → Unitframes kun je de compacte stijl aan/uit zetten en kiezen tussen 2D-portretten en een 3D PlayerModel. De laag bestaat uit muistransparante kinderen van de native unitbuttons; rootpositie, grootte, clicks, targeting en controllerbindings worden niet aangepast. **Edit Mode blijft de native roots verplaatsen.** De native selectierechthoek en clickruimte houden hun oorspronkelijke afmetingen; dit is nog geen nieuwe native compacte layout. Native contextual tekst/decoratie is in deze eerste compacte stijl verborgen; aparte PSF-statusiconen voor dood/offline/elite volgen nog. Party/raidframes vallen buiten deze stap.
+
+Buff/debuff-iconen krijgen optioneel dezelfde sobere rand en font. Aanwezige native Essential/Utility/BuffIcon cooldown viewers kunnen eveneens geskind worden; ontbrekende viewers worden niet aangemaakt of geforceerd geladen. Indeling, cooldowns en bediening blijven native. Deze icon-skin is een eerste basis, geen herontwerp van de cooldownmanager.
+
+**Herstart WoW volledig na ophalen**, vanwege de nieuwe Lua-module. Test 2D/3D, player/pet, vijand/vriendelijk target, target wisselen tijdens combat, target-of-target, native clicks/controller, Edit Mode, stijl uit/aan, buffs/debuffs, aanwezige cooldown viewers en BugSack. De ingame-test moet met name bevestigen dat de native chrome volledig is verdwenen en de compacte beelden op de gewenste posities staan. De lootwindow-verfijning blijft op de backlog.
 
 ### Gelijke resources en zichtbaarheid — 0.7.5-alpha
 

@@ -110,6 +110,8 @@ local function Surface(kind, parent)
     function w:SetParent(value) self.parent = value end
     function w:GetFrameLevel() return self.level end
     function w:SetFrameLevel(value) self.level = value end
+    function w:SetUnit(unit) self.modelUnit = unit end
+    function w:SetPortraitZoom(value) self.portraitZoom = value end
     function w:SetToplevel(value) self.toplevel = value end
     function w:GetAlpha() return self.alpha end
     function w:SetAlpha(value) self.alpha = value end
@@ -242,7 +244,7 @@ class AddonTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(MOCKS)
-        for name in ("Core.lua", "Fonts.lua", "UI.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "CombatHUD.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua", "GameMenu.lua"):
+        for name in ("Core.lua", "Fonts.lua", "UI.lua", "Debug.lua", "Glyphs.lua", "Buttons.lua", "Theme.lua", "UnitFrames.lua", "CombatHUD.lua", "Toasts.lua", "Legend.lua", "Skin.lua", "Options.lua", "GameMenu.lua"):
             source = (ROOT / "PadSkinForever" / name).read_text()
             self.lua.execute('assert(loadstring(...))("PadSkinForever", addon)', source)
         self.lua.execute('fire("ADDON_LOADED", "PadSkinForever"); drain()')
@@ -559,6 +561,7 @@ class AddonTests(unittest.TestCase):
     def test_unitbar_texture_restore_preserves_values_and_portrait(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
+            addon.db.compactUnits = false
             local bar = surface("StatusBar"); bar.barTexture = surface("Texture")
             bar.barTexture.atlas = "health-atlas"; bar.barTexture.file = 123
             bar.value = 376
@@ -577,6 +580,79 @@ class AddonTests(unittest.TestCase):
             assert(bar.barTexture.atlas == "health-atlas" and bar.value == 376)
             assert(container.FrameTexture.alpha == 1)
         ''')
+
+    def test_compact_units_follow_native_roots_and_restore(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            addon.db.resourceDisplay = false
+            UIParent = surface("Frame")
+            function UnitExists() return true end
+            function UnitHealth() return 413 end
+            function UnitHealthMax() return 500 end
+            function UnitName(unit) return unit == "player" and "Vaelith" or "Ghostfang" end
+            function SetPortraitTexture(texture, unit) texture.portraitUnit = unit end
+            PlayerFrame = surface("Button", UIParent)
+            PlayerFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 21, -37)
+            PlayerFrame:SetSize(205, 100)
+            PlayerFrame.PlayerFrameContainer = surface("Frame", PlayerFrame)
+            PlayerFrame.PlayerFrameContent = surface("Frame", PlayerFrame)
+            TargetFrame = surface("Button", UIParent)
+            TargetFrame.TargetFrameContainer = surface("Frame", TargetFrame)
+            TargetFrame.TargetFrameContent = surface("Frame", TargetFrame)
+            TargetFrameToT = surface("Button", TargetFrame)
+            TargetFrameToT.HealthBar = surface("StatusBar", TargetFrameToT)
+            TargetFrameToT.Portrait = surface("Texture", TargetFrameToT)
+            addon:RefreshTheme()
+            local view, targetView, totView
+            for _, child in ipairs(PlayerFrame.children) do if child.unit == "player" then view = child end end
+            for _, child in ipairs(TargetFrame.children) do if child.unit == "target" then targetView = child end end
+            for _, child in ipairs(TargetFrameToT.children) do if child.unit == "targettarget" then totView = child end end
+            assert(view and view.active and view.portrait.width == 92)
+            assert(view.health.width == view.portrait.width)
+            assert(view.health.valueText.text == "413 / 500")
+            assert(view.portrait.visible and not view.model.visible)
+            assert(PlayerFrame.PlayerFrameContent.alpha == 0)
+            assert(targetView and totView and TargetFrameToT.HealthBar.alpha == 0)
+            assert(PlayerFrame.clearCount == 0 and PlayerFrame.width == 205)
+            assert(PlayerFrame.point[4] == 21 and PlayerFrame.point[5] == -37)
+            addon.db.unitPortraitMode = "3d"
+            addon:RefreshUnitFrames()
+            assert(view.model.visible and not view.portrait.visible)
+            assert(view.model.modelUnit == "player" and view.model.portraitZoom == 1)
+            combat = true
+            fire("UNIT_HEALTH", "player")
+            assert(view.health.valueText.text == "413 / 500")
+            combat = false
+            addon.db.compactUnits = false
+            addon:RefreshTheme()
+            assert(not view.visible and PlayerFrame.PlayerFrameContent.alpha == 1)
+            assert(TargetFrameToT.HealthBar.alpha == 1)
+        ''')
+
+    def test_aura_and_cooldown_icon_skin_restores_native_regions(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check("""
+            BuffFrame = surface("Frame")
+            local aura = surface("Frame", BuffFrame)
+            aura.Icon = surface("Texture", aura)
+            aura.Icon:SetTexCoord(0, 1, 0, 1)
+            aura.IconBorder = surface("Texture", aura)
+            EssentialCooldownViewer = surface("Frame")
+            local spell = surface("Frame", EssentialCooldownViewer)
+            spell.Icon = surface("Texture", spell)
+            spell.Cooldown = surface("Cooldown", spell)
+            spell.Cooldown.remaining = 12
+            addon:RefreshUnitIcons()
+            assert(aura.Icon.coords[1] == .08 and aura.IconBorder.alpha == 0)
+            assert(spell.Icon.coords[1] == .08 and spell.Cooldown.remaining == 12)
+            assert(aura.regions[1].visible and spell.regions[1].visible)
+            addon.db.themeUnitAuras = false
+            addon.db.themeCooldownManager = false
+            addon:RefreshUnitIcons()
+            assert(aura.Icon.coords[1] == 0 and aura.IconBorder.alpha == 1)
+            assert(spell.Icon.coords[1] == 0 and spell.Cooldown.remaining == 12)
+            assert(not aura.regions[1].visible and not spell.regions[1].visible)
+        """)
 
     def test_loot_parser_self_quantity_and_localized_reorder(self):
         self.check('''

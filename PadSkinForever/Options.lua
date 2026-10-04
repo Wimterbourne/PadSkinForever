@@ -256,7 +256,7 @@ function addon:ShowOptions()
         panel.PSFLogo = addon:CreatePSFLogo(panel, 36)
         panel.PSFLogo:SetPoint("TOPLEFT", 22, -18)
         Label(panel, "PadSkinForever", 66, -18, true, 17)
-        local version = Label(panel, "0.7.5 alpha", 230, -20, false, 12)
+        local version = Label(panel, "0.8.0 alpha", 230, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
         panel.PSFFocusArrow = panel:CreateTexture(nil, "OVERLAY")
         panel.PSFFocusArrow:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFFocusChevron.tga")
@@ -419,6 +419,18 @@ function addon:ShowOptions()
         buttonPage:HookScript("OnShow", function()
             for key, check in pairs(buttonPage.checks) do check:SetChecked(addon.db[key]) end
         end)
+
+        Label(buttonPage, "Unitframes", 22, -420)
+        Checkbox(buttonPage, "Compact player/pet and target presentation", "compactUnits", -450)
+        local portraitButton
+        local function PortraitLabel() portraitButton:SetText("Portrait: " .. (addon.db.unitPortraitMode == "3d" and "3D" or "2D")) end
+        portraitButton = Button(buttonPage, "", 22, -484, 200, function()
+            addon.db.unitPortraitMode = addon.db.unitPortraitMode == "3d" and "2d" or "3d"
+            PortraitLabel(); addon:QueueRefresh()
+        end)
+        buttonPage:HookScript("OnShow", PortraitLabel)
+        Checkbox(buttonPage, "Theme native buff/debuff icons", "themeUnitAuras", -522)
+        Checkbox(buttonPage, "Theme available native cooldown viewers", "themeCooldownManager", -556)
 
         local themePage = CreateFrame("Frame", nil, panel)
         themePage:SetPoint("TOPLEFT", 0, -90); themePage:SetPoint("BOTTOMRIGHT")
