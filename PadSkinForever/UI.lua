@@ -93,6 +93,84 @@ function addon:CreateRoundedPanel(parent, palette, radius)
     return panel
 end
 
+-- Follow the native fill texture's geometry instead of calculating health or
+-- timer values ourselves. Fixed-size corner pieces keep the ends round at any
+-- fill percentage, while native interpolation and parent range-alpha survive.
+local roundedBars = setmetatable({}, { __mode = "k" })
+local function UpdateRoundedBar(data)
+    local texture = data.bar:GetStatusBarTexture()
+    if not texture or not texture.GetSize then return end
+    local width, height = texture:GetSize()
+    if (issecretvalue and (issecretvalue(width) or issecretvalue(height)))
+        or type(width) ~= "number" or type(height) ~= "number" then
+        for _, region in ipairs(data.regions) do region:Hide() end
+        if data.texture then data.texture:SetAlpha(data.alpha or 1) end
+        data.width, data.height = nil, nil
+        return
+    end
+    if data.texture ~= texture then
+        if data.texture then data.texture:SetAlpha(data.alpha or 1) end
+        data.texture, data.alpha = texture, texture:GetAlpha()
+        data.width, data.height = nil, nil
+    end
+    if texture:GetAlpha() ~= 0 then texture:SetAlpha(0) end
+    if data.width == width and data.height == height then return end
+    data.width, data.height = width, height
+    local visible = width > .1 and height > .1
+    for _, region in ipairs(data.regions) do region:SetShown(visible) end
+    if not visible then return end
+    local radius = math.min(6, width / 2, height / 2)
+    for i, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+        local region = data.regions[i]
+        region:ClearAllPoints()
+        region:SetPoint(corner, texture, corner)
+        region:SetSize(radius, radius)
+    end
+    local middle, left, right = data.regions[5], data.regions[6], data.regions[7]
+    middle:ClearAllPoints(); middle:SetPoint("TOPLEFT", texture, "TOPLEFT", radius, 0)
+    middle:SetSize(math.max(.001, width - radius * 2), height)
+    left:ClearAllPoints(); left:SetPoint("TOPLEFT", texture, "TOPLEFT", 0, -radius)
+    left:SetSize(radius, math.max(.001, height - radius * 2))
+    right:ClearAllPoints(); right:SetPoint("TOPRIGHT", texture, "TOPRIGHT", 0, -radius)
+    right:SetSize(radius, math.max(.001, height - radius * 2))
+end
+
+function addon:SetRoundedBar(bar, enabled, color)
+    if not bar then return end
+    local data = roundedBars[bar]
+    if not enabled then
+        if data then
+            data.updater:Hide()
+            for _, region in ipairs(data.regions) do region:Hide() end
+            if data.texture then data.texture:SetAlpha(data.alpha or 1) end
+            data.width, data.height = nil, nil
+        end
+        return
+    end
+    if not data then
+        data = { bar = bar, regions = {} }
+        for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+            local region = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+            region:SetTexture(CORNER .. "Fill.tga")
+            local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
+            region:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
+            table.insert(data.regions, region)
+        end
+        for i = 1, 3 do
+            local region = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+            region:SetTexture(WHITE)
+            table.insert(data.regions, region)
+        end
+        data.updater = CreateFrame("Frame", nil, bar)
+        data.updater:EnableMouse(false)
+        data.updater:SetScript("OnUpdate", function() UpdateRoundedBar(data) end)
+        roundedBars[bar] = data
+    end
+    for _, region in ipairs(data.regions) do region:SetVertexColor(unpack(color or self.barColors.neutral)) end
+    data.updater:Show()
+    UpdateRoundedBar(data)
+end
+
 function addon:CreatePSFLabel(parent, text, x, y, emphasized, size)
     local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     label:SetPoint("TOPLEFT", x, y)

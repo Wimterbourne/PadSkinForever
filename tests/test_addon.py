@@ -116,6 +116,7 @@ local function Surface(kind, parent)
     function w:SetHeight(value) self.height = value end
     function w:GetWidth() return self.width or (self.size and self.size[1]) or 0 end
     function w:GetHeight() return self.height or (self.size and self.size[2]) or 0 end
+    function w:GetSize() return self:GetWidth(), self:GetHeight() end
     function w:GetScale() return self.scale or 1 end
     function w:GetCenter() return unpack(self.center or {0, 0}) end
     function w:SetPoint(...) self.point = {...}; self.clearCount = self.clearCount or 0 end
@@ -994,7 +995,7 @@ class AddonTests(unittest.TestCase):
             assert(SwingTimerMainHandFrame.Background.alpha == 0 and SwingTimerMainHandFrame.StatusBar.alpha == .4)
 
             local resources = PadSkinForeverResourceDisplay
-            assert(resources and resources.visible and resources.height == 58)
+            assert(resources and resources.visible and resources.height == 62)
             assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)
             assert(resources.playerHealth.barColor[2] == addon.barColors.health[2])
             assert(resources.playerPower.barColor[1] == addon.barColors.focus[1])
@@ -1026,6 +1027,35 @@ class AddonTests(unittest.TestCase):
             local hiddenCard
             for _, child in ipairs(SwingTimerMainHandFrame.children) do if child.PSFRoundedPanel then hiddenCard = child end end
             assert(hiddenCard and not hiddenCard.visible)
+        ''')
+
+    def test_rounded_fill_tracks_native_width_and_restores_alpha(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            local bar = surface("StatusBar")
+            bar:SetStatusBarTexture("native")
+            local fill = bar:GetStatusBarTexture()
+            fill:SetSize(120, 16); fill:SetAlpha(.8)
+            addon:SetRoundedBar(bar, true, addon.barColors.health)
+            assert(fill:GetAlpha() == 0)
+            local updater = bar.children[1]
+            local corner = bar.regions[2]
+            assert(corner:GetWidth() == 6 and corner.visible)
+            fill:SetSize(3, 16)
+            updater.scripts.OnUpdate()
+            assert(corner:GetWidth() == 1.5, "tiny fill corners must shrink")
+            fill:SetSize(0, 16)
+            updater.scripts.OnUpdate()
+            assert(not corner.visible, "zero fill must disappear")
+            fill:SetSize(60, 16)
+            combat = true
+            updater.scripts.OnUpdate()
+            assert(corner.visible and corner:GetWidth() == 6)
+            combat = false
+            addon:SetRoundedBar(bar, false)
+            assert(fill:GetAlpha() == .8 and not updater.visible and not corner.visible)
+            addon:SetRoundedBar(bar, true, addon.barColors.mana)
+            assert(corner.visible and corner.rgba[3] == addon.barColors.mana[3])
         ''')
 
     def test_legend_preserves_font_size_and_restores(self):

@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.2-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.3-alpha**.
+
+### Centrale HUD-balken — 0.7.3-alpha
+
+Player/pet-resources en de drie native swingtimers krijgen nu ook **afgeronde vullingen**. Ze volgen de afmetingen van de bestaande statusbartexture, met vaste hoekstukken die bij een bijna lege balk automatisch kleiner worden. Een lege balk toont alleen de donkere achtergrond. De native statusbar blijft waarden en interpolatie berekenen; range-dimming van swingtimers blijft via de native statusbar-alpha werken. Uitschakelen van de swingtimerskin herstelt de oorspronkelijke texture-alpha.
+
+De playerregel krijgt 22 px hoge wells, de compactere petregel 20 px. Beide gebruiken 8 px tekstmarges en afzonderlijke ruimte voor labels en waarden. Health, mana en petresources behouden hun semantische kleuren. De gecombineerde PSF-module blijft selecteerbaar en verplaatsbaar via Edit Mode; de drie swingtimers behouden hun eigen native posities en afmetingen.
+
+Na ophalen volstaat `/reload`. Test volle, halfvolle, bijna lege en lege resources, pet oproepen/wegsturen, Edit Mode, een echte swing/ranged-aanval, out-of-range-dimming en swingtimerskin uit/aan. Controleer BugSack en het behoud van de layout na reload. Deze stap betreft het centrale HUD-blok; unitframes, nameplates en overige balken volgen nadat deze basis ingame is bevestigd.
 
 ### Native selectie en raster — 0.7.2-alpha
 

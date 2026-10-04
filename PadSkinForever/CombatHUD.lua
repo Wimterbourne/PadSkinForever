@@ -119,6 +119,7 @@ local function SkinSwingTimer(frame, enabled)
         statusBar:SetStatusBarColor(unpack(addon.barColors.neutral))
         local texture = statusBar:GetStatusBarTexture()
         if texture then texture:SetTexCoord(0, 1, 0, 1) end
+        addon:SetRoundedBar(statusBar, true, addon.barColors.neutral)
         addon:Tint(frame:GetStatusBarPip(), { .92, .94, .96 })
         addon:ThemeFont(frame:GetTypeLabel(), true, true)
         addon:ThemeFont(frame:GetTimeLabel(), true, true)
@@ -126,6 +127,7 @@ local function SkinSwingTimer(frame, enabled)
         addon:DebugSurface(statusBar, "CombatHUD/SwingTimerBar", "native swing timer status bar")
         HookSwingTimer(frame)
     elseif state then
+        addon:SetRoundedBar(statusBar, false)
         local card = swingCards[frame]
         if card then card:Hide() end
         addon:Tint(frame:GetStatusBarPip(), nil)
@@ -152,17 +154,21 @@ local function CreateBar(parent, width, height)
         border = { .55, .60, .66, .24 },
     }, math.floor(height / 2))
     local bar = CreateFrame("StatusBar", nil, well)
-    bar:SetPoint("TOPLEFT", 3, -3)
-    bar:SetPoint("BOTTOMRIGHT", -3, 3)
+    bar:SetPoint("TOPLEFT", 2, -2)
+    bar:SetPoint("BOTTOMRIGHT", -2, 2)
     bar:SetStatusBarTexture(WHITE)
     bar:SetMinMaxValues(0, 1)
     bar:SetValue(1)
     bar.left = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    bar.left:SetPoint("LEFT", 5, 0)
+    bar.left:SetPoint("LEFT", well, "LEFT", 8, 0)
     bar.left:SetJustifyH("LEFT")
     bar.right = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    bar.right:SetPoint("RIGHT", -5, 0)
+    bar.right:SetPoint("RIGHT", well, "RIGHT", -8, 0)
+    bar.right:SetWidth(math.floor(width * .46))
     bar.right:SetJustifyH("RIGHT")
+    bar.left:SetPoint("RIGHT", bar.right, "LEFT", -6, 0)
+    bar.left:SetTextColor(unpack(addon.uiColors.text))
+    bar.right:SetTextColor(unpack(addon.uiColors.text))
     return well, bar
 end
 
@@ -247,7 +253,7 @@ end
 local function EnsureResourceFrame()
     if resourceFrame or not UIParent or not UnitHealth then return resourceFrame end
     local frame = CreateFrame("Frame", "PadSkinForeverResourceDisplay", UIParent)
-    frame:SetSize(460, 58)
+    frame:SetSize(460, 62)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
@@ -258,13 +264,13 @@ local function EnsureResourceFrame()
     }, 12)
     ApplyResourceAnchor(frame)
 
-    frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 222, 18)
+    frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 222, 22)
     frame.playerHealthWell:SetPoint("TOPLEFT", 6, -6)
-    frame.playerPowerWell, frame.playerPower = CreateBar(frame, 222, 18)
+    frame.playerPowerWell, frame.playerPower = CreateBar(frame, 222, 22)
     frame.playerPowerWell:SetPoint("TOPRIGHT", -6, -6)
-    frame.petHealthWell, frame.petHealth = CreateBar(frame, 262, 18)
+    frame.petHealthWell, frame.petHealth = CreateBar(frame, 262, 20)
     frame.petHealthWell:SetPoint("BOTTOMLEFT", 30, 6)
-    frame.petPowerWell, frame.petPower = CreateBar(frame, 156, 18)
+    frame.petPowerWell, frame.petPower = CreateBar(frame, 156, 20)
     frame.petPowerWell:SetPoint("BOTTOMRIGHT", -6, 6)
     frame.petPortrait = frame:CreateTexture(nil, "ARTWORK")
     frame.petPortrait:SetSize(20, 20)
@@ -324,6 +330,7 @@ local function SetBar(bar, unit, kind)
     end
     bar:SetMinMaxValues(0, maximum)
     bar:SetValue(current)
+    addon:SetRoundedBar(bar, true, { bar:GetStatusBarColor() })
     return current, maximum
 end
 
@@ -354,9 +361,13 @@ function addon:UpdateResourceDisplay()
         frame.petPower:SetMinMaxValues(0, 1); frame.petPower:SetValue(.55)
         frame.petHealth.left:SetText(PET or "Pet"); frame.petHealth.right:SetText("")
         frame.petPower.left:SetText(POWER or "Power"); frame.petPower.right:SetText("")
+        frame.petHealth:SetStatusBarColor(unpack(addon.barColors.health))
+        frame.petPower:SetStatusBarColor(unpack(addon.barColors.focus))
+        addon:SetRoundedBar(frame.petHealth, true, addon.barColors.health)
+        addon:SetRoundedBar(frame.petPower, true, addon.barColors.focus)
         frame.petPortrait:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFLogo.tga")
     end
-    frame:SetHeight((hasPet or frame.editMode) and 58 or 30)
+    frame:SetHeight((hasPet or frame.editMode) and 62 or 34)
     local font = self:GetUIFontPath(false)
     for _, bar in ipairs({ frame.playerHealth, frame.playerPower, frame.petHealth, frame.petPower }) do
         if not bar.left:SetFont(font, 10, "") then bar.left:SetFont(STANDARD_TEXT_FONT, 10, "") end
