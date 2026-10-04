@@ -1,6 +1,12 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.2-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.3-alpha**.
+
+### Schone 3D targetportretten — 0.8.3-alpha
+
+De boss-style 3D-portretten van target, focus en target-of-target wissen na iedere modelwissel Blizzard's unit-specifieke model-fog. Daardoor verdwijnt de gekleurde achtergrondschijf zonder de 3D-portretinstelling uit te schakelen. De compacte player- en petkaarten behouden hun bestaande modelpresentatie.
+
+Na ophalen volstaat `/reload`. Test verschillende vriendelijke en vijandige targets, target-of-target en wisselen tussen 2D en 3D.
 
 ### Boss-style target en complete controllerfocus — 0.8.2-alpha
 

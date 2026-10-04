@@ -112,6 +112,7 @@ local function Surface(kind, parent)
     function w:SetFrameLevel(value) self.level = value end
     function w:SetUnit(unit) self.modelUnit = unit end
     function w:SetPortraitZoom(value) self.portraitZoom = value end
+    function w:ClearFog() self.fogCleared = true end
     function w:SetToplevel(value) self.toplevel = value end
     function w:GetAlpha() return self.alpha end
     function w:SetAlpha(value) self.alpha = value end
@@ -625,6 +626,7 @@ class AddonTests(unittest.TestCase):
             addon:RefreshUnitFrames()
             assert(view.model.visible and not view.portrait.visible)
             assert(view.model.modelUnit == "player" and view.model.portraitZoom == 1)
+            assert(not view.model.fogCleared and targetView.model.fogCleared and totView.model.fogCleared)
             combat = true
             fire("UNIT_HEALTH", "player")
             assert(view.health.valueText.text == "413 / 500")

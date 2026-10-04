@@ -148,7 +148,15 @@ local function UpdateView(view)
     view.portrait:SetShown(not model)
     -- Models update only on unit/model changes, not on every health event.
     if model then
-        if view.modelDirty then view.model:SetUnit(unit); view.model:SetPortraitZoom(1); view.modelDirty = nil end
+        if view.modelDirty then
+            view.model:SetUnit(unit)
+            view.model:SetPortraitZoom(1)
+            -- PlayerModel reapplies unit-specific fog when SetUnit runs. That
+            -- fog becomes an opaque disc behind boss-style target portraits.
+            -- Compact player/pet cards keep their native model presentation.
+            if not view.compact and view.model.ClearFog then view.model:ClearFog() end
+            view.modelDirty = nil
+        end
     elseif SetPortraitTexture then SetPortraitTexture(view.portrait, unit) end
 end
 
