@@ -1,6 +1,12 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.4-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.8.5-alpha**.
+
+### Secret-safe ronde fills en grotere 3D-portretten — 0.8.5-alpha
+
+De ronde fillrenderer leest geen dynamische targetbreedtes meer uit. Een geclipte viewport volgt voortaan declaratief Blizzards eigen StatusBar-texture, waardoor ronde kappen ook behouden blijven wanneer Forever de geometrie als secret markeert. 3D targetportretten benutten vrijwel de volledige ring en krijgen een kleinere camera-afstand.
+
+Na ophalen volstaat `/reload`. Vergelijk een vriendelijke en vijandige target, volle en lage health en kleine creature-modellen in 3D-modus.
 
 ### Vaste barkappen en ingesloten 3D-portretten — 0.8.4-alpha
 

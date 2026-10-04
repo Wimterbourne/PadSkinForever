@@ -93,52 +93,26 @@ function addon:CreateRoundedPanel(parent, palette, radius)
     return panel
 end
 
--- Follow the native fill texture's geometry instead of calculating health or
--- timer values ourselves. Fixed-size corner pieces keep the ends round at any
--- fill percentage, while native interpolation and parent range-alpha survive.
+-- Follow the native fill texture declaratively instead of reading its width.
+-- WoW can mark target health geometry as secret; anchoring a clipping frame to
+-- that texture remains permitted and keeps the fixed-size caps available.
 local roundedBars = setmetatable({}, { __mode = "k" })
 local function UpdateRoundedBar(data)
     local texture = data.bar:GetStatusBarTexture()
-    if not texture or not texture.GetSize then return end
-    local width, height = texture:GetSize()
-    if (issecretvalue and (issecretvalue(width) or issecretvalue(height)))
-        or type(width) ~= "number" or type(height) ~= "number" then
-        for _, region in ipairs(data.regions) do region:Hide() end
-        if data.texture then data.texture:SetAlpha(data.alpha or 1) end
-        local r, g, b = data.bar:GetStatusBarColor()
-        data.bar:SetStatusBarColor(r, g, b, data.colorAlpha or 1)
-        data.width, data.height = nil, nil
-        return
-    end
+    if not texture then return end
     if data.texture ~= texture then
         if data.texture then data.texture:SetAlpha(data.alpha or 1) end
         data.texture, data.alpha = texture, texture:GetAlpha()
-        data.width, data.height = nil, nil
+        data.updater:ClearAllPoints()
+        data.updater:SetPoint("TOPLEFT", texture, "TOPLEFT")
+        data.updater:SetPoint("BOTTOMRIGHT", texture, "BOTTOMRIGHT")
     end
     -- Also suppress the StatusBar renderer's color alpha: it may reapply its
     -- own tint when values interpolate, independently of Texture:SetAlpha.
     local r, g, b, a = data.bar:GetStatusBarColor()
     if a ~= 0 then data.bar:SetStatusBarColor(r, g, b, 0) end
     if texture:GetAlpha() ~= 0 then texture:SetAlpha(0) end
-    if data.width == width and data.height == height then return end
-    data.width, data.height = width, height
-    local visible = width > .1 and height > .1
-    for _, region in ipairs(data.regions) do region:SetShown(visible) end
-    if not visible then return end
-    local radius = math.min(width / 2, height / 2)
-    for i, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
-        local region = data.regions[i]
-        region:ClearAllPoints()
-        region:SetPoint(corner, texture, corner)
-        region:SetSize(radius, radius)
-    end
-    local middle, left, right = data.regions[5], data.regions[6], data.regions[7]
-    middle:ClearAllPoints(); middle:SetPoint("TOPLEFT", texture, "TOPLEFT", radius, 0)
-    middle:SetSize(math.max(.001, width - radius * 2), height)
-    left:ClearAllPoints(); left:SetPoint("TOPLEFT", texture, "TOPLEFT", 0, -radius)
-    left:SetSize(radius, math.max(.001, height - radius * 2))
-    right:ClearAllPoints(); right:SetPoint("TOPRIGHT", texture, "TOPRIGHT", 0, -radius)
-    right:SetSize(radius, math.max(.001, height - radius * 2))
+    for _, region in ipairs(data.regions) do region:Show() end
 end
 
 function addon:SetRoundedBar(bar, enabled, color)
@@ -151,23 +125,27 @@ function addon:SetRoundedBar(bar, enabled, color)
             if data.texture then data.texture:SetAlpha(data.alpha or 1) end
             local r, g, b = bar:GetStatusBarColor()
             bar:SetStatusBarColor(r, g, b, data.colorAlpha or 1)
-            data.width, data.height = nil, nil
         end
         return
     end
     if not data then
         data = { bar = bar, regions = {}, colorAlpha = select(4, bar:GetStatusBarColor()) }
         -- StatusBar's native fill can render above regions on the bar itself.
-        -- A mouse-transparent child gives our fill a deterministic render level.
+        -- A clipped child follows the native texture without exposing secret
+        -- dimensions to Lua. Its children retain fixed cap geometry.
         data.updater = CreateFrame("Frame", nil, bar)
-        data.updater:SetAllPoints(bar)
         data.updater:SetFrameLevel(bar:GetFrameLevel() + 1)
         data.updater:EnableMouse(false)
+        if data.updater.SetClipsChildren then data.updater:SetClipsChildren(true) end
+        local height = bar:GetHeight()
+        local radius = type(height) == "number" and height / 2 or 5
         for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
             local region = data.updater:CreateTexture(nil, "BACKGROUND")
             region:SetTexture(CORNER .. "Fill.tga")
             local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
             region:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
+            region:SetPoint(corner, data.updater, corner)
+            region:SetSize(radius, radius)
             table.insert(data.regions, region)
         end
         for i = 1, 3 do
@@ -175,6 +153,13 @@ function addon:SetRoundedBar(bar, enabled, color)
             region:SetTexture(WHITE)
             table.insert(data.regions, region)
         end
+        local middle, left, right = data.regions[5], data.regions[6], data.regions[7]
+        middle:SetPoint("TOPLEFT", data.updater, "TOPLEFT", radius, 0)
+        middle:SetPoint("BOTTOMRIGHT", data.updater, "BOTTOMRIGHT", -radius, 0)
+        left:SetPoint("TOPLEFT", data.updater, "TOPLEFT", 0, -radius)
+        left:SetPoint("BOTTOMRIGHT", data.updater, "BOTTOMLEFT", radius, radius)
+        right:SetPoint("TOPLEFT", data.updater, "TOPRIGHT", -radius, -radius)
+        right:SetPoint("BOTTOMRIGHT", data.updater, "BOTTOMRIGHT", 0, radius)
         data.updater:SetScript("OnUpdate", function() UpdateRoundedBar(data) end)
         roundedBars[bar] = data
     end

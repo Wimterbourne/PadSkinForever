@@ -112,6 +112,7 @@ local function Surface(kind, parent)
     function w:SetFrameLevel(value) self.level = value end
     function w:SetUnit(unit) self.modelUnit = unit end
     function w:SetPortraitZoom(value) self.portraitZoom = value end
+    function w:SetCamDistanceScale(value) self.camDistanceScale = value end
     function w:ClearFog() self.fogCleared = true end
     function w:SetToplevel(value) self.toplevel = value end
     function w:GetAlpha() return self.alpha end
@@ -159,6 +160,7 @@ local function Surface(kind, parent)
     function w:CreateMaskTexture() return Surface("MaskTexture", self) end
     function w:SetJustifyH(value) self.justify = value end
     function w:SetClampedToScreen(value) self.clamped = value end
+    function w:SetClipsChildren(value) self.clipsChildren = value end
     function w:SetMovable(value) self.movable = value end
     function w:RegisterForDrag(...) self.dragButtons = {...} end
     function w:StartMoving() self.moving = true end
@@ -628,7 +630,7 @@ class AddonTests(unittest.TestCase):
             addon:RefreshUnitFrames()
             assert(view.model.visible and not view.portrait.visible)
             assert(view.model.modelUnit == "player" and view.model.portraitZoom == 1)
-            assert(targetView.model.portraitZoom == 1.12)
+            assert(targetView.model.portraitZoom == 1 and targetView.model.camDistanceScale == .72)
             assert(not view.model.fogCleared and targetView.model.fogCleared and totView.model.fogCleared)
             combat = true
             fire("UNIT_HEALTH", "player")
@@ -1158,10 +1160,11 @@ class AddonTests(unittest.TestCase):
             assert(hiddenCard and not hiddenCard.visible)
         ''')
 
-    def test_rounded_fill_tracks_native_width_and_restores_alpha(self):
+    def test_rounded_fill_uses_secret_safe_clip_and_restores_alpha(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
             local bar = surface("StatusBar")
+            bar:SetSize(120, 16)
             bar:SetStatusBarTexture("native")
             local fill = bar:GetStatusBarTexture()
             fill:SetSize(120, 16); fill:SetAlpha(.8)
@@ -1169,15 +1172,15 @@ class AddonTests(unittest.TestCase):
             addon:SetRoundedBar(bar, true, addon.barColors.health)
             assert(fill:GetAlpha() == 0 and select(4, bar:GetStatusBarColor()) == 0)
             local updater = bar.children[1]
-            assert(updater.level == bar.level + 1 and updater.mouse == false)
+            assert(updater.level == bar.level + 1 and updater.mouse == false and updater.clipsChildren)
             local corner = updater.regions[1]
             assert(corner:GetWidth() == 8 and corner.visible)
             fill:SetSize(3, 16)
             updater.scripts.OnUpdate()
-            assert(corner:GetWidth() == 1.5, "tiny fill corners must shrink")
+            assert(corner:GetWidth() == 8, "cap geometry must not stretch with fill width")
             fill:SetSize(0, 16)
             updater.scripts.OnUpdate()
-            assert(not corner.visible, "zero fill must disappear")
+            assert(corner.visible, "the native texture viewport performs zero-width clipping")
             fill:SetSize(60, 16)
             combat = true
             updater.scripts.OnUpdate()

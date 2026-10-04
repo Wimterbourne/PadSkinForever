@@ -72,7 +72,7 @@ local function MakeView(root, unit, compact)
         -- PlayerModel regions cannot receive Texture masks. Keep the model in
         -- an inset square viewport; with its fog cleared, only the subject is
         -- drawn over the circular backing and remains inside the ring.
-        local inset = targetOfTarget and 2 or 3
+        local inset = 1
         view.model:SetPoint("TOPLEFT", view.portrait, "TOPLEFT", inset, -inset)
         view.model:SetPoint("BOTTOMRIGHT", view.portrait, "BOTTOMRIGHT", -inset, inset)
         view.portraitBackground:SetAllPoints(view.portrait)
@@ -168,7 +168,8 @@ local function UpdateView(view)
     if model then
         if view.modelDirty then
             view.model:SetUnit(unit)
-            view.model:SetPortraitZoom(view.compact and 1 or 1.12)
+            view.model:SetPortraitZoom(1)
+            if not view.compact and view.model.SetCamDistanceScale then view.model:SetCamDistanceScale(.72) end
             -- PlayerModel reapplies unit-specific fog when SetUnit runs. That
             -- fog becomes an opaque disc behind boss-style target portraits.
             -- Compact player/pet cards keep their native model presentation.
