@@ -20,15 +20,12 @@ local powerColors = {
     PAIN = addon.barColors.focus,
 }
 
-local function SafeNumber(value)
-    if issecretvalue and issecretvalue(value) then return nil end
-    return type(value) == "number" and value or nil
-end
-
-local function ValueText(current, maximum)
-    current, maximum = SafeNumber(current), SafeNumber(maximum)
-    if not current or not maximum then return "" end
-    return string.format("%d / %d", current, maximum)
+local function SetValueText(text, current, maximum)
+    -- Native FontString formatting accepts values directly; Lua arithmetic and
+    -- string.format would discard or reject secret resource values.
+    local ok = pcall(text.SetFormattedText, text, "%d / %d", current, maximum)
+    if not ok then text:SetText("—") end
+    text:Show()
 end
 
 local function PowerColor(unit)
@@ -175,6 +172,12 @@ local function CreateBar(parent, width, height)
     bar:SetPoint("TOPLEFT", 2, -2)
     bar:SetPoint("BOTTOMRIGHT", -2, 2)
     bar:SetStatusBarTexture(WHITE)
+    -- A native texture mask follows protected fill geometry without reading it.
+    -- This also works when combat resource dimensions are secret values.
+    bar.fillMask = bar:CreateMaskTexture(nil, "ARTWORK")
+    bar.fillMask:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\ResourceFillMask.tga", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    bar.fillMask:SetAllPoints(bar:GetStatusBarTexture())
+    bar:GetStatusBarTexture():AddMaskTexture(bar.fillMask)
     bar:SetMinMaxValues(0, 1)
     bar:SetValue(1)
     bar.labels = CreateFrame("Frame", nil, bar)
@@ -277,7 +280,7 @@ end
 local function EnsureResourceFrame()
     if resourceFrame or not UIParent or not UnitHealth then return resourceFrame end
     local frame = CreateFrame("Frame", "PadSkinForeverResourceDisplay", UIParent)
-    frame:SetSize(460, 62)
+    frame:SetSize(486, 64)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
@@ -289,16 +292,20 @@ local function EnsureResourceFrame()
     ApplyResourceAnchor(frame)
 
     frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 222, 22)
-    frame.playerHealthWell:SetPoint("TOPLEFT", 6, -6)
+    frame.playerHealthWell:SetPoint("TOPLEFT", 30, -6)
     frame.playerPowerWell, frame.playerPower = CreateBar(frame, 222, 22)
     frame.playerPowerWell:SetPoint("TOPRIGHT", -6, -6)
-    frame.petHealthWell, frame.petHealth = CreateBar(frame, 262, 20)
+    frame.petHealthWell, frame.petHealth = CreateBar(frame, 222, 22)
     frame.petHealthWell:SetPoint("BOTTOMLEFT", 30, 6)
-    frame.petPowerWell, frame.petPower = CreateBar(frame, 156, 20)
+    frame.petPowerWell, frame.petPower = CreateBar(frame, 222, 22)
     frame.petPowerWell:SetPoint("BOTTOMRIGHT", -6, 6)
+    frame.playerPortrait = frame:CreateTexture(nil, "ARTWORK")
+    frame.playerPortrait:SetSize(20, 20)
+    frame.playerPortrait:SetPoint("TOPLEFT", 6, -7)
+    frame.playerPortrait:SetTexCoord(.08, .92, .08, .92)
     frame.petPortrait = frame:CreateTexture(nil, "ARTWORK")
     frame.petPortrait:SetSize(20, 20)
-    frame.petPortrait:SetPoint("BOTTOMLEFT", 6, 5)
+    frame.petPortrait:SetPoint("BOTTOMLEFT", 6, 7)
     frame.petPortrait:SetTexCoord(.08, .92, .08, .92)
 
     -- Use Blizzard's native selection artwork without registering a new system
@@ -354,8 +361,16 @@ local function SetBar(bar, unit, kind)
     end
     bar:SetMinMaxValues(0, maximum)
     bar:SetValue(current)
-    addon:SetRoundedBar(bar, true, { bar:GetStatusBarColor() })
     return current, maximum
+end
+
+function addon:UpdateResourceVisibility()
+    local frame = resourceFrame
+    if not frame or not self.db then return end
+    local active = frame.editMode or InCombatLockdown()
+    local mode = self.db.resourceOutOfCombat or "dim"
+    frame:SetShown(self.db.resourceDisplay and (active or mode ~= "hide"))
+    frame:SetAlpha((active or mode == "show") and 1 or .2)
 end
 
 function addon:UpdateResourceDisplay()
@@ -363,10 +378,10 @@ function addon:UpdateResourceDisplay()
     if not frame or not self.db.resourceDisplay then return end
     local current, maximum = SetBar(frame.playerHealth, "player", "health")
     frame.playerHealth.left:SetText(HEALTH or "Health")
-    frame.playerHealth.right:SetText(ValueText(current, maximum))
+    SetValueText(frame.playerHealth.right, current, maximum)
     current, maximum = SetBar(frame.playerPower, "player", "power")
     frame.playerPower.left:SetText(PowerLabel("player"))
-    frame.playerPower.right:SetText(ValueText(current, maximum))
+    SetValueText(frame.playerPower.right, current, maximum)
 
     local hasPet = UnitExists and UnitExists("pet")
     frame.petHealthWell:SetShown(hasPet or frame.editMode)
@@ -375,10 +390,10 @@ function addon:UpdateResourceDisplay()
     if hasPet then
         current, maximum = SetBar(frame.petHealth, "pet", "health")
         frame.petHealth.left:SetText(UnitName("pet") or (PET or "Pet"))
-        frame.petHealth.right:SetText(ValueText(current, maximum))
+        SetValueText(frame.petHealth.right, current, maximum)
         current, maximum = SetBar(frame.petPower, "pet", "power")
         frame.petPower.left:SetText(PowerLabel("pet"))
-        frame.petPower.right:SetText(ValueText(current, maximum))
+        SetValueText(frame.petPower.right, current, maximum)
         if SetPortraitTexture then SetPortraitTexture(frame.petPortrait, "pet") end
     elseif frame.editMode then
         frame.petHealth:SetMinMaxValues(0, 1); frame.petHealth:SetValue(.72)
@@ -387,11 +402,11 @@ function addon:UpdateResourceDisplay()
         frame.petPower.left:SetText(POWER or "Power"); frame.petPower.right:SetText("")
         frame.petHealth:SetStatusBarColor(unpack(addon.barColors.health))
         frame.petPower:SetStatusBarColor(unpack(addon.barColors.focus))
-        addon:SetRoundedBar(frame.petHealth, true, addon.barColors.health)
-        addon:SetRoundedBar(frame.petPower, true, addon.barColors.focus)
         frame.petPortrait:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFLogo.tga")
     end
-    frame:SetHeight((hasPet or frame.editMode) and 62 or 34)
+    if SetPortraitTexture then SetPortraitTexture(frame.playerPortrait, "player") end
+    frame:SetHeight((hasPet or frame.editMode) and 64 or 34)
+    self:UpdateResourceVisibility()
     local font = self:GetUIFontPath(false)
     for _, bar in ipairs({ frame.playerHealth, frame.playerPower, frame.petHealth, frame.petPower }) do
         if not bar.left:SetFont(font, 10, "") then bar.left:SetFont(STANDARD_TEXT_FONT, 10, "") end
@@ -416,7 +431,8 @@ end
 
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "UNIT_HEALTH", "UNIT_MAXHEALTH",
-    "UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_PET", "PET_UI_UPDATE" }) do
+    "UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_PET", "PET_UI_UPDATE",
+    "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
     events:RegisterEvent(event)
 end
 events:SetScript("OnEvent", function(_, event, unit)

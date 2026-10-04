@@ -151,6 +151,9 @@ local function Surface(kind, parent)
     function w:GetTextColor() return unpack(self.color) end
     function w:SetTextColor(...) self.color = {...} end
     function w:SetText(value) self.text = value end
+    function w:SetFormattedText(pattern, ...) self.text = string.format(pattern, ...) end
+    function w:AddMaskTexture(mask) self.mask = mask end
+    function w:CreateMaskTexture() return Surface("MaskTexture", self) end
     function w:SetJustifyH(value) self.justify = value end
     function w:SetClampedToScreen(value) self.clamped = value end
     function w:SetMovable(value) self.movable = value end
@@ -999,16 +1002,36 @@ class AddonTests(unittest.TestCase):
             assert(SwingTimerMainHandFrame.Background.alpha == 0 and SwingTimerMainHandFrame.StatusBar.alpha == .4)
 
             local resources = PadSkinForeverResourceDisplay
-            assert(resources and resources.visible and resources.height == 62)
+            assert(resources and resources.visible and resources.height == 64)
             assert(resources.playerHealth.labels:GetFrameLevel() == resources.playerHealth:GetFrameLevel() + 2)
             assert(resources.playerHealth.left.height == 18)
             assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)
             assert(resources.playerHealth.barColor[2] == addon.barColors.health[2])
             assert(resources.playerPower.barColor[1] == addon.barColors.focus[1])
             assert(resources.petHealth.value == 80 and resources.petPower.value == 60)
+            assert(resources.playerHealthWell.width == resources.petHealthWell.width)
+            assert(resources.playerPowerWell.width == resources.petPowerWell.width)
+            assert(resources.playerHealthWell.height == resources.petHealthWell.height)
+            assert(resources.playerHealth.barTexture.mask == resources.playerHealth.fillMask)
+            assert(resources.playerHealth.right.text == "406 / 406")
+            assert(resources.petHealth.right.text == "80 / 100")
+            assert(resources.alpha == .2, "default outside combat should dim")
+            addon.db.resourceOutOfCombat = "hide"
+            addon:UpdateResourceVisibility()
+            assert(not resources.visible)
+            combat = true
+            addon:UpdateResourceVisibility()
+            assert(resources.visible and resources.alpha == 1)
+            combat = false
+            addon.db.resourceOutOfCombat = "show"
+            addon:UpdateResourceVisibility()
+            assert(resources.visible and resources.alpha == 1)
+            addon.db.resourceOutOfCombat = "hide"
+
             assert(resources.petHealth.left.text == "Ghostfang" and resources.petPortrait.portraitUnit == "pet")
             EditModeManagerFrame.scripts.OnShow()
             assert(resources.editMode and resources.editSelection.visible)
+            assert(resources.visible and resources.alpha == 1, "edit mode must reveal hidden resources")
             assert(resources.editSelection.mouse and resources.editSelection.level == 1000)
             resources.editSelection.scripts.OnMouseDown(resources.editSelection, "LeftButton")
             assert(resources.editSelection.isSelected)
@@ -1025,6 +1048,7 @@ class AddonTests(unittest.TestCase):
             assert(not resources.editSelection.isSelected)
             EditModeManagerFrame.scripts.OnHide()
             assert(not resources.editSelection.visible)
+            assert(not resources.visible, "restore visibility after edit mode")
 
             addon.db.themeSwingTimers = false
             addon:RefreshCombatHUD()

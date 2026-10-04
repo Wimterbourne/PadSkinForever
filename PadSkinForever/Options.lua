@@ -256,7 +256,7 @@ function addon:ShowOptions()
         panel.PSFLogo = addon:CreatePSFLogo(panel, 36)
         panel.PSFLogo:SetPoint("TOPLEFT", 22, -18)
         Label(panel, "PadSkinForever", 66, -18, true, 17)
-        local version = Label(panel, "0.7.4 alpha", 230, -20, false, 12)
+        local version = Label(panel, "0.7.5 alpha", 230, -20, false, 12)
         version:SetTextColor(unpack(addon.uiColors.muted))
         panel.PSFFocusArrow = panel:CreateTexture(nil, "OVERLAY")
         panel.PSFFocusArrow:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFFocusChevron.tga")
@@ -402,7 +402,19 @@ function addon:ShowOptions()
         Label(buttonPage, "Combat HUD", 22, -218)
         Checkbox(buttonPage, "Theme native swing timers", "themeSwingTimers", -252)
         Checkbox(buttonPage, "Show PSF player and pet resources", "resourceDisplay", -286)
-        local combatHelp = Hint(buttonPage, "Swing timer order, position and dimensions remain in Blizzard Edit Mode.\nThe PSF resource display can be dragged while Edit Mode is open.", 22, -328)
+        local visibilityLabels = { dim = "Out of combat: dim (20%)", hide = "Out of combat: hidden", show = "Out of combat: visible" }
+        local visibilityButton
+        local function UpdateVisibilityLabel()
+            visibilityButton:SetText(visibilityLabels[addon.db.resourceOutOfCombat] or visibilityLabels.dim)
+        end
+        visibilityButton = Button(buttonPage, "", 22, -320, 340, function()
+            local nextMode = { dim = "hide", hide = "show", show = "dim" }
+            addon.db.resourceOutOfCombat = nextMode[addon.db.resourceOutOfCombat or "dim"] or "dim"
+            UpdateVisibilityLabel()
+            addon:UpdateResourceVisibility()
+        end)
+        buttonPage:HookScript("OnShow", UpdateVisibilityLabel)
+        local combatHelp = Hint(buttonPage, "Swing timer order, position and dimensions remain in Blizzard Edit Mode.\nThe PSF resource display can be dragged while Edit Mode is open.", 22, -368)
         combatHelp:SetWidth(465); combatHelp:SetJustifyH("LEFT")
         buttonPage:HookScript("OnShow", function()
             for key, check in pairs(buttonPage.checks) do check:SetChecked(addon.db[key]) end

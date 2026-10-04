@@ -12,6 +12,7 @@ addon.defaults = {
     themeLoot = true,
     themeSwingTimers = true,
     resourceDisplay = true,
+    resourceOutOfCombat = "dim",
     resourceAnchor = { "BOTTOM", "BOTTOM", 0, 228 },
     resourceAnchors = {},
     lootToasts = true,

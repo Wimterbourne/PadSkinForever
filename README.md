@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.4-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.7.5-alpha**.
+
+### Gelijke resources en zichtbaarheid — 0.7.5-alpha
+
+Player en pet gebruiken dezelfde 222 × 22 px health- en power-wells, identieke tekstmarges en een eigen portretkolom. Health blijft groen; power volgt het type (mana blauw, focus oranje, energy geel). De resourcefill gebruikt nu een native texturemask, zodat de afgeronde uiteinden ook werken zonder resource-geometrie in Lua uit te lezen. Waarden gaan rechtstreeks naar native FontString-formattering.
+
+Buiten combat vervaagt het PSF-resourcepaneel standaard naar 20% alpha. Onder `/psf` → Buttons → Combat HUD kan dit worden gewisseld naar volledig verborgen of altijd zichtbaar. Tijdens combat en Edit Mode verschijnt het op volle sterkte. Dit geldt uitsluitend voor de PSF player/pet-resources; native swingtimer-zichtbaarheid blijft bij Blizzard.
+
+Deze versie bevat een nieuwe texture. **Sluit WoW volledig en start opnieuw na het ophalen**, zodat de client die kan laden. Test gelijke afmetingen, ronde vullingen, waarden, pet oproepen/wegsturen, combat in/uit, alle drie zichtbaarheidstanden en Edit Mode buiten combat. Controleer BugSack.
 
 ### Centrale HUD-correcties — 0.7.4-alpha
 
