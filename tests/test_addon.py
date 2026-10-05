@@ -651,7 +651,7 @@ class AddonTests(unittest.TestCase):
             assert(view.portrait.visible and not view.model.visible)
             assert(PlayerFrame.PlayerFrameContent.alpha == 0)
             assert(targetView and totView and TargetFrameToT.HealthBar.alpha == 0)
-            assert(targetView.width == 460 and targetView.height == 70)
+            assert(targetView.width == 460 and targetView.height == 64)
             assert(targetView.card and targetView.portrait.width == 46 and targetView.health.height == 11)
             assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
             assert(targetView.barWell.width == 392 and targetView.barWell.point[1] == "TOPLEFT")
@@ -662,6 +662,22 @@ class AddonTests(unittest.TestCase):
             assert(targetView.auraRow.buttons[2].visible and targetView.auraRow.buttons[2].icon.file == "fire")
             assert(targetView.auraRow.buttons[2].border.rgba[2] == .60)
             assert(not targetView.auraRow.buttons[3].visible)
+            -- Forever can expose modern aura helpers without returning data.
+            -- The direct target UNIT_AURA path must then reach UnitDebuff.
+            AuraUtil = { ForEachAura = function() end }
+            C_UnitAuras.GetAuraDataByIndex = function() return nil end
+            UnitDebuff = function(unit, index)
+                if unit == "target" and index == 1 then
+                    return "Legacy Sting", "legacy-sting", 3, nil, 12, 18, "player", nil, nil, 3
+                end
+            end
+            for _, eventFrame in ipairs(frames) do
+                if eventFrame.events.UNIT_AURA then eventFrame.OnEvent(eventFrame, "UNIT_AURA", "target") end
+            end
+            assert(targetView.auraRow.buttons[1].visible)
+            assert(targetView.auraRow.buttons[1].icon.file == "legacy-sting")
+            assert(targetView.auraRow.buttons[1].count.text == 3)
+            assert(not targetView.auraRow.buttons[2].visible)
             assert(targetView.portraitBackground and targetView.model.point[1] == "BOTTOMRIGHT")
             assert(view.model.PSFPortraitInset == 11 and targetView.model.PSFPortraitInset == 7)
             assert(targetView.model.point[4] == -7 and targetView.model.point[5] == 7)

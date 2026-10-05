@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.5-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.6-alpha**.
+
+### Forever-compatibele targetdebuffs — 0.9.6-alpha
+
+- Targetdebuffs worden achtereenvolgens via `AuraUtil`, `C_UnitAuras` en `UnitDebuff` gelezen; een aanwezige maar lege moderne API blokkeert de compatibiliteitsfallback niet meer.
+- `UNIT_AURA` voor het target ververst de iconen rechtstreeks, onafhankelijk van afgeschermde health-, portrait- of `UnitExists`-waarden.
+- De interne auraweergave normaliseert iconen, stacks, duration, expiration, source en spell-ID uit alle drie API-vormen.
+- Tooltips ondersteunen zowel `auraInstanceID` als de traditionele debuffindex.
+- De targetkaart is teruggebracht van 70 naar 64 px hoog, met dezelfde rij van maximaal acht debuffs binnen de kaart.
 
 ### Targetdebuffs in het boss-frame — 0.9.5-alpha
 

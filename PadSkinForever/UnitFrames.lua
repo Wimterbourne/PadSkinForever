@@ -46,23 +46,6 @@ local function ValueBar(parent, width, height, color)
     return bar
 end
 
-local function ReadDebuff(unit, index, filter)
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
-        if ok then return aura end
-        return nil
-    end
-    if UnitDebuff then
-        local name, icon, applications, dispelName, duration, expirationTime, sourceUnit,
-            _, _, spellId = UnitDebuff(unit, index, filter)
-        if name then
-            return { name = name, icon = icon, applications = applications,
-                dispelName = dispelName, duration = duration, expirationTime = expirationTime,
-                sourceUnit = sourceUnit, spellId = spellId }
-        end
-    end
-end
-
 local function AuraKey(aura)
     if aura.auraInstanceID then return "aura:" .. aura.auraInstanceID end
     return table.concat({ aura.spellId or aura.name or "?", aura.sourceUnit or "?" }, ":")
@@ -72,19 +55,64 @@ local function IsOwnAura(aura)
     return aura.sourceUnit == "player" or aura.sourceUnit == "pet" or aura.sourceUnit == "vehicle"
 end
 
+local function NormalizeAura(aura, index, filter)
+    if type(aura) ~= "table" or not aura.icon then return nil end
+    return { name = aura.name, icon = aura.icon,
+        applications = aura.applications or aura.charges or 0,
+        duration = aura.duration or 0, expirationTime = aura.expirationTime or 0,
+        sourceUnit = aura.sourceUnit, spellId = aura.spellId,
+        auraInstanceID = aura.auraInstanceID, PSFIndex = index, PSFFilter = filter }
+end
+
 local function CollectTargetDebuffs()
     local result, seen = {}, {}
-    local function Add(filter, ownOnly)
-        for index = 1, 40 do
-            local aura = ReadDebuff("target", index, filter)
-            if not aura then break end
+    local function Append(aura, ownOnly)
+        if aura and (not ownOnly or IsOwnAura(aura)) then
             local key = AuraKey(aura)
-            if not seen[key] and (not ownOnly or IsOwnAura(aura)) then
-                aura.PSFIndex, aura.PSFFilter = index, filter
+            if not seen[key] then
                 result[#result + 1], seen[key] = aura, true
-                if #result >= TARGET_AURA_COUNT then return true end
             end
         end
+        return #result >= TARGET_AURA_COUNT
+    end
+    local function AddAuraUtil(filter, ownOnly)
+        if not (AuraUtil and AuraUtil.ForEachAura) then return false end
+        local index = 0
+        pcall(AuraUtil.ForEachAura, "target", filter, 40, function(auraData)
+            index = index + 1
+            return Append(NormalizeAura(auraData, index, filter), ownOnly)
+        end, true)
+        return #result >= TARGET_AURA_COUNT
+    end
+    local function AddUnitAuras(filter, ownOnly)
+        if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then return false end
+        for index = 1, 40 do
+            local ok, auraData = pcall(C_UnitAuras.GetAuraDataByIndex, "target", index, filter)
+            if not ok or not auraData then break end
+            if Append(NormalizeAura(auraData, index, filter), ownOnly) then return true end
+        end
+        return false
+    end
+    local function AddLegacy(filter, ownOnly)
+        if not UnitDebuff then return false end
+        for index = 1, 40 do
+            local ok, name, icon, applications, _, duration, expirationTime, sourceUnit,
+                _, _, spellId = pcall(UnitDebuff, "target", index, filter)
+            if not ok or not name then break end
+            local aura = { name = name, icon = icon, applications = applications or 0,
+                duration = duration or 0, expirationTime = expirationTime or 0,
+                sourceUnit = sourceUnit, spellId = spellId,
+                PSFIndex = index, PSFFilter = filter }
+            if Append(aura, ownOnly) then return true end
+        end
+        return false
+    end
+    local function Add(filter, ownOnly)
+        -- A function being present does not guarantee that Forever implements
+        -- its filter semantics. Empty results therefore always fall through.
+        if AddAuraUtil(filter, ownOnly) then return true end
+        if AddUnitAuras(filter, ownOnly) then return true end
+        return AddLegacy(filter, ownOnly)
     end
     -- Player/pet effects remain visible when a target carries more than eight
     -- debuffs. Remaining slots preserve Blizzard's harmful-aura ordering.
@@ -96,7 +124,7 @@ local function CreateTargetAuraRow(view, contentLeft, barWidth)
     local row = CreateFrame("Frame", nil, view)
     row:EnableMouse(false)
     row:SetSize(barWidth, 20)
-    row:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft, -47)
+    row:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft, -43)
     row.buttons = {}
     for index = 1, TARGET_AURA_COUNT do
         local button = CreateFrame("Button", nil, row)
@@ -113,9 +141,11 @@ local function CreateTargetAuraRow(view, contentLeft, barWidth)
         button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
         button.cooldown:SetAllPoints(button)
         button:SetScript("OnEnter", function(self)
-            if not self.auraIndex or not GameTooltip then return end
+            if not (self.auraIndex or self.auraInstanceID) or not GameTooltip then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            if GameTooltip.SetUnitDebuff then
+            if self.auraInstanceID and GameTooltip.SetUnitAuraByAuraInstanceID then
+                GameTooltip:SetUnitAuraByAuraInstanceID("target", self.auraInstanceID)
+            elseif self.auraIndex and GameTooltip.SetUnitDebuff then
                 GameTooltip:SetUnitDebuff("target", self.auraIndex, self.auraFilter)
             end
         end)
@@ -141,6 +171,7 @@ local function UpdateTargetAuras(view)
             button.border:SetVertexColor(own and .35 or .55, own and .95 or .60,
                 own and .72 or .66, own and 1 or .72)
             button.auraIndex, button.auraFilter = aura.PSFIndex, aura.PSFFilter
+            button.auraInstanceID = aura.auraInstanceID
             if button.cooldown.SetCooldown then
                 local duration, expiration = aura.duration or 0, aura.expirationTime or 0
                 if duration > 0 and expiration > 0 then
@@ -150,7 +181,7 @@ local function UpdateTargetAuras(view)
                 end
             end
         else
-            button.auraIndex, button.auraFilter = nil, nil
+            button.auraIndex, button.auraFilter, button.auraInstanceID = nil, nil, nil
         end
     end
 end
@@ -165,7 +196,7 @@ local function MakeView(root, unit, compact)
     local targetOfTarget = unit == "targettarget"
     local portraitSize = compact and (small and 50 or 68) or (targetOfTarget and 30 or 46)
     local width = compact and (small and 200 or 238) or (targetOfTarget and 190 or 460)
-    local height = compact and (small and 58 or 76) or (targetOfTarget and 34 or (unit == "target" and 70 or 50))
+    local height = compact and (small and 58 or 76) or (targetOfTarget and 34 or (unit == "target" and 64 or 50))
     view:SetSize(width, height)
     if compact then
         view:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
@@ -403,13 +434,20 @@ for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", "PLAY
     "UNIT_TARGET", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_PET", "UNIT_PORTRAIT_UPDATE", "UNIT_MODEL_CHANGED",
     "UNIT_NAME_UPDATE", "UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER",
     "PLAYER_REGEN_ENABLED", "UNIT_AURA", "ADDON_LOADED" }) do events:RegisterEvent(event) end
-events:SetScript("OnEvent", function(_, event)
+events:SetScript("OnEvent", function(_, event, eventUnit)
     if not addon.db then return end
     for _, view in pairs(views) do
         if event == "PLAYER_TARGET_CHANGED" or event == "PLAYER_FOCUS_CHANGED" or event == "UNIT_TARGET"
             or event == "UNIT_PET" or event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_MODEL_CHANGED"
             or event == "PLAYER_ENTERING_WORLD" then view.modelDirty = true end
-        UpdateView(view)
+        -- Target aura information can still be readable when Forever marks
+        -- other target values secret. Do not route this event through the
+        -- early-returning health/portrait updater.
+        if event == "UNIT_AURA" then
+            if eventUnit == "target" and view.unit == "target" and view.active then UpdateTargetAuras(view) end
+        else
+            UpdateView(view)
+        end
     end
-    if event == "PLAYER_REGEN_ENABLED" or event == "UNIT_AURA" or event == "ADDON_LOADED" then addon:QueueRefresh() end
+    if event == "PLAYER_REGEN_ENABLED" or event == "ADDON_LOADED" then addon:QueueRefresh() end
 end)
