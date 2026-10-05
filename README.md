@@ -1,6 +1,13 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.7-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.8-alpha**.
+
+### Target-aura runtime diagnose — 0.9.8-alpha
+
+- De Debug-pagina toont nu de laatste zestien target-aura scans en vermeldt per scan welke Forever API werkelijk data leverde.
+- De meting onderscheidt `AuraUtil`, `C_UnitAuras` en de legacy `UnitDebuff`-fallback, inclusief gevonden en getoonde aura's.
+- De diagnose is alleen registrerend: zij maakt geen combatframes, bindings of protected calls en verandert de native controllerbesturing niet.
+- Met deze build kan het resterende Serpent Sting-probleem op runtime-data worden opgelost in plaats van op API-aannames.
 
 ### Stabiele targetdebuffs tijdens combat — 0.9.7-alpha
 

@@ -930,6 +930,18 @@ class AddonTests(unittest.TestCase):
             assert(not addon:GetDebugReport():find("FontManager.lua"))
         ''')
 
+    def test_target_aura_diagnostics_are_reported_and_cleared(self):
+        self.check('''
+            addon:RecordTargetAuraDebug("UNIT_AURA pass 1 | util=ok/1/1 | shown=1")
+            local report = addon:GetDebugReport()
+            assert(report:find("TARGET AURA SCANS", 1, true))
+            assert(report:find("UNIT_AURA pass 1", 1, true))
+            addon:ClearDebugHistory()
+            report = addon:GetDebugReport()
+            assert(not report:find("UNIT_AURA pass 1", 1, true))
+            assert(report:find("No target aura scan recorded yet.", 1, true))
+        ''')
+
     def test_debug_redacts_secret_getters_before_string_conversion(self):
         self.check(r'''
             local secret = setmetatable({}, { __tostring = function() error("Secret converted") end })

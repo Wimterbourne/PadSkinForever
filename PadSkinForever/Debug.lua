@@ -2,6 +2,7 @@ local _, addon = ...
 local surfaces = setmetatable({}, { __mode = "k" })
 local methods = { "SetAtlas", "SetTexture", "SetVertexColor", "SetDesaturation", "SetFont", "SetFontObject", "SetScale", "SetAlpha", "SetTextColor", "SetMaskTexture", "SetStatusBarTexture" }
 local history = {}
+local auraHistory = {}
 local enabled = false
 
 -- Never concatenate, format or compare secret values returned by native UI getters.
@@ -53,7 +54,13 @@ function addon:SetDebugTracing(value)
 end
 
 function addon:IsDebugTracing() return enabled end
-function addon:ClearDebugHistory() wipe(history) end
+function addon:ClearDebugHistory() wipe(history); wipe(auraHistory) end
+
+function addon:RecordTargetAuraDebug(entry)
+    if type(entry) ~= "string" then return end
+    table.insert(auraHistory, 1, entry)
+    if #auraHistory > 16 then table.remove(auraHistory) end
+end
 
 local function Snapshot(object)
     local parts = {}
@@ -73,7 +80,7 @@ local function Snapshot(object)
 end
 
 function addon:GetDebugReport()
-    local lines = { "PadSkinForever 0.9.7 alpha",
+    local lines = { "PadSkinForever 0.9.8 alpha",
         "Tracing: " .. (enabled and "ON" or "OFF"),
         "Legend theming: " .. (self.db.skinLegend and "ON" or "OFF"),
         "Selected font: " .. self.db.font,
@@ -86,6 +93,9 @@ function addon:GetDebugReport()
     end
     table.sort(entries)
     for _, entry in ipairs(entries) do lines[#lines + 1] = entry end
+    lines[#lines + 1] = "\nTARGET AURA SCANS (maximum 16; newest first)"
+    if #auraHistory == 0 then lines[#lines + 1] = "No target aura scan recorded yet." end
+    for _, entry in ipairs(auraHistory) do lines[#lines + 1] = entry end
     lines[#lines + 1] = "\nRECENT SETTER CALLS (maximum 40; newest first)"
     for _, entry in ipairs(history) do lines[#lines + 1] = entry end
     return table.concat(lines, "\n\n")

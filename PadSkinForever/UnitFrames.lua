@@ -56,8 +56,11 @@ local function IsOwnAura(aura)
 end
 
 local function NormalizeAura(aura, index, filter)
-    if type(aura) ~= "table" or not aura.icon then return nil end
-    return { name = aura.name, icon = aura.icon,
+    if type(aura) ~= "table" then return nil end
+    local icon = aura.icon
+    if issecretvalue and issecretvalue(icon) then return nil end
+    if not icon then return nil end
+    return { name = aura.name, icon = icon,
         applications = aura.applications or aura.charges or 0,
         duration = aura.duration or 0, expirationTime = aura.expirationTime or 0,
         sourceUnit = aura.sourceUnit, spellId = aura.spellId,
@@ -66,6 +69,9 @@ end
 
 local function CollectTargetDebuffs()
     local result, seen = {}, {}
+    local stats = { auraUtilCalls = 0, auraUtilAccepted = 0, auraUtilOK = false,
+        unitAuraCalls = 0, unitAuraAccepted = 0, unitAuraOK = false,
+        legacyCalls = 0, legacyAccepted = 0, legacyOK = false }
     local function Append(aura, ownOnly)
         if aura and (not ownOnly or IsOwnAura(aura)) then
             local key = AuraKey(aura)
@@ -78,18 +84,28 @@ local function CollectTargetDebuffs()
     local function AddAuraUtil(filter, ownOnly)
         if not (AuraUtil and AuraUtil.ForEachAura) then return false end
         local index = 0
-        pcall(AuraUtil.ForEachAura, "target", filter, 40, function(auraData)
+        local ok = pcall(AuraUtil.ForEachAura, "target", filter, 40, function(auraData)
             index = index + 1
-            return Append(NormalizeAura(auraData, index, filter), ownOnly)
+            stats.auraUtilCalls = stats.auraUtilCalls + 1
+            local before = #result
+            local full = Append(NormalizeAura(auraData, index, filter), ownOnly)
+            stats.auraUtilAccepted = stats.auraUtilAccepted + (#result - before)
+            return full
         end, true)
+        stats.auraUtilOK = stats.auraUtilOK or ok
         return #result >= TARGET_AURA_COUNT
     end
     local function AddUnitAuras(filter, ownOnly)
         if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then return false end
         for index = 1, 40 do
             local ok, auraData = pcall(C_UnitAuras.GetAuraDataByIndex, "target", index, filter)
+            stats.unitAuraOK = stats.unitAuraOK or ok
             if not ok or not auraData then break end
-            if Append(NormalizeAura(auraData, index, filter), ownOnly) then return true end
+            stats.unitAuraCalls = stats.unitAuraCalls + 1
+            local before = #result
+            local full = Append(NormalizeAura(auraData, index, filter), ownOnly)
+            stats.unitAuraAccepted = stats.unitAuraAccepted + (#result - before)
+            if full then return true end
         end
         return false
     end
@@ -98,12 +114,17 @@ local function CollectTargetDebuffs()
         for index = 1, 40 do
             local ok, name, icon, applications, _, duration, expirationTime, sourceUnit,
                 _, _, spellId = pcall(UnitDebuff, "target", index, filter)
+            stats.legacyOK = stats.legacyOK or ok
             if not ok or not name then break end
+            stats.legacyCalls = stats.legacyCalls + 1
             local aura = { name = name, icon = icon, applications = applications or 0,
                 duration = duration or 0, expirationTime = expirationTime or 0,
                 sourceUnit = sourceUnit, spellId = spellId,
                 PSFIndex = index, PSFFilter = filter }
-            if Append(aura, ownOnly) then return true end
+            local before = #result
+            local full = Append(aura, ownOnly)
+            stats.legacyAccepted = stats.legacyAccepted + (#result - before)
+            if full then return true end
         end
         return false
     end
@@ -117,7 +138,8 @@ local function CollectTargetDebuffs()
     -- Player/pet effects remain visible when a target carries more than eight
     -- debuffs. Remaining slots preserve Blizzard's harmful-aura ordering.
     if not Add("HARMFUL|PLAYER", true) then Add("HARMFUL", false) end
-    return result
+    stats.final = #result
+    return result, stats
 end
 
 local function CreateTargetAuraRow(view, contentLeft, barWidth)
@@ -172,9 +194,11 @@ local function CreateTargetAuraRow(view, contentLeft, barWidth)
     view.auraRow = row
 end
 
-local function UpdateTargetAuras(view, preserveKnown)
+local function UpdateTargetAuras(view, preserveKnown, reason)
     if not view.auraRow then return end
-    local auras = CollectTargetDebuffs()
+    local auras, stats = CollectTargetDebuffs()
+    local scanned = #auras
+    local retained = 0
     if #auras == 0 and preserveKnown and view.lastTargetAuras then
         local now = GetTime and GetTime() or 0
         for _, aura in ipairs(view.lastTargetAuras) do
@@ -182,10 +206,20 @@ local function UpdateTargetAuras(view, preserveKnown)
             -- previously verified debuff only until its own expiration time.
             if not aura.expirationTime or aura.expirationTime == 0 or aura.expirationTime > now + .05 then
                 auras[#auras + 1] = aura
+                retained = retained + 1
             end
         end
     end
     view.lastTargetAuras = auras
+    if addon.RecordTargetAuraDebug then
+        addon:RecordTargetAuraDebug(string.format(
+            "%s | combat=%s | util=%s/%d/%d | C=%s/%d/%d | legacy=%s/%d/%d | scanned=%d retained=%d shown=%d",
+            reason or "refresh", InCombatLockdown() and "yes" or "no",
+            stats.auraUtilOK and "ok" or "no", stats.auraUtilCalls, stats.auraUtilAccepted,
+            stats.unitAuraOK and "ok" or "no", stats.unitAuraCalls, stats.unitAuraAccepted,
+            stats.legacyOK and "ok" or "no", stats.legacyCalls, stats.legacyAccepted,
+            scanned, retained, #auras))
+    end
     for index, button in ipairs(view.auraRow.buttons) do
         local aura = auras[index]
         button:SetShown(aura ~= nil)
@@ -222,9 +256,11 @@ local auraUpdateSerial = 0
 local function QueueTargetAuraUpdate(view)
     auraUpdateSerial = auraUpdateSerial + 1
     local serial = auraUpdateSerial
+    local pass = 0
     local function Refresh()
         if serial ~= auraUpdateSerial or not view.active then return end
-        UpdateTargetAuras(view, true)
+        pass = pass + 1
+        UpdateTargetAuras(view, true, "UNIT_AURA pass " .. pass)
     end
     -- Forever can emit UNIT_AURA before every aura provider has updated.
     -- Retry once after its immediate update pass; no frames are created here.
@@ -392,7 +428,7 @@ local function UpdateView(view)
         local powerOK = pcall(view.power.valueText.SetFormattedText, view.power.valueText, "%d / %d", power, maximumPower)
         if not powerOK then view.power.valueText:SetText("—") end
     end
-    if unit == "target" then UpdateTargetAuras(view) end
+    if unit == "target" then UpdateTargetAuras(view, false, "unit view refresh") end
     local model = addon.db.unitPortraitMode == "3d"
     view.model:SetShown(model)
     view.portrait:SetShown(not model)
