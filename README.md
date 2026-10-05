@@ -1,6 +1,15 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.2-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.3-alpha**.
+
+### Centrale HUD-compositie — 0.9.3-alpha
+
+- Player- en petresources delen één terugliggende hoofdkaart met precies 2 px tussen de rijen.
+- Ronde gemaskeerde portretten overlappen de kaart en gebruiken dezelfde ringtaal als de unitframes.
+- Zachtere interne wells laten health, mana, focus en andere resources kleur dragen zonder vier losse knoppen te vormen.
+- Een subtiele middenscheiding houdt health en power scanbaar zonder een harde rasterindeling.
+- Native swingtimers gebruiken dezelfde zachte rail; hun volgorde, afmetingen en Edit Mode-ankers blijven van Blizzard.
+- De addon-owned player- en petkaarten groeien elk 2 px naar elkaar toe, terwijl de native frames zelfstandig selecteerbaar blijven.
 
 ### Conceptvormen en leesbaarheid — 0.9.2-alpha
 

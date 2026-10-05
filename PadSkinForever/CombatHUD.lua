@@ -1,6 +1,8 @@
 local _, addon = ...
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
+local CIRCLE_FILL = "Interface\\AddOns\\PadSkinForever\\Media\\CircleEmpty.tga"
+local CIRCLE_BORDER = "Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga"
 local swingStates = setmetatable({}, { __mode = "k" })
 local swingHooks = setmetatable({}, { __mode = "k" })
 local swingLabels = setmetatable({}, { __mode = "k" })
@@ -86,7 +88,7 @@ local function SwingCard(frame)
     card:EnableMouse(false)
     card:SetAllPoints(frame)
     card:SetFrameLevel(math.max(0, frame:GetFrameLevel()))
-    addon:CreateRoundedPanel(card, addon.design.card, addon.design.compactRadius)
+    addon:CreateRoundedPanel(card, addon.design.rail, addon.design.compactRadius)
     swingCards[frame] = card
     return card
 end
@@ -163,7 +165,7 @@ end
 local function CreateBar(parent, width, height)
     local well = CreateFrame("Frame", nil, parent)
     well:SetSize(width, height)
-    addon:CreateRoundedPanel(well, addon.design.well, math.floor(height / 2))
+    addon:CreateRoundedPanel(well, addon.design.wellSoft, math.floor(height / 2))
     local bar = CreateFrame("StatusBar", nil, well)
     bar:SetPoint("TOPLEFT", 2, -2)
     bar:SetPoint("BOTTOMRIGHT", -2, 2)
@@ -193,6 +195,32 @@ local function CreateBar(parent, width, height)
     bar.left:SetTextColor(unpack(addon.uiColors.text))
     bar.right:SetTextColor(unpack(addon.uiColors.text))
     return well, bar
+end
+
+local function CreateResourcePortrait(parent, point, relativePoint, x, y)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:EnableMouse(false)
+    holder:SetSize(27, 27)
+    holder:SetPoint(point, parent, relativePoint, x, y)
+    holder:SetFrameLevel(parent:GetFrameLevel() + 3)
+    holder.background = holder:CreateTexture(nil, "BACKGROUND")
+    holder.background:SetTexture(CIRCLE_FILL)
+    holder.background:SetAllPoints(holder)
+    holder.background:SetVertexColor(1, 1, 1, .98)
+    holder.portrait = holder:CreateTexture(nil, "ARTWORK")
+    holder.portrait:SetPoint("CENTER")
+    holder.portrait:SetSize(25, 25)
+    holder.portrait:SetTexCoord(.08, .92, .08, .92)
+    holder.mask = holder:CreateMaskTexture(nil, "ARTWORK")
+    holder.mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    holder.mask:SetAllPoints(holder.portrait)
+    holder.portrait:AddMaskTexture(holder.mask)
+    holder.ring = holder:CreateTexture(nil, "OVERLAY")
+    holder.ring:SetTexture(CIRCLE_BORDER)
+    holder.ring:SetPoint("CENTER")
+    holder.ring:SetSize(29, 29)
+    holder.ring:SetVertexColor(unpack(addon.barColors.health))
+    return holder
 end
 
 local function ActiveLayoutKey()
@@ -276,32 +304,41 @@ end
 local function EnsureResourceFrame()
     if resourceFrame or not UIParent or not UnitHealth then return resourceFrame end
     local frame = CreateFrame("Frame", "PadSkinForeverResourceDisplay", UIParent)
-    -- Two equal 22 px rows, 6 px outer padding and exactly 2 px between
-    -- player and pet. This keeps the resources visually one compact block.
-    frame:SetSize(486, 58)
+    -- One recessed card owns both rows. Circular portraits overlap its left
+    -- edge while four low-contrast wells provide semantic colour without
+    -- turning the HUD into four unrelated pill buttons.
+    frame:SetSize(474, 54)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:SetFrameStrata("MEDIUM")
     frame:EnableMouse(false)
-    addon:CreateRoundedPanel(frame, addon.design.card, addon.design.cardRadius)
+    frame.card = CreateFrame("Frame", nil, frame)
+    frame.card:EnableMouse(false)
+    frame.card:SetFrameLevel(math.max(0, frame:GetFrameLevel() - 1))
+    frame.card:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, 0)
+    frame.card:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    addon:CreateRoundedPanel(frame.card, addon.design.cardStrong, addon.design.cardRadius)
     ApplyResourceAnchor(frame)
 
-    frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 222, 22)
-    frame.playerHealthWell:SetPoint("TOPLEFT", 30, -6)
-    frame.playerPowerWell, frame.playerPower = CreateBar(frame, 222, 22)
-    frame.playerPowerWell:SetPoint("TOPRIGHT", -6, -6)
-    frame.petHealthWell, frame.petHealth = CreateBar(frame, 222, 22)
-    frame.petHealthWell:SetPoint("BOTTOMLEFT", 30, 6)
-    frame.petPowerWell, frame.petPower = CreateBar(frame, 222, 22)
-    frame.petPowerWell:SetPoint("BOTTOMRIGHT", -6, 6)
-    frame.playerPortrait = frame:CreateTexture(nil, "ARTWORK")
-    frame.playerPortrait:SetSize(20, 20)
-    frame.playerPortrait:SetPoint("TOPLEFT", 6, -7)
-    frame.playerPortrait:SetTexCoord(.08, .92, .08, .92)
-    frame.petPortrait = frame:CreateTexture(nil, "ARTWORK")
-    frame.petPortrait:SetSize(20, 20)
-    frame.petPortrait:SetPoint("BOTTOMLEFT", 6, 7)
-    frame.petPortrait:SetTexCoord(.08, .92, .08, .92)
+    frame.playerHealthWell, frame.playerHealth = CreateBar(frame, 218, 21)
+    frame.playerHealthWell:SetPoint("TOPLEFT", 29, -5)
+    frame.playerPowerWell, frame.playerPower = CreateBar(frame, 218, 21)
+    frame.playerPowerWell:SetPoint("TOPRIGHT", -5, -5)
+    frame.petHealthWell, frame.petHealth = CreateBar(frame, 218, 21)
+    frame.petHealthWell:SetPoint("BOTTOMLEFT", 29, 5)
+    frame.petPowerWell, frame.petPower = CreateBar(frame, 218, 21)
+    frame.petPowerWell:SetPoint("BOTTOMRIGHT", -5, 5)
+    frame.playerPortraitHolder = CreateResourcePortrait(frame, "TOPLEFT", "TOPLEFT", 0, -1)
+    frame.playerPortrait = frame.playerPortraitHolder.portrait
+    frame.petPortraitHolder = CreateResourcePortrait(frame, "BOTTOMLEFT", "BOTTOMLEFT", 0, 1)
+    frame.petPortrait = frame.petPortraitHolder.portrait
+
+    frame.divider = frame:CreateTexture(nil, "BORDER")
+    frame.divider:SetTexture(WHITE)
+    frame.divider:SetWidth(1)
+    frame.divider:SetPoint("TOP", frame, "TOP", 7, -7)
+    frame.divider:SetPoint("BOTTOM", frame, "BOTTOM", 7, 7)
+    frame.divider:SetVertexColor(.62, .67, .73, .13)
 
     -- Use Blizzard's native selection artwork without registering a new system
     -- in its private Edit Mode layout tables. Registration would expose protected
@@ -367,7 +404,7 @@ function addon:UpdateResourceVisibility()
     frame:SetShown(self.db.resourceDisplay and (active or mode ~= "hide"))
     frame:SetAlpha(1)
     local full = active or mode == "show"
-    self:SetRoundedPanelVisualAlpha(frame, full and 1 or .34, full and 1 or .48)
+    self:SetRoundedPanelVisualAlpha(frame.card, full and 1 or .34, full and 1 or .48)
     for _, well in ipairs({ frame.playerHealthWell, frame.playerPowerWell,
         frame.petHealthWell, frame.petPowerWell }) do
         self:SetRoundedPanelVisualAlpha(well, full and 1 or .42, full and 1 or .52)
@@ -377,8 +414,9 @@ function addon:UpdateResourceVisibility()
         if texture then texture:SetAlpha(full and 1 or .48) end
         bar.labels:SetAlpha(1)
     end
-    frame.playerPortrait:SetAlpha(full and 1 or .58)
-    frame.petPortrait:SetAlpha(full and 1 or .58)
+    frame.playerPortraitHolder:SetAlpha(full and 1 or .58)
+    frame.petPortraitHolder:SetAlpha(full and 1 or .58)
+    frame.divider:SetAlpha(full and 1 or .45)
 end
 
 function addon:UpdateResourceDisplay()
@@ -413,7 +451,7 @@ function addon:UpdateResourceDisplay()
         frame.petPortrait:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\PSFLogo.tga")
     end
     if SetPortraitTexture then SetPortraitTexture(frame.playerPortrait, "player") end
-    frame:SetHeight((hasPet or frame.editMode) and 58 or 34)
+    frame:SetHeight((hasPet or frame.editMode) and 54 or 29)
     self:UpdateResourceVisibility()
     for _, bar in ipairs({ frame.playerHealth, frame.playerPower, frame.petHealth, frame.petPower }) do
         self:ApplyPSFFont(bar.left, "label")

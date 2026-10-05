@@ -633,6 +633,7 @@ class AddonTests(unittest.TestCase):
             assert(view and view.active and view.portrait.width == 68)
             assert(view.width == 238 and view.height == 76)
             assert(view.card and view.healthWell and view.powerWell)
+            assert(view.card.point[1] == "BOTTOMRIGHT" and view.card.point[5] == -2)
             assert(view.health.width > view.portrait.width)
             assert(view.health.valueText.text == "413 / 500")
             assert(view.portrait.visible and not view.model.visible)
@@ -1126,11 +1127,14 @@ class AddonTests(unittest.TestCase):
             assert(SwingTimerMainHandFrame.Background.alpha == 0 and SwingTimerMainHandFrame.StatusBar.alpha == .4)
 
             local resources = PadSkinForeverResourceDisplay
-            assert(resources and resources.visible and resources.height == 58)
-            local resourceGap = resources.height - 6 - resources.playerHealthWell.height - resources.petHealthWell.height - 6
+            assert(resources and resources.visible and resources.height == 54)
+            assert(resources.card and resources.card.PSFRoundedPanel)
+            assert(resources.playerPortraitHolder and resources.playerPortraitHolder.mask)
+            assert(resources.playerPortraitHolder.ring and resources.playerPortraitHolder.width == 27)
+            local resourceGap = resources.height - 5 - resources.playerHealthWell.height - resources.petHealthWell.height - 5
             assert(resourceGap == 2)
             assert(resources.playerHealth.labels:GetFrameLevel() == resources.playerHealth:GetFrameLevel() + 2)
-            assert(resources.playerHealth.left.height == 18)
+            assert(resources.playerHealth.left.height == 17)
             assert(resources.playerHealth.value == 406 and resources.playerPower.value == 375)
             assert(resources.playerHealth.barColor[2] == addon.barColors.health[2])
             assert(resources.playerPower.barColor[1] == addon.barColors.focus[1])
@@ -1142,7 +1146,7 @@ class AddonTests(unittest.TestCase):
             assert(resources.playerHealth.right.text == "406 / 406")
             assert(resources.petHealth.right.text == "80 / 100")
             assert(resources.alpha == 1, "dimming must keep labels readable")
-            assert(resources.PSFRoundedRegions.fill[1].alpha == .34)
+            assert(resources.card.PSFRoundedRegions.fill[1].alpha == .34)
             assert(resources.playerHealth.barTexture.alpha == .48)
             assert(resources.playerHealth.labels.alpha == 1)
             addon.db.resourceOutOfCombat = "hide"

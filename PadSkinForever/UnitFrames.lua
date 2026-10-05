@@ -75,8 +75,11 @@ local function MakeView(root, unit, compact)
     view.card = CreateFrame("Frame", nil, view)
     view.card:EnableMouse(false)
     view.card:SetFrameLevel(math.max(0, view:GetFrameLevel() - 1))
-    view.card:SetPoint("TOPLEFT", view, "TOPLEFT", math.floor(portraitSize * .45), 0)
-    view.card:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", 0, 0)
+    -- Player and pet remain independently owned by Blizzard Edit Mode. Their
+    -- addon-owned cards may extend two pixels toward one another, however, so
+    -- a native 6 px separation reads visually as the intended 2 px cluster.
+    view.card:SetPoint("TOPLEFT", view, "TOPLEFT", math.floor(portraitSize * .45), compact and small and 2 or 0)
+    view.card:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", 0, compact and not small and -2 or 0)
     addon:CreateRoundedPanel(view.card, addon.design.cardStrong,
         targetOfTarget and addon.design.compactRadius or addon.design.cardRadius)
 
@@ -114,7 +117,7 @@ local function MakeView(root, unit, compact)
         well:EnableMouse(false)
         well:SetSize(barWidth, height)
         well:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft, y)
-        addon:CreateRoundedPanel(well, addon.design.well, math.floor(height / 2))
+        addon:CreateRoundedPanel(well, addon.design.wellSoft, math.floor(height / 2))
         local bar = ValueBar(well, barWidth - 4, height - 4, color)
         bar:SetPoint("CENTER")
         return well, bar

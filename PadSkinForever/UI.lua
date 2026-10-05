@@ -16,6 +16,8 @@ addon.design = {
     card = { fill = { .025, .031, .040, .91 }, border = { .62, .67, .73, .25 } },
     cardStrong = { fill = { .020, .026, .034, .97 }, border = { .66, .71, .77, .32 } },
     well = { fill = { .010, .014, .020, .86 }, border = { .52, .58, .65, .20 } },
+    wellSoft = { fill = { .010, .014, .020, .70 }, border = { .52, .58, .65, .12 } },
+    rail = { fill = { .018, .024, .032, .92 }, border = { .62, .67, .73, .18 } },
     floating = { fill = { .030, .038, .049, .95 }, border = { .68, .73, .79, .30 } },
     type = {
         title = { size = 15, weight = "semibold" },
