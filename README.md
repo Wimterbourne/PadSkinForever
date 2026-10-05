@@ -1,6 +1,14 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.6-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.7-alpha**.
+
+### Stabiele targetdebuffs tijdens combat — 0.9.7-alpha
+
+- Aura-iconen, borders, cooldownswipes en stacktekst hebben expliciete lagen boven de donkere targetkaart.
+- De losse grote tekst van Blizzards CooldownFrame is uitgeschakeld; de swipe blijft behouden.
+- `UNIT_AURA` wordt na de directe Forever-cacheupdate opnieuw gelezen en krijgt één korte tweede controle.
+- Een reeds geverifieerde aura wordt bij een tijdelijk lege combatscan niet gewist, maar uitsluitend tot zijn eigen expirationtijd vastgehouden.
+- Target wisselen blijft de bekende aurastaat direct vervangen; er worden tijdens combat geen nieuwe frames gemaakt.
 
 ### Forever-compatibele targetdebuffs — 0.9.6-alpha
 

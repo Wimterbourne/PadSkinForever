@@ -123,23 +123,38 @@ end
 local function CreateTargetAuraRow(view, contentLeft, barWidth)
     local row = CreateFrame("Frame", nil, view)
     row:EnableMouse(false)
+    row:SetFrameLevel(view:GetFrameLevel() + 4)
     row:SetSize(barWidth, 20)
     row:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft, -43)
     row.buttons = {}
     for index = 1, TARGET_AURA_COUNT do
         local button = CreateFrame("Button", nil, row)
+        button:SetFrameLevel(row:GetFrameLevel() + 1)
         button:SetSize(18, 18)
         button:SetPoint("LEFT", row, "LEFT", (index - 1) * 21, 0)
+        button.background = button:CreateTexture(nil, "BACKGROUND")
+        button.background:SetAllPoints(button)
+        button.background:SetTexture(WHITE)
+        button.background:SetVertexColor(.025, .035, .045, .92)
         button.icon = button:CreateTexture(nil, "ARTWORK")
         button.icon:SetAllPoints(button)
         button.icon:SetTexCoord(.08, .92, .08, .92)
+        button.icon:SetVertexColor(1, 1, 1, 1)
         button.border = button:CreateTexture(nil, "OVERLAY")
         button.border:SetTexture(AURA_BORDER)
         button.border:SetAllPoints(button)
-        button.count = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        button.textLayer = CreateFrame("Frame", nil, button)
+        button.textLayer:SetAllPoints(button)
+        button.textLayer:SetFrameLevel(button:GetFrameLevel() + 3)
+        button.count = button.textLayer:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         button.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 1, -1)
         button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+        button.cooldown:SetFrameLevel(button:GetFrameLevel() + 2)
         button.cooldown:SetAllPoints(button)
+        if button.cooldown.SetHideCountdownNumbers then button.cooldown:SetHideCountdownNumbers(true) end
+        if button.cooldown.SetDrawEdge then button.cooldown:SetDrawEdge(false) end
+        if button.cooldown.SetDrawBling then button.cooldown:SetDrawBling(false) end
+        if button.cooldown.SetSwipeColor then button.cooldown:SetSwipeColor(0, 0, 0, .62) end
         button:SetScript("OnEnter", function(self)
             if not (self.auraIndex or self.auraInstanceID) or not GameTooltip then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -157,19 +172,35 @@ local function CreateTargetAuraRow(view, contentLeft, barWidth)
     view.auraRow = row
 end
 
-local function UpdateTargetAuras(view)
+local function UpdateTargetAuras(view, preserveKnown)
     if not view.auraRow then return end
     local auras = CollectTargetDebuffs()
+    if #auras == 0 and preserveKnown and view.lastTargetAuras then
+        local now = GetTime and GetTime() or 0
+        for _, aura in ipairs(view.lastTargetAuras) do
+            -- If Forever temporarily hides aura data in combat, retain a
+            -- previously verified debuff only until its own expiration time.
+            if not aura.expirationTime or aura.expirationTime == 0 or aura.expirationTime > now + .05 then
+                auras[#auras + 1] = aura
+            end
+        end
+    end
+    view.lastTargetAuras = auras
     for index, button in ipairs(view.auraRow.buttons) do
         local aura = auras[index]
         button:SetShown(aura ~= nil)
         if aura then
-            button.icon:SetTexture(aura.icon)
+            local auraKey = AuraKey(aura)
+            if button.auraKey ~= auraKey then
+                button.icon:SetTexture(aura.icon)
+                button.icon:SetVertexColor(1, 1, 1, 1)
+                local own = IsOwnAura(aura)
+                button.border:SetVertexColor(own and .35 or .55, own and .95 or .60,
+                    own and .72 or .66, own and 1 or .72)
+                button.auraKey = auraKey
+            end
             local count = aura.applications or aura.charges or 0
             button.count:SetText(count and count > 1 and count or "")
-            local own = IsOwnAura(aura)
-            button.border:SetVertexColor(own and .35 or .55, own and .95 or .60,
-                own and .72 or .66, own and 1 or .72)
             button.auraIndex, button.auraFilter = aura.PSFIndex, aura.PSFFilter
             button.auraInstanceID = aura.auraInstanceID
             if button.cooldown.SetCooldown then
@@ -182,8 +213,25 @@ local function UpdateTargetAuras(view)
             end
         else
             button.auraIndex, button.auraFilter, button.auraInstanceID = nil, nil, nil
+            button.auraKey = nil
         end
     end
+end
+
+local auraUpdateSerial = 0
+local function QueueTargetAuraUpdate(view)
+    auraUpdateSerial = auraUpdateSerial + 1
+    local serial = auraUpdateSerial
+    local function Refresh()
+        if serial ~= auraUpdateSerial or not view.active then return end
+        UpdateTargetAuras(view, true)
+    end
+    -- Forever can emit UNIT_AURA before every aura provider has updated.
+    -- Retry once after its immediate update pass; no frames are created here.
+    C_Timer.After(0, function()
+        Refresh()
+        C_Timer.After(.05, Refresh)
+    end)
 end
 
 local function MakeView(root, unit, compact)
@@ -444,7 +492,7 @@ events:SetScript("OnEvent", function(_, event, eventUnit)
         -- other target values secret. Do not route this event through the
         -- early-returning health/portrait updater.
         if event == "UNIT_AURA" then
-            if eventUnit == "target" and view.unit == "target" and view.active then UpdateTargetAuras(view) end
+            if eventUnit == "target" and view.unit == "target" and view.active then QueueTargetAuraUpdate(view) end
         else
             UpdateView(view)
         end

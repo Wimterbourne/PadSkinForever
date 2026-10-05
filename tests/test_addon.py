@@ -11,6 +11,8 @@ function wipe(t) for key in pairs(t) do t[key] = nil end end
 function debugstack() return "[FontManager/FontManager.lua]:10: SetFont" end
 C_Texture = { GetAtlasInfo = function(atlas) return { width = 24, height = 24 } end }
 combat = false
+now = 10
+function GetTime() return now end
 messages = {}
 timers = {}
 frames = {}
@@ -180,6 +182,11 @@ local function Surface(kind, parent)
     function w:GetStatusBarColor() return unpack(self.barColor or {1,1,1,1}) end
     function w:SetMinMaxValues(minimum, maximum) self.minimum, self.maximum = minimum, maximum end
     function w:SetValue(value) self.value = value end
+    function w:SetCooldown(start, duration) self.cooldownStart, self.cooldownDuration = start, duration end
+    function w:SetHideCountdownNumbers(value) self.hideCountdown = value end
+    function w:SetDrawEdge(value) self.drawEdge = value end
+    function w:SetDrawBling(value) self.drawBling = value end
+    function w:SetSwipeColor(...) self.swipeColor = {...} end
     table.insert(uiwidgets, w)
     return w
 end
@@ -656,6 +663,9 @@ class AddonTests(unittest.TestCase):
             assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
             assert(targetView.barWell.width == 392 and targetView.barWell.point[1] == "TOPLEFT")
             assert(targetView.auraRow and #targetView.auraRow.buttons == 8)
+            assert(targetView.auraRow.level > targetView.card.level)
+            assert(targetView.auraRow.buttons[1].cooldown.hideCountdown)
+            assert(targetView.auraRow.buttons[1].cooldown.level > targetView.auraRow.buttons[1].level)
             assert(targetView.auraRow.buttons[1].visible and targetView.auraRow.buttons[1].icon.file == "sting")
             assert(targetView.auraRow.buttons[1].count.text == 2)
             assert(targetView.auraRow.buttons[1].border.rgba[2] == .95)
@@ -674,10 +684,27 @@ class AddonTests(unittest.TestCase):
             for _, eventFrame in ipairs(frames) do
                 if eventFrame.events.UNIT_AURA then eventFrame.OnEvent(eventFrame, "UNIT_AURA", "target") end
             end
+            drain(); drain()
             assert(targetView.auraRow.buttons[1].visible)
             assert(targetView.auraRow.buttons[1].icon.file == "legacy-sting")
             assert(targetView.auraRow.buttons[1].count.text == 3)
             assert(not targetView.auraRow.buttons[2].visible)
+            -- A temporary empty combat scan retains only the verified aura,
+            -- and its own expiration still removes it without readable APIs.
+            UnitDebuff = function() end
+            combat = true
+            for _, eventFrame in ipairs(frames) do
+                if eventFrame.events.UNIT_AURA then eventFrame.OnEvent(eventFrame, "UNIT_AURA", "target") end
+            end
+            drain(); drain()
+            assert(targetView.auraRow.buttons[1].visible and targetView.auraRow.buttons[1].icon.file == "legacy-sting")
+            now = 19
+            for _, eventFrame in ipairs(frames) do
+                if eventFrame.events.UNIT_AURA then eventFrame.OnEvent(eventFrame, "UNIT_AURA", "target") end
+            end
+            drain(); drain()
+            assert(not targetView.auraRow.buttons[1].visible)
+            combat = false
             assert(targetView.portraitBackground and targetView.model.point[1] == "BOTTOMRIGHT")
             assert(view.model.PSFPortraitInset == 11 and targetView.model.PSFPortraitInset == 7)
             assert(targetView.model.point[4] == -7 and targetView.model.point[5] == 7)
