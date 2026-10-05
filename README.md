@@ -1,6 +1,13 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.4-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.5-alpha**.
+
+### Targetdebuffs in het boss-frame — 0.9.5-alpha
+
+- Het brede targetframe bevat nu onder de healthbalk een compacte rij van maximaal acht debuffs.
+- Eigen player-, pet- en vehicle-debuffs worden eerst geplaatst en krijgen een mintgroene rand; resterende plaatsen volgen de native harmful-aura-volgorde.
+- Stacks, cooldownswipes en native debufftooltips blijven beschikbaar.
+- De aura’s zijn vooraf aangemaakte, presentation-only kinderen van de native targetbutton. Targeting, controllerbesturing en Edit Mode blijven bij Blizzard.
 
 ### 3D-portretten binnen de ring — 0.9.4-alpha
 

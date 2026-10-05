@@ -6,6 +6,8 @@ local views = setmetatable({}, { __mode = "k" })
 local iconBorders = setmetatable({}, { __mode = "k" })
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local CIRCLE_FILL = "Interface\\AddOns\\PadSkinForever\\Media\\CircleEmpty.tga"
+local AURA_BORDER = "Interface\\AddOns\\PadSkinForever\\Media\\SquareBorder.tga"
+local TARGET_AURA_COUNT = 8
 
 local powerColors = {
     MANA = addon.barColors.mana, RAGE = addon.barColors.rage,
@@ -44,6 +46,115 @@ local function ValueBar(parent, width, height, color)
     return bar
 end
 
+local function ReadDebuff(unit, index, filter)
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+        if ok then return aura end
+        return nil
+    end
+    if UnitDebuff then
+        local name, icon, applications, dispelName, duration, expirationTime, sourceUnit,
+            _, _, spellId = UnitDebuff(unit, index, filter)
+        if name then
+            return { name = name, icon = icon, applications = applications,
+                dispelName = dispelName, duration = duration, expirationTime = expirationTime,
+                sourceUnit = sourceUnit, spellId = spellId }
+        end
+    end
+end
+
+local function AuraKey(aura)
+    if aura.auraInstanceID then return "aura:" .. aura.auraInstanceID end
+    return table.concat({ aura.spellId or aura.name or "?", aura.sourceUnit or "?" }, ":")
+end
+
+local function IsOwnAura(aura)
+    return aura.sourceUnit == "player" or aura.sourceUnit == "pet" or aura.sourceUnit == "vehicle"
+end
+
+local function CollectTargetDebuffs()
+    local result, seen = {}, {}
+    local function Add(filter, ownOnly)
+        for index = 1, 40 do
+            local aura = ReadDebuff("target", index, filter)
+            if not aura then break end
+            local key = AuraKey(aura)
+            if not seen[key] and (not ownOnly or IsOwnAura(aura)) then
+                aura.PSFIndex, aura.PSFFilter = index, filter
+                result[#result + 1], seen[key] = aura, true
+                if #result >= TARGET_AURA_COUNT then return true end
+            end
+        end
+    end
+    -- Player/pet effects remain visible when a target carries more than eight
+    -- debuffs. Remaining slots preserve Blizzard's harmful-aura ordering.
+    if not Add("HARMFUL|PLAYER", true) then Add("HARMFUL", false) end
+    return result
+end
+
+local function CreateTargetAuraRow(view, contentLeft, barWidth)
+    local row = CreateFrame("Frame", nil, view)
+    row:EnableMouse(false)
+    row:SetSize(barWidth, 20)
+    row:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft, -47)
+    row.buttons = {}
+    for index = 1, TARGET_AURA_COUNT do
+        local button = CreateFrame("Button", nil, row)
+        button:SetSize(18, 18)
+        button:SetPoint("LEFT", row, "LEFT", (index - 1) * 21, 0)
+        button.icon = button:CreateTexture(nil, "ARTWORK")
+        button.icon:SetAllPoints(button)
+        button.icon:SetTexCoord(.08, .92, .08, .92)
+        button.border = button:CreateTexture(nil, "OVERLAY")
+        button.border:SetTexture(AURA_BORDER)
+        button.border:SetAllPoints(button)
+        button.count = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        button.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 1, -1)
+        button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+        button.cooldown:SetAllPoints(button)
+        button:SetScript("OnEnter", function(self)
+            if not self.auraIndex or not GameTooltip then return end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            if GameTooltip.SetUnitDebuff then
+                GameTooltip:SetUnitDebuff("target", self.auraIndex, self.auraFilter)
+            end
+        end)
+        button:SetScript("OnLeave", function()
+            if GameTooltip then GameTooltip:Hide() end
+        end)
+        row.buttons[index] = button
+    end
+    view.auraRow = row
+end
+
+local function UpdateTargetAuras(view)
+    if not view.auraRow then return end
+    local auras = CollectTargetDebuffs()
+    for index, button in ipairs(view.auraRow.buttons) do
+        local aura = auras[index]
+        button:SetShown(aura ~= nil)
+        if aura then
+            button.icon:SetTexture(aura.icon)
+            local count = aura.applications or aura.charges or 0
+            button.count:SetText(count and count > 1 and count or "")
+            local own = IsOwnAura(aura)
+            button.border:SetVertexColor(own and .35 or .55, own and .95 or .60,
+                own and .72 or .66, own and 1 or .72)
+            button.auraIndex, button.auraFilter = aura.PSFIndex, aura.PSFFilter
+            if button.cooldown.SetCooldown then
+                local duration, expiration = aura.duration or 0, aura.expirationTime or 0
+                if duration > 0 and expiration > 0 then
+                    button.cooldown:SetCooldown(expiration - duration, duration)
+                else
+                    button.cooldown:SetCooldown(0, 0)
+                end
+            end
+        else
+            button.auraIndex, button.auraFilter = nil, nil
+        end
+    end
+end
+
 local function MakeView(root, unit, compact)
     local view = views[root]
     if view then return view end
@@ -54,7 +165,7 @@ local function MakeView(root, unit, compact)
     local targetOfTarget = unit == "targettarget"
     local portraitSize = compact and (small and 50 or 68) or (targetOfTarget and 30 or 46)
     local width = compact and (small and 200 or 238) or (targetOfTarget and 190 or 460)
-    local height = compact and (small and 58 or 76) or (targetOfTarget and 34 or 50)
+    local height = compact and (small and 58 or 76) or (targetOfTarget and 34 or (unit == "target" and 70 or 50))
     view:SetSize(width, height)
     if compact then
         view:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
@@ -135,6 +246,7 @@ local function MakeView(root, unit, compact)
     else
         view.barWell, view.health = Well(targetOfTarget and 12 or 15,
             targetOfTarget and -17 or -29, addon.barColors.health)
+        if unit == "target" then CreateTargetAuraRow(view, contentLeft, barWidth) end
     end
     view.nameText = view:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     view.nameText:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft + 2, compact and -8 or -7)
@@ -201,6 +313,7 @@ local function UpdateView(view)
         local powerOK = pcall(view.power.valueText.SetFormattedText, view.power.valueText, "%d / %d", power, maximumPower)
         if not powerOK then view.power.valueText:SetText("—") end
     end
+    if unit == "target" then UpdateTargetAuras(view) end
     local model = addon.db.unitPortraitMode == "3d"
     view.model:SetShown(model)
     view.portrait:SetShown(not model)
@@ -237,6 +350,9 @@ function addon:RefreshUnitFrames()
                     self:ApplyPSFFont(view.nameText, view.compact and "name" or "label")
                     self:ApplyPSFFont(view.health.valueText, "value")
                     if view.power then self:ApplyPSFFont(view.power.valueText, "value") end
+                    if view.auraRow then
+                        for _, button in ipairs(view.auraRow.buttons) do self:ApplyPSFFont(button.count, "value") end
+                    end
                     UpdateView(view)
                     self:DebugSurface(view, "Units/" .. unit, "PSF visual layer on native unit button")
                 end

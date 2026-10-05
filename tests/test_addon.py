@@ -614,6 +614,18 @@ class AddonTests(unittest.TestCase):
             function UnitHealthMax() return 500 end
             function UnitName(unit) return unit == "player" and "Vaelith" or "Ghostfang" end
             function SetPortraitTexture(texture, unit) texture.portraitUnit = unit end
+            C_UnitAuras = { GetAuraDataByIndex = function(unit, index, filter)
+                if unit ~= "target" then return nil end
+                if filter == "HARMFUL|PLAYER" then
+                    if index == 1 then return { name = "Serpent Sting", icon = "sting", applications = 2,
+                        duration = 15, expirationTime = 20, sourceUnit = "player", spellId = 1 } end
+                    return nil
+                end
+                if index == 1 then return { name = "Serpent Sting", icon = "sting", applications = 2,
+                    duration = 15, expirationTime = 20, sourceUnit = "player", spellId = 1 } end
+                if index == 2 then return { name = "Faerie Fire", icon = "fire", applications = 1,
+                    duration = 30, expirationTime = 35, sourceUnit = "party1", spellId = 2 } end
+            end }
             PlayerFrame = surface("Button", UIParent)
             PlayerFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 21, -37)
             PlayerFrame:SetSize(205, 100)
@@ -639,10 +651,17 @@ class AddonTests(unittest.TestCase):
             assert(view.portrait.visible and not view.model.visible)
             assert(PlayerFrame.PlayerFrameContent.alpha == 0)
             assert(targetView and totView and TargetFrameToT.HealthBar.alpha == 0)
-            assert(targetView.width == 460 and targetView.height == 50)
+            assert(targetView.width == 460 and targetView.height == 70)
             assert(targetView.card and targetView.portrait.width == 46 and targetView.health.height == 11)
             assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
             assert(targetView.barWell.width == 392 and targetView.barWell.point[1] == "TOPLEFT")
+            assert(targetView.auraRow and #targetView.auraRow.buttons == 8)
+            assert(targetView.auraRow.buttons[1].visible and targetView.auraRow.buttons[1].icon.file == "sting")
+            assert(targetView.auraRow.buttons[1].count.text == 2)
+            assert(targetView.auraRow.buttons[1].border.rgba[2] == .95)
+            assert(targetView.auraRow.buttons[2].visible and targetView.auraRow.buttons[2].icon.file == "fire")
+            assert(targetView.auraRow.buttons[2].border.rgba[2] == .60)
+            assert(not targetView.auraRow.buttons[3].visible)
             assert(targetView.portraitBackground and targetView.model.point[1] == "BOTTOMRIGHT")
             assert(view.model.PSFPortraitInset == 11 and targetView.model.PSFPortraitInset == 7)
             assert(targetView.model.point[4] == -7 and targetView.model.point[5] == 7)
