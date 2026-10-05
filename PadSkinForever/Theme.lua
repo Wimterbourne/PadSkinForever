@@ -11,6 +11,14 @@ local minimapMask, minimapChanged
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
 
+local function HasSecretColor(color)
+    if not color or not issecretvalue then return false end
+    for index = 1, 4 do
+        if issecretvalue(color[index]) then return true end
+    end
+    return false
+end
+
 local function Hook(frame, method)
     if not frame or type(frame[method]) ~= "function" then return end
     watched[frame] = watched[frame] or {}
@@ -57,7 +65,11 @@ function addon:ThemeFont(text, enabled, forceWhite)
         if not text:SetFont(path, saved.size, saved.flags) then text:SetFont(STANDARD_TEXT_FONT, saved.size, saved.flags) end
         local color = saved.color
         -- Turn parchment-dark text white; retain item quality and semantic colors.
-        if color and (forceWhite or (color[1] < .5 and color[2] < .5 and color[3] < .5)) then
+        -- Blizzard can return restricted colour channels for quest/nameplate
+        -- text.  Never compare or replace them from addon code; the original
+        -- font colour remains native and can still be restored unchanged.
+        if color and not HasSecretColor(color)
+            and (forceWhite or (color[1] < .5 and color[2] < .5 and color[3] < .5)) then
             text:SetTextColor(.94, .95, .97, color[4] or 1)
         end
         self:DebugSurface(text, "Theme/font", "theme font")

@@ -1,6 +1,11 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.0-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.1-alpha**.
+
+### Secret-safe tekstkleur — 0.9.1-alpha
+
+- Voorkomt de fout `Theme.lua:60` wanneer Blizzard een afgeschermd kleurkanaal van quest-, nameplate- of andere tekst teruggeeft.
+- PSF laat zulke native kleuren ongemoeid; de overige theming blijft werken.
 
 ### Eerste interfacebrede design-systempass — 0.9.0-alpha
 

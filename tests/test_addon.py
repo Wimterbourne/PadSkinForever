@@ -561,6 +561,26 @@ class AddonTests(unittest.TestCase):
             assert(QuestLogFrame.children[1].visible == false)
         ''')
 
+    def test_theme_font_keeps_secret_color_channels_native(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            local secret = setmetatable({}, {
+                __lt = function() error("Secret colour compared") end,
+            })
+            function issecretvalue(value) return rawequal(value, secret) end
+            local label = surface("FontString")
+            label.color = { secret, .2, .2, 1 }
+            addon:ThemeFont(label, true)
+            assert(rawequal(label.color[1], secret))
+            addon:ThemeFont(label, false)
+            assert(rawequal(label.color[1], secret))
+            label:SetTextColor(.2, secret, .2, 1)
+            addon:ThemeFont(label, true, true)
+            assert(rawequal(label.color[2], secret))
+            addon:ThemeFont(label, false)
+            assert(rawequal(label.color[2], secret))
+        ''')
+
     def test_unitbar_texture_restore_preserves_values_and_portrait(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
