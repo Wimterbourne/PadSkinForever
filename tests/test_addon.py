@@ -644,6 +644,8 @@ class AddonTests(unittest.TestCase):
             assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
             assert(targetView.barWell.width == 392 and targetView.barWell.point[1] == "TOPLEFT")
             assert(targetView.portraitBackground and targetView.model.point[1] == "BOTTOMRIGHT")
+            assert(view.model.PSFPortraitInset == 11 and targetView.model.PSFPortraitInset == 7)
+            assert(targetView.model.point[4] == -7 and targetView.model.point[5] == 7)
             assert(#targetView.health.children > 0 and not targetView.health.barTexture.mask)
             assert(targetView.point[1] == "TOP" and targetView.point[3] == "TOP")
             assert(totView.width == 190 and totView.height == 34)

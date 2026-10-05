@@ -92,9 +92,14 @@ local function MakeView(root, unit, compact)
     view.model:EnableMouse(false)
     view.portrait:SetSize(portraitSize, portraitSize)
     view.portrait:SetPoint("LEFT", view, "LEFT", 0, 0)
-    local inset = 1
+    -- PlayerModel frames cannot receive a Texture mask.  Keep their complete
+    -- rectangular viewport inside the circle instead: an inscribed square
+    -- needs roughly 15% inset on every side.  No model pixel can then escape
+    -- past the circular ring, while ClearFog keeps the backing transparent.
+    local inset = math.ceil(portraitSize * .15)
     view.model:SetPoint("TOPLEFT", view.portrait, "TOPLEFT", inset, -inset)
     view.model:SetPoint("BOTTOMRIGHT", view.portrait, "BOTTOMRIGHT", -inset, inset)
+    view.model.PSFPortraitInset = inset
     view.portraitBackground:SetAllPoints(view.portrait)
     view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
     view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")

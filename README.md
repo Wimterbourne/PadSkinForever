@@ -1,6 +1,13 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.3-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.4-alpha**.
+
+### 3D-portretten binnen de ring — 0.9.4-alpha
+
+- WoW laat een `PlayerModel` niet door een ronde texture-mask clippen.
+- De 3D-modelviewport wordt daarom als ingeschreven vierkant volledig binnen de portretcirkel geplaatst.
+- `ClearFog`, 3D-animatie, unitupdates en de keuze tussen 2D en 3D blijven behouden.
+- Geen enkel deel van het 3D-model kan nog buiten de ronde ring renderen.
 
 ### Centrale HUD-compositie — 0.9.3-alpha
 
