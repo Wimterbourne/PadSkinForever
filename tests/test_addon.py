@@ -630,20 +630,22 @@ class AddonTests(unittest.TestCase):
             for _, child in ipairs(PlayerFrame.children) do if child.unit == "player" then view = child end end
             for _, child in ipairs(TargetFrame.children) do if child.unit == "target" then targetView = child end end
             for _, child in ipairs(TargetFrameToT.children) do if child.unit == "targettarget" then totView = child end end
-            assert(view and view.active and view.portrait.width == 92)
-            assert(view.health.width == view.portrait.width)
+            assert(view and view.active and view.portrait.width == 68)
+            assert(view.width == 238 and view.height == 76)
+            assert(view.card and view.healthWell and view.powerWell)
+            assert(view.health.width > view.portrait.width)
             assert(view.health.valueText.text == "413 / 500")
             assert(view.portrait.visible and not view.model.visible)
             assert(PlayerFrame.PlayerFrameContent.alpha == 0)
             assert(targetView and totView and TargetFrameToT.HealthBar.alpha == 0)
-            assert(targetView.width == 460 and targetView.height == 40)
-            assert(targetView.portrait.width == 40 and targetView.health.height == 10)
+            assert(targetView.width == 460 and targetView.height == 50)
+            assert(targetView.card and targetView.portrait.width == 46 and targetView.health.height == 11)
             assert(targetView.barWell and targetView.portraitRing and targetView.portrait.mask)
-            assert(targetView.barWell.width == 423 and targetView.barWell.point[1] == "LEFT")
+            assert(targetView.barWell.width == 392 and targetView.barWell.point[1] == "TOPLEFT")
             assert(targetView.portraitBackground and targetView.model.point[1] == "BOTTOMRIGHT")
             assert(#targetView.health.children > 0 and not targetView.health.barTexture.mask)
             assert(targetView.point[1] == "TOP" and targetView.point[3] == "TOP")
-            assert(totView.width == 170 and totView.height == 28)
+            assert(totView.width == 190 and totView.height == 34)
             assert(totView.point[1] == "TOPLEFT" and totView.point[3] == "BOTTOMLEFT")
             assert(PlayerFrame.clearCount == 0 and PlayerFrame.width == 205)
             assert(PlayerFrame.point[4] == 21 and PlayerFrame.point[5] == -37)
@@ -652,7 +654,8 @@ class AddonTests(unittest.TestCase):
             assert(view.model.visible and not view.portrait.visible)
             assert(view.model.modelUnit == "player" and view.model.portraitZoom == 1)
             assert(targetView.model.portraitZoom == 1 and targetView.model.camDistanceScale == .72)
-            assert(not view.model.fogCleared and targetView.model.fogCleared and totView.model.fogCleared)
+            assert(view.model.fogCleared and view.model.camDistanceScale == .82)
+            assert(targetView.model.fogCleared and totView.model.fogCleared)
             combat = true
             fire("UNIT_HEALTH", "player")
             assert(view.health.valueText.text == "413 / 500")
@@ -680,6 +683,9 @@ class AddonTests(unittest.TestCase):
             assert(aura.Icon.coords[1] == .08 and aura.IconBorder.alpha == 0)
             assert(spell.Icon.coords[1] == .08 and spell.Cooldown.remaining == 12)
             assert(aura.regions[1].visible and spell.regions[1].visible)
+            -- Styling individual cooldown icons must not create a large card
+            -- behind the native viewer.  The spell remains its only child.
+            assert(#EssentialCooldownViewer.children == 1)
             addon.db.themeUnitAuras = false
             addon.db.themeCooldownManager = false
             addon:RefreshUnitIcons()
@@ -1135,7 +1141,10 @@ class AddonTests(unittest.TestCase):
             assert(resources.playerHealth.barTexture.mask == resources.playerHealth.fillMask)
             assert(resources.playerHealth.right.text == "406 / 406")
             assert(resources.petHealth.right.text == "80 / 100")
-            assert(resources.alpha == .2, "default outside combat should dim")
+            assert(resources.alpha == 1, "dimming must keep labels readable")
+            assert(resources.PSFRoundedRegions.fill[1].alpha == .34)
+            assert(resources.playerHealth.barTexture.alpha == .48)
+            assert(resources.playerHealth.labels.alpha == 1)
             addon.db.resourceOutOfCombat = "hide"
             addon:UpdateResourceVisibility()
             assert(not resources.visible)

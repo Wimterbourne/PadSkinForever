@@ -52,13 +52,12 @@ local function MakeView(root, unit, compact)
     view:SetFrameLevel(root:GetFrameLevel() + 5)
     local small = unit == "pet"
     local targetOfTarget = unit == "targettarget"
-    local size = small and 60 or 92
-    local width = compact and size + 12 or (targetOfTarget and 170 or 460)
-    local height = compact and size + 40 or (targetOfTarget and 28 or 40)
+    local portraitSize = compact and (small and 50 or 68) or (targetOfTarget and 30 or 46)
+    local width = compact and (small and 200 or 238) or (targetOfTarget and 190 or 460)
+    local height = compact and (small and 58 or 76) or (targetOfTarget and 34 or 50)
     view:SetSize(width, height)
     if compact then
         view:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
-        addon:CreateRoundedPanel(view, addon.design.card, addon.design.compactRadius)
     elseif targetOfTarget then
         -- The native ToT root sits inside the target layout. Put our compact
         -- secondary tag just below it so a wide target bar never overlaps it.
@@ -67,80 +66,72 @@ local function MakeView(root, unit, compact)
         -- Grow around the native target/focus center. Their native roots and
         -- Edit Mode anchors remain untouched and stay the interaction owners.
         view:SetPoint("TOP", root, "TOP", 0, 0)
-        addon:CreateRoundedPanel(view, addon.design.card, targetOfTarget and 9 or addon.design.cardRadius)
     end
     view.unit, view.root, view.compact = unit, root, compact
     view.chrome = {}
-    if not compact then
-        view.portraitBackground = view:CreateTexture(nil, "BACKGROUND")
-        view.portraitBackground:SetTexture(CIRCLE_FILL)
-        -- CircleEmpty already carries the PSF dark-neutral fill; preserve its
-        -- authored colour instead of multiplying it nearly to black.
-        view.portraitBackground:SetVertexColor(1, 1, 1, .98)
-    end
+
+    -- The dark card begins halfway under the portrait.  That overlap and the
+    -- uninterrupted negative space are the defining shapes of the concept.
+    view.card = CreateFrame("Frame", nil, view)
+    view.card:EnableMouse(false)
+    view.card:SetFrameLevel(math.max(0, view:GetFrameLevel() - 1))
+    view.card:SetPoint("TOPLEFT", view, "TOPLEFT", math.floor(portraitSize * .45), 0)
+    view.card:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", 0, 0)
+    addon:CreateRoundedPanel(view.card, addon.design.cardStrong,
+        targetOfTarget and addon.design.compactRadius or addon.design.cardRadius)
+
+    view.portraitBackground = view:CreateTexture(nil, "BACKGROUND")
+    view.portraitBackground:SetTexture(CIRCLE_FILL)
+    view.portraitBackground:SetVertexColor(1, 1, 1, .98)
     view.portrait = view:CreateTexture(nil, "ARTWORK")
     view.portrait:SetTexCoord(.08, .92, .08, .92)
     view.model = CreateFrame("PlayerModel", nil, view)
     view.model:EnableMouse(false)
-    local portraitSize = compact and size or (targetOfTarget and 24 or 40)
     view.portrait:SetSize(portraitSize, portraitSize)
-    view.portrait:SetPoint(compact and "TOPLEFT" or "RIGHT", view, compact and "TOPLEFT" or "RIGHT", compact and 6 or -1, compact and -6 or 0)
-    if compact then
-        view.model:SetAllPoints(view.portrait)
-    else
-        -- PlayerModel regions cannot receive Texture masks. Keep the model in
-        -- an inset square viewport; with its fog cleared, only the subject is
-        -- drawn over the circular backing and remains inside the ring.
-        local inset = 1
-        view.model:SetPoint("TOPLEFT", view.portrait, "TOPLEFT", inset, -inset)
-        view.model:SetPoint("BOTTOMRIGHT", view.portrait, "BOTTOMRIGHT", -inset, inset)
-        view.portraitBackground:SetAllPoints(view.portrait)
+    view.portrait:SetPoint("LEFT", view, "LEFT", 0, 0)
+    local inset = 1
+    view.model:SetPoint("TOPLEFT", view.portrait, "TOPLEFT", inset, -inset)
+    view.model:SetPoint("BOTTOMRIGHT", view.portrait, "BOTTOMRIGHT", -inset, inset)
+    view.portraitBackground:SetAllPoints(view.portrait)
+    view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
+    view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    view.portraitMask:SetAllPoints(view.portrait)
+    view.portrait:AddMaskTexture(view.portraitMask)
+    view.portraitRingFrame = CreateFrame("Frame", nil, view)
+    view.portraitRingFrame:EnableMouse(false)
+    view.portraitRingFrame:SetFrameLevel(view:GetFrameLevel() + 3)
+    view.portraitRingFrame:SetAllPoints(view.portrait)
+    view.portraitRing = view.portraitRingFrame:CreateTexture(nil, "OVERLAY")
+    view.portraitRing:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga")
+    view.portraitRing:SetPoint("CENTER")
+    view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
+
+    local contentLeft = portraitSize + (compact and 8 or 12)
+    local contentRight = 10
+    local barWidth = width - contentLeft - contentRight
+    local function Well(height, y, color)
+        local well = CreateFrame("Frame", nil, view)
+        well:EnableMouse(false)
+        well:SetSize(barWidth, height)
+        well:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft, y)
+        addon:CreateRoundedPanel(well, addon.design.well, math.floor(height / 2))
+        local bar = ValueBar(well, barWidth - 4, height - 4, color)
+        bar:SetPoint("CENTER")
+        return well, bar
     end
-    if not compact then
-        view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
-        view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-        view.portraitMask:SetAllPoints(view.portrait)
-        view.portrait:AddMaskTexture(view.portraitMask)
-        view.portraitRingFrame = CreateFrame("Frame", nil, view)
-        view.portraitRingFrame:EnableMouse(false)
-        view.portraitRingFrame:SetFrameLevel(view:GetFrameLevel() + 3)
-        view.portraitRingFrame:SetAllPoints(view.portrait)
-        view.portraitRing = view.portraitRingFrame:CreateTexture(nil, "OVERLAY")
-        view.portraitRing:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga")
-        view.portraitRing:SetPoint("CENTER")
-        view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
-    else
-        view.portraitMask = view:CreateMaskTexture(nil, "ARTWORK")
-        view.portraitMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-        view.portraitMask:SetAllPoints(view.portrait)
-        view.portrait:AddMaskTexture(view.portraitMask)
-        view.portraitRing = view:CreateTexture(nil, "OVERLAY")
-        view.portraitRing:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\CircleBorder.tga")
-        view.portraitRing:SetPoint("CENTER", view.portrait)
-        view.portraitRing:SetSize(portraitSize + 4, portraitSize + 4)
-    end
-    -- Boss-style bars meet the portrait instead of stopping beside it. The
-    -- ring is drawn above this slight overlap, turning both parts into one
-    -- silhouette while the visible left cap keeps its fixed proportions.
-    local barWidth = compact and size or width - portraitSize + 3
     if compact then
-        view.health = ValueBar(view, barWidth, 9, addon.barColors.health)
-        view.health:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 15)
-        view.power = ValueBar(view, barWidth, 7, addon.barColors.mana)
-        view.power:SetPoint("BOTTOMLEFT", view, "BOTTOMLEFT", 6, 6)
+        local healthHeight = small and 14 or 16
+        local powerHeight = small and 12 or 13
+        view.healthWell, view.health = Well(healthHeight, small and -25 or -32, addon.barColors.health)
+        view.powerWell, view.power = Well(powerHeight, small and -41 or -51, addon.barColors.mana)
     else
-        view.barWell = CreateFrame("Frame", nil, view)
-        view.barWell:EnableMouse(false)
-        view.barWell:SetSize(barWidth, targetOfTarget and 12 or 14)
-        view.barWell:SetPoint("LEFT", view, "LEFT", 0, 0)
-        addon:CreateRoundedPanel(view.barWell, addon.design.well, targetOfTarget and 6 or 7)
-        view.health = ValueBar(view.barWell, barWidth - 4, targetOfTarget and 8 or 10, addon.barColors.health)
-        view.health:SetPoint("CENTER")
+        view.barWell, view.health = Well(targetOfTarget and 12 or 15,
+            targetOfTarget and -17 or -29, addon.barColors.health)
     end
     view.nameText = view:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    view.nameText:SetPoint(compact and "BOTTOMLEFT" or "TOPLEFT", view, compact and "BOTTOMLEFT" or "TOPLEFT", compact and 6 or 10, compact and 28 or -4)
-    view.nameText:SetWidth(compact and size or barWidth)
-    view.nameText:SetJustifyH(compact and "LEFT" or "CENTER")
+    view.nameText:SetPoint("TOPLEFT", view, "TOPLEFT", contentLeft + 2, compact and -8 or -7)
+    view.nameText:SetWidth(barWidth - 4)
+    view.nameText:SetJustifyH("LEFT")
     views[root] = view
     return view
 end
@@ -210,11 +201,10 @@ local function UpdateView(view)
         if view.modelDirty then
             view.model:SetUnit(unit)
             view.model:SetPortraitZoom(1)
-            if not view.compact and view.model.SetCamDistanceScale then view.model:SetCamDistanceScale(.72) end
+            if view.model.SetCamDistanceScale then view.model:SetCamDistanceScale(view.compact and .82 or .72) end
             -- PlayerModel reapplies unit-specific fog when SetUnit runs. That
             -- fog becomes an opaque disc behind boss-style target portraits.
-            -- Compact player/pet cards keep their native model presentation.
-            if not view.compact and view.model.ClearFog then view.model:ClearFog() end
+            if view.model.ClearFog then view.model:ClearFog() end
             view.modelDirty = nil
         end
     elseif SetPortraitTexture then SetPortraitTexture(view.portrait, unit) end
@@ -236,10 +226,9 @@ function addon:RefreshUnitFrames()
                 view:SetShown(enabled)
                 if enabled then
                     view.modelDirty = true
-                    local font = self:GetUIFontPath(false)
-                    view.nameText:SetFont(font, 11, "")
-                    view.health.valueText:SetFont(font, 9, "")
-                    if view.power then view.power.valueText:SetFont(font, 8, "") end
+                    self:ApplyPSFFont(view.nameText, view.compact and "name" or "label")
+                    self:ApplyPSFFont(view.health.valueText, "value")
+                    if view.power then self:ApplyPSFFont(view.power.valueText, "value") end
                     UpdateView(view)
                     self:DebugSurface(view, "Units/" .. unit, "PSF visual layer on native unit button")
                 end
@@ -281,7 +270,6 @@ function addon:RefreshUnitIcons()
     for _, viewer in pairs({ EssentialCooldownViewer = EssentialCooldownViewer,
         UtilityCooldownViewer = UtilityCooldownViewer, BuffIconCooldownViewer = BuffIconCooldownViewer }) do
         SkinIcons(viewer, self.db.themeCooldownManager, 0)
-        self:ThemeCard(viewer, self.db.themeCooldownManager, "CooldownManager", 3, self.design.card)
         self:DebugSurface(viewer, "CooldownManager", "native cooldown viewer icon skin")
     end
 end

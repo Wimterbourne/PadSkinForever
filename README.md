@@ -1,6 +1,15 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.1-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.2-alpha**.
+
+### Conceptvormen en leesbaarheid — 0.9.2-alpha
+
+- Player en pet zijn horizontale cards met een overlappend rond portret, naam en afzonderlijke health- en resourcewells.
+- Target, focus en target-of-target gebruiken dezelfde compositie op boss-framebreedte.
+- PSF-tekstrollen gebruiken Inter Regular/SemiBold, grotere minimumformaten en een subtiele schaduw.
+- Out-of-combat dimming verlaagt alleen de visuele nadruk van kaart, wells, fills en portretten; labels blijven volledig leesbaar.
+- Native swingtimerlabels sluiten typografisch aan op de centrale HUD.
+- Lege Cooldown Manager-viewers krijgen geen zelfstandige zwarte achtergrond meer.
 
 ### Secret-safe tekstkleur — 0.9.1-alpha
 

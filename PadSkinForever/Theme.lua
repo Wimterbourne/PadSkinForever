@@ -61,8 +61,14 @@ function addon:ThemeFont(text, enabled, forceWhite)
                 end)
             end
         end
-        local path = self.db.themeFonts and self:GetFontPath() or saved.path
-        if not text:SetFont(path, saved.size, saved.flags) then text:SetFont(STANDARD_TEXT_FONT, saved.size, saved.flags) end
+        local path = self.db.themeFonts and (forceWhite and self:GetLegendHeaderFontPath() or self:GetFontPath()) or saved.path
+        local size = saved.size
+        if not (issecretvalue and issecretvalue(size)) and type(size) == "number" then
+            size = math.max(size, forceWhite and 13 or 12)
+        end
+        if not text:SetFont(path, size, saved.flags) then text:SetFont(STANDARD_TEXT_FONT, size, saved.flags) end
+        if text.SetShadowColor then text:SetShadowColor(0, 0, 0, .85) end
+        if text.SetShadowOffset then text:SetShadowOffset(1, -1) end
         local color = saved.color
         -- Turn parchment-dark text white; retain item quality and semantic colors.
         -- Blizzard can return restricted colour channels for quest/nameplate

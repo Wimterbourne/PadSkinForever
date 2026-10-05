@@ -132,6 +132,8 @@ local function SkinSwingTimer(frame, enabled)
         frame:GetTimeLabel():SetParent(labels)
         addon:ThemeFont(frame:GetTypeLabel(), true, true)
         addon:ThemeFont(frame:GetTimeLabel(), true, true)
+        addon:ApplyPSFFont(frame:GetTypeLabel(), "label")
+        addon:ApplyPSFFont(frame:GetTimeLabel(), "value")
         addon:DebugSurface(frame, "CombatHUD/SwingTimer", "native Edit Mode swing timer")
         addon:DebugSurface(statusBar, "CombatHUD/SwingTimerBar", "native swing timer status bar")
         HookSwingTimer(frame)
@@ -363,7 +365,20 @@ function addon:UpdateResourceVisibility()
     local active = frame.editMode or InCombatLockdown()
     local mode = self.db.resourceOutOfCombat or "dim"
     frame:SetShown(self.db.resourceDisplay and (active or mode ~= "hide"))
-    frame:SetAlpha((active or mode == "show") and 1 or .2)
+    frame:SetAlpha(1)
+    local full = active or mode == "show"
+    self:SetRoundedPanelVisualAlpha(frame, full and 1 or .34, full and 1 or .48)
+    for _, well in ipairs({ frame.playerHealthWell, frame.playerPowerWell,
+        frame.petHealthWell, frame.petPowerWell }) do
+        self:SetRoundedPanelVisualAlpha(well, full and 1 or .42, full and 1 or .52)
+    end
+    for _, bar in ipairs({ frame.playerHealth, frame.playerPower, frame.petHealth, frame.petPower }) do
+        local texture = bar:GetStatusBarTexture()
+        if texture then texture:SetAlpha(full and 1 or .48) end
+        bar.labels:SetAlpha(1)
+    end
+    frame.playerPortrait:SetAlpha(full and 1 or .58)
+    frame.petPortrait:SetAlpha(full and 1 or .58)
 end
 
 function addon:UpdateResourceDisplay()
@@ -400,10 +415,9 @@ function addon:UpdateResourceDisplay()
     if SetPortraitTexture then SetPortraitTexture(frame.playerPortrait, "player") end
     frame:SetHeight((hasPet or frame.editMode) and 58 or 34)
     self:UpdateResourceVisibility()
-    local font = self:GetUIFontPath(false)
     for _, bar in ipairs({ frame.playerHealth, frame.playerPower, frame.petHealth, frame.petPower }) do
-        if not bar.left:SetFont(font, 10, "") then bar.left:SetFont(STANDARD_TEXT_FONT, 10, "") end
-        if not bar.right:SetFont(font, 10, "") then bar.right:SetFont(STANDARD_TEXT_FONT, 10, "") end
+        self:ApplyPSFFont(bar.left, "label")
+        self:ApplyPSFFont(bar.right, "value")
     end
 end
 

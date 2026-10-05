@@ -17,6 +17,14 @@ addon.design = {
     cardStrong = { fill = { .020, .026, .034, .97 }, border = { .66, .71, .77, .32 } },
     well = { fill = { .010, .014, .020, .86 }, border = { .52, .58, .65, .20 } },
     floating = { fill = { .030, .038, .049, .95 }, border = { .68, .73, .79, .30 } },
+    type = {
+        title = { size = 15, weight = "semibold" },
+        name = { size = 13, weight = "semibold" },
+        body = { size = 13, weight = "regular" },
+        label = { size = 12, weight = "semibold" },
+        value = { size = 11, weight = "semibold" },
+        world = { size = 12, weight = "semibold", flags = "OUTLINE" },
+    },
 }
 
 addon.uiColors = {
@@ -80,6 +88,7 @@ function addon:CreateRoundedPanel(parent, palette, radius)
     palette = palette or self.design.card
     local fill = palette.fill or colors.fill
     local border = palette.border or colors.border
+    parent.PSFRoundedRegions = parent.PSFRoundedRegions or { fill = {}, border = {} }
     for _, layerInfo in ipairs({ { "BACKGROUND", fill, "Fill" }, { "BORDER", border, "Border" } }) do
         local drawLayer, color, asset = unpack(layerInfo)
         for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
@@ -90,26 +99,39 @@ function addon:CreateRoundedPanel(parent, palette, radius)
             local right, bottom = corner:find("RIGHT"), corner:find("BOTTOM")
             texture:SetTexCoord(right and 1 or 0, right and 0 or 1, bottom and 1 or 0, bottom and 0 or 1)
             Color(texture, color)
+            table.insert(parent.PSFRoundedRegions[asset == "Fill" and "fill" or "border"], texture)
         end
         if asset == "Fill" then
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMRIGHT", radius, 0, -radius, 0)
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -radius, radius, radius)
-            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -radius, -radius, radius)
+            table.insert(parent.PSFRoundedRegions.fill, Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMRIGHT", radius, 0, -radius, 0))
+            table.insert(parent.PSFRoundedRegions.fill, Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -radius, radius, radius))
+            table.insert(parent.PSFRoundedRegions.fill, Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -radius, -radius, radius))
         else
-            Rect(panel, drawLayer, color, "TOPLEFT", "TOPRIGHT", radius, 0, -radius, -1)
-            Rect(panel, drawLayer, color, "BOTTOMLEFT", "BOTTOMRIGHT", radius, 0, -radius, 1)
-            Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -radius, 1, radius)
-            Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -radius, -1, radius)
+            table.insert(parent.PSFRoundedRegions.border, Rect(panel, drawLayer, color, "TOPLEFT", "TOPRIGHT", radius, 0, -radius, -1))
+            table.insert(parent.PSFRoundedRegions.border, Rect(panel, drawLayer, color, "BOTTOMLEFT", "BOTTOMRIGHT", radius, 0, -radius, 1))
+            table.insert(parent.PSFRoundedRegions.border, Rect(panel, drawLayer, color, "TOPLEFT", "BOTTOMLEFT", 0, -radius, 1, radius))
+            table.insert(parent.PSFRoundedRegions.border, Rect(panel, drawLayer, color, "TOPRIGHT", "BOTTOMRIGHT", 0, -radius, -1, radius))
         end
     end
     parent.PSFRoundedPanel = panel
     return panel
 end
 
+function addon:SetRoundedPanelVisualAlpha(parent, fillAlpha, borderAlpha)
+    local regions = parent and parent.PSFRoundedRegions
+    if not regions then return end
+    for _, region in ipairs(regions.fill) do region:SetAlpha(fillAlpha or 1) end
+    for _, region in ipairs(regions.border) do region:SetAlpha(borderAlpha or fillAlpha or 1) end
+end
+
 -- Follow the native fill texture declaratively instead of reading its width.
 -- WoW can mark target health geometry as secret; anchoring a clipping frame to
 -- that texture remains permitted and keeps the fixed-size caps available.
 local roundedBars = setmetatable({}, { __mode = "k" })
+local function PaintRoundedBar(data)
+    local color = data.color or addon.barColors.neutral
+    local alpha = (color[4] or 1) * (data.visualAlpha or 1)
+    for _, region in ipairs(data.regions) do region:SetVertexColor(color[1], color[2], color[3], alpha) end
+end
 local function UpdateRoundedBar(data)
     local texture = data.bar:GetStatusBarTexture()
     if not texture then return end
@@ -176,9 +198,30 @@ function addon:SetRoundedBar(bar, enabled, color)
         data.updater:SetScript("OnUpdate", function() UpdateRoundedBar(data) end)
         roundedBars[bar] = data
     end
-    for _, region in ipairs(data.regions) do region:SetVertexColor(unpack(color or self.barColors.neutral)) end
+    data.color = color or self.barColors.neutral
+    PaintRoundedBar(data)
     data.updater:Show()
     UpdateRoundedBar(data)
+end
+
+
+function addon:SetRoundedBarVisualAlpha(bar, alpha)
+    local data = roundedBars[bar]
+    if not data then return end
+    data.visualAlpha = alpha or 1
+    PaintRoundedBar(data)
+end
+
+function addon:ApplyPSFFont(text, role)
+    if not text or not text.SetFont then return end
+    local style = self.design.type[role or "body"] or self.design.type.body
+    local path = self:GetUIFontPath(style.weight == "semibold")
+    if not text:SetFont(path, style.size, style.flags or "") then
+        text:SetFont(STANDARD_TEXT_FONT, style.size, style.flags or "")
+    end
+    if text.SetTextColor then text:SetTextColor(unpack(self.uiColors.text)) end
+    if text.SetShadowColor then text:SetShadowColor(0, 0, 0, .85) end
+    if text.SetShadowOffset then text:SetShadowOffset(1, -1) end
 end
 
 function addon:CreatePSFLabel(parent, text, x, y, emphasized, size)
