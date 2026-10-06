@@ -1,6 +1,13 @@
 # PadSkinForever
 
-Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.8-alpha**.
+Een zelfstandige skin voor de **native GamepadUI van World of Warcraft Forever**. Huidige testversie: **0.9.9-alpha**.
+
+### Health-onafhankelijke targetaura's — 0.9.9-alpha
+
+- `UNIT_HEALTH` en andere algemene unitupdates scannen targetaura's niet langer opnieuw; healthwijzigingen kunnen daardoor geen geldige debuffstate wissen wanneer Forever de aura-API tijdelijk afschermt.
+- `UNIT_AURA` blijft de eigenaar van aura-refreshes en behoudt de bestaande retry/retention-logica tijdens combat.
+- `PLAYER_TARGET_CHANGED` wist de bekende aurastaat expliciet en voert daarna een verse scan uit, zodat aura's nooit tussen targets worden overgenomen.
+- De regressietest simuleert een lege aura-provider tijdens combat en controleert dat `UNIT_HEALTH target` een eerder geverifieerde debuff zichtbaar laat.
 
 ### Target-aura runtime diagnose — 0.9.8-alpha
 
