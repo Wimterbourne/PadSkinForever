@@ -693,6 +693,10 @@ class AddonTests(unittest.TestCase):
             -- and its own expiration still removes it without readable APIs.
             UnitDebuff = function() end
             combat = true
+            -- Health changes must never rescan or clear target auras. Forever can
+            -- temporarily expose no aura data while combat health values update.
+            fire("UNIT_HEALTH", "target")
+            assert(targetView.auraRow.buttons[1].visible and targetView.auraRow.buttons[1].icon.file == "legacy-sting")
             for _, eventFrame in ipairs(frames) do
                 if eventFrame.events.UNIT_AURA then eventFrame.OnEvent(eventFrame, "UNIT_AURA", "target") end
             end
