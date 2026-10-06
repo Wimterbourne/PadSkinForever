@@ -428,7 +428,6 @@ local function UpdateView(view)
         local powerOK = pcall(view.power.valueText.SetFormattedText, view.power.valueText, "%d / %d", power, maximumPower)
         if not powerOK then view.power.valueText:SetText("—") end
     end
-    if unit == "target" then UpdateTargetAuras(view, false, "unit view refresh") end
     local model = addon.db.unitPortraitMode == "3d"
     view.model:SetShown(model)
     view.portrait:SetShown(not model)
@@ -531,6 +530,10 @@ events:SetScript("OnEvent", function(_, event, eventUnit)
             if eventUnit == "target" and view.unit == "target" and view.active then QueueTargetAuraUpdate(view) end
         else
             UpdateView(view)
+            if event == "PLAYER_TARGET_CHANGED" and view.unit == "target" and view.active then
+                view.lastTargetAuras = nil
+                UpdateTargetAuras(view, false, "target changed")
+            end
         end
     end
     if event == "PLAYER_REGEN_ENABLED" or event == "ADDON_LOADED" then addon:QueueRefresh() end
