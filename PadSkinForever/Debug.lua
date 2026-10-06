@@ -80,7 +80,7 @@ local function Snapshot(object)
 end
 
 function addon:GetDebugReport()
-    local lines = { "PadSkinForever 0.9.8 alpha",
+    local lines = { "PadSkinForever 0.9.9 alpha",
         "Tracing: " .. (enabled and "ON" or "OFF"),
         "Legend theming: " .. (self.db.skinLegend and "ON" or "OFF"),
         "Selected font: " .. self.db.font,
