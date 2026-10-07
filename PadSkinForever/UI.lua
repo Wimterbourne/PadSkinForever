@@ -18,6 +18,9 @@ addon.design = {
         -- Spatial glass keeps the world visible. Edges/highlights define shape;
         -- opaque fills are reserved for wells and readability-critical surfaces.
         glass = { fill = { .030, .040, .055, .34 }, border = { .78, .84, .92, .34 } },
+        -- Frosted glass is the readability layer inside clear spatial shells:
+        -- still translucent, but calmer/more diffuse behind labels and values.
+        frosted = { fill = { .040, .052, .068, .52 }, border = { .82, .87, .94, .30 } },
         strong = { fill = { .020, .026, .034, .88 }, border = { .66, .71, .77, .30 } },
         peripheral = { fill = { .028, .038, .052, .26 }, border = { .72, .79, .87, .24 } },
         well = { fill = { .010, .014, .020, .72 }, border = { .52, .58, .65, .16 } },
