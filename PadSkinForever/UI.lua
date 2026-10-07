@@ -117,6 +117,56 @@ local function Rect(parent, layer, color, a, b, x1, y1, x2, y2)
     return texture
 end
 
+function addon:CreateGlassPanel(parent, palette, radius)
+    if parent.PSFGlassPanel then return parent.PSFGlassPanel end
+    palette = palette or self.design.surface.glass
+    radius = radius or self.design.radius.card
+
+    -- Start with the normal rounded translucent surface, then add restrained
+    -- lighting cues. WoW has no backdrop blur here, so depth must come from
+    -- layered edge contrast rather than a heavier opaque fill.
+    self:CreateRoundedPanel(parent, palette, radius)
+
+    local regions = parent.PSFRoundedRegions
+    if not regions then return parent end
+    regions.glass = regions.glass or {}
+
+    -- Soft inner top light: enough to read as a reflective surface without
+    -- becoming a bright frame or competing with class identity.
+    local top = parent:CreateTexture(nil, "BORDER", nil, 1)
+    top:SetTexture("Interface\\Buttons\\WHITE8X8")
+    top:SetPoint("TOPLEFT", parent, "TOPLEFT", radius, -1)
+    top:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -radius, -1)
+    top:SetHeight(1)
+    top:SetVertexColor(.88, .92, .98, .16)
+    table.insert(regions.glass, top)
+
+    -- Side glints establish thickness on dark scenes while remaining quieter
+    -- than the outer identity seam.
+    for _, side in ipairs({ "LEFT", "RIGHT" }) do
+        local edge = parent:CreateTexture(nil, "BORDER", nil, 1)
+        edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+        edge:SetPoint("TOP" .. side, parent, "TOP" .. side, side == "LEFT" and 1 or -1, -radius)
+        edge:SetPoint("BOTTOM" .. side, parent, "BOTTOM" .. side, side == "LEFT" and 1 or -1, radius)
+        edge:SetWidth(1)
+        edge:SetVertexColor(.72, .78, .86, .07)
+        table.insert(regions.glass, edge)
+    end
+
+    -- A low inner shade separates the glass from bright world/map content and
+    -- gives the panel a shallow floating depth without a fake drop shadow.
+    local bottom = parent:CreateTexture(nil, "BORDER", nil, 1)
+    bottom:SetTexture("Interface\\Buttons\\WHITE8X8")
+    bottom:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", radius, 1)
+    bottom:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -radius, 1)
+    bottom:SetHeight(1)
+    bottom:SetVertexColor(.01, .015, .025, .42)
+    table.insert(regions.glass, bottom)
+
+    parent.PSFGlassPanel = parent
+    return parent
+end
+
 function addon:CreateRoundedPanel(parent, palette, radius)
     if parent.PSFRoundedPanel then return parent.PSFRoundedPanel end
     -- Draw directly on the owner so its child controls and header regions stay
