@@ -359,8 +359,8 @@ local function EnsureMinimapClusterCard()
     minimapClusterCard:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 2))
     -- One restrained glass shell around Blizzard's authoritative map geometry.
     -- The 3 px map inset, compact header and lower coordinate notch are PSF-owned.
-    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -8, 30)
-    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 8, -9)
+    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -12, 34)
+    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 12, -13)
     addon:CreateGlassPanel(minimapClusterCard, addon.design.surface.glass, addon.design.radius.card)
     -- Class identity lives only in the thin outer seam; map/status colors remain semantic.
     local identity = addon:GetIdentityColor("player")
@@ -374,9 +374,9 @@ local function EnsureMinimapClusterCard()
     minimapHeader = CreateFrame("Frame", "PadSkinForeverMinimapHeader", MinimapCluster)
     minimapHeader:EnableMouse(false)
     minimapHeader:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", -3, 5)
-    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 3, 5)
-    minimapHeader:SetHeight(21)
+    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", -7, 7)
+    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 7, 7)
+    minimapHeader:SetHeight(23)
     addon:CreateGlassPanel(minimapHeader, addon.design.surface.frosted, addon.design.radius.compact)
 
     -- Keep the header visually quiet until Forever exposes a reliable standalone
@@ -385,8 +385,8 @@ local function EnsureMinimapClusterCard()
     minimapFooter = CreateFrame("Frame", "PadSkinForeverMinimapFooter", MinimapCluster)
     minimapFooter:EnableMouse(false)
     minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapFooter:SetSize(88, 19)
-    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, -4)
+    minimapFooter:SetSize(94, 20)
+    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 1)
     addon:CreateGlassPanel(minimapFooter, addon.design.surface.frosted, addon.design.radius.compact)
     if minimapFooter.PSFRoundedRegions then
         for _, region in ipairs(minimapFooter.PSFRoundedRegions.border) do
@@ -753,11 +753,11 @@ local function Map(enabled)
     if enabled and square then
         addon:ApplyPSFFont(MinimapZoneText, "name")
         if MinimapZoneText then
-            AnchorMinimapPresentation(MinimapZoneText, "LEFT", minimapHeader, "LEFT", 7, 0)
+            AnchorMinimapPresentation(MinimapZoneText, "LEFT", minimapHeader, "LEFT", 9, 0)
         end
         if ticker then addon:ApplyPSFFont(ticker, "label") end
         if clock then
-            AnchorMinimapPresentation(clock, "RIGHT", minimapHeader, "RIGHT", -7, 0)
+            AnchorMinimapPresentation(clock, "RIGHT", minimapHeader, "RIGHT", -9, 0)
             -- Re-anchoring does not change strata. Keep native clock behavior but
             -- render it above the glass/header presentation.
             if clock.SetFrameLevel then clock:SetFrameLevel(minimapHeader:GetFrameLevel() + 1) end
