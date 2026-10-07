@@ -572,6 +572,8 @@ class AddonTests(unittest.TestCase):
             local addonButton = surface("Button", Minimap)
             function addonButton:GetName() return "LibDBIcon10_BugSack" end
             addonButton:SetPoint("CENTER", Minimap, "CENTER", -40, -40)
+            addonButton:SetSize(40, 40)
+            addonButton:SetScale(1.25)
             local addonIcon = addonButton:CreateTexture()
             addonIcon:SetTexture("Interface\\Icons\\INV_Misc_Bug_01")
             local addonBorder = addonButton:CreateTexture()
@@ -595,12 +597,14 @@ class AddonTests(unittest.TestCase):
             assert(select(2, GameTimeFrame:GetPoint()) == dock)
             assert(select(2, addonButton:GetPoint()) == dock)
             assert(select(2, custom:GetPoint()) == dock)
+            assert(addonButton:GetWidth() == 24 and addonButton:GetHeight() == 24 and addonButton:GetScale() == 1)
             assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnEnter == enter and addonButton.scripts.OnDragStart == drag)
 
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
             local point = {addonButton:GetPoint()}
             assert(point[1] == original[1] and point[2] == original[2] and point[4] == original[4] and point[5] == original[5])
             assert(addonBorder.alpha == 1 and addonIcon.alpha == 1 and not dock.visible)
+            assert(addonButton:GetWidth() == 40 and addonButton:GetHeight() == 40 and addonButton:GetScale() == 1.25)
             assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnDragStart == drag)
         ''')
 
