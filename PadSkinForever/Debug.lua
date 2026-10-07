@@ -77,6 +77,12 @@ local function MinimapObjectLine(object, prefix)
     if object.GetTexture then parts[#parts + 1] = "texture=" .. Read(object, "GetTexture") end
     if object.GetAlpha then parts[#parts + 1] = "alpha=" .. Read(object, "GetAlpha") end
     if object.IsShown then parts[#parts + 1] = "shown=" .. Read(object, "IsShown") end
+    if object.GetFrameLevel then parts[#parts + 1] = "level=" .. Read(object, "GetFrameLevel") end
+    if object.GetFrameStrata then parts[#parts + 1] = "strata=" .. Read(object, "GetFrameStrata") end
+    if object.GetDrawLayer then
+        local layer, sublevel = Read(object, "GetDrawLayer")
+        parts[#parts + 1] = "draw=" .. layer .. "/" .. sublevel
+    end
     if object.GetText then parts[#parts + 1] = "text=" .. Read(object, "GetText") end
     if object.GetFont then
         local path, size, flags = Read(object, "GetFont")
@@ -128,6 +134,21 @@ function addon:CaptureMinimapDebug()
         end
     end
     for _, root in ipairs(roots) do Walk(root[1], root[2], 0) end
+    -- Explicitly capture the three coordinate presentation layers so a single
+    -- report distinguishes missing data from draw-order/frame-level problems.
+    for _, named in ipairs({
+        { _G["PadSkinForeverMinimapFooter"], "PSFCoordinate/footer" },
+        { _G["PadSkinForeverMinimapCard"], "PSFCoordinate/card" },
+    }) do
+        local line = MinimapObjectLine(named[1], named[2])
+        if line then minimapHistory[#minimapHistory + 1] = line end
+        if named[1] and named[1].GetRegions then
+            for index, region in ipairs({ named[1]:GetRegions() }) do
+                local regionLine = MinimapObjectLine(region, named[2] .. "/region" .. index)
+                if regionLine then minimapHistory[#minimapHistory + 1] = regionLine end
+            end
+        end
+    end
     self:Print("Captured minimap diagnostics. Open /psf > Debug and copy the report.")
 end
 
