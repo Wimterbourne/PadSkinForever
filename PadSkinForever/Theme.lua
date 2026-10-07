@@ -359,8 +359,8 @@ local function EnsureMinimapClusterCard()
     minimapClusterCard:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 2))
     -- One restrained glass shell around Blizzard's authoritative map geometry.
     -- The 3 px map inset, compact header and lower coordinate notch are PSF-owned.
-    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -7, 27)
-    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 7, -7)
+    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -8, 30)
+    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 8, -9)
     addon:CreateGlassPanel(minimapClusterCard, addon.design.surface.glass, addon.design.radius.card)
     -- Class identity lives only in the thin outer seam; map/status colors remain semantic.
     local identity = addon:GetIdentityColor("player")
@@ -374,10 +374,10 @@ local function EnsureMinimapClusterCard()
     minimapHeader = CreateFrame("Frame", "PadSkinForeverMinimapHeader", MinimapCluster)
     minimapHeader:EnableMouse(false)
     minimapHeader:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 0, 4)
-    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 0, 4)
-    minimapHeader:SetHeight(20)
-    addon:CreateGlassPanel(minimapHeader, addon.design.surface.peripheral, addon.design.radius.compact)
+    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", -3, 5)
+    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 3, 5)
+    minimapHeader:SetHeight(21)
+    addon:CreateGlassPanel(minimapHeader, addon.design.surface.frosted, addon.design.radius.compact)
 
     -- Keep the header visually quiet until Forever exposes a reliable standalone
     -- day/night state glyph. The circular DayCycle atlas is chrome, not the state.
@@ -385,9 +385,9 @@ local function EnsureMinimapClusterCard()
     minimapFooter = CreateFrame("Frame", "PadSkinForeverMinimapFooter", MinimapCluster)
     minimapFooter:EnableMouse(false)
     minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapFooter:SetSize(82, 18)
-    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, -3)
-    addon:CreateGlassPanel(minimapFooter, addon.design.surface.glass, addon.design.radius.compact)
+    minimapFooter:SetSize(88, 19)
+    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, -4)
+    addon:CreateGlassPanel(minimapFooter, addon.design.surface.frosted, addon.design.radius.compact)
     if minimapFooter.PSFRoundedRegions then
         for _, region in ipairs(minimapFooter.PSFRoundedRegions.border) do
             region:SetVertexColor(identity[1], identity[2], identity[3], .52)
@@ -509,14 +509,14 @@ local function EnsureMinimapDock()
     -- This avoids creating a second full-width footer or colliding with the
     -- centered coordinate tab.
     minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -4, 4)
-    addon:CreateGlassPanel(minimapDock, addon.design.surface.floating, addon.design.radius.socket)
+    addon:CreateGlassPanel(minimapDock, addon.design.surface.wellSoft, addon.design.radius.socket)
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
     minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
     minimapDockPanel:EnableMouse(false)
     minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
     minimapDockPanel:SetPoint("BOTTOMRIGHT", minimapDock, "TOPRIGHT", 0, 4)
-    addon:CreateGlassPanel(minimapDockPanel, addon.design.surface.floating, addon.design.radius.socket)
+    addon:CreateGlassPanel(minimapDockPanel, addon.design.surface.wellSoft, addon.design.radius.socket)
     addon:DebugSurface(minimapDockPanel, "Minimap/IconDock/Overflow", "overflow minimap controls")
     minimapDockPanel:Hide()
 
