@@ -6,19 +6,29 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 local CORNER = "Interface\\AddOns\\PadSkinForever\\Media\\LegendCorner"
 local PANEL_RADIUS = 12
 
--- 0.9 design system.  All PSF-owned surfaces draw from these tokens so a
--- unit frame, loot toast and settings panel read as parts of one interface.
+-- PSF 1.0 design-system foundation. Keep these tokens semantic: modules
+-- should request a role (surface, rail, identity, focus) rather than inventing
+-- local colors and geometry. 1920x1080 at UI scale 0.9-1.0 is the baseline.
 addon.design = {
-    cardRadius = 12,
-    compactRadius = 9,
-    inset = 3,
-    gap = 2,
-    card = { fill = { .025, .031, .040, .91 }, border = { .62, .67, .73, .25 } },
-    cardStrong = { fill = { .020, .026, .034, .97 }, border = { .66, .71, .77, .32 } },
-    well = { fill = { .010, .014, .020, .86 }, border = { .52, .58, .65, .20 } },
-    wellSoft = { fill = { .010, .014, .020, .70 }, border = { .52, .58, .65, .12 } },
-    rail = { fill = { .018, .024, .032, .92 }, border = { .62, .67, .73, .18 } },
-    floating = { fill = { .030, .038, .049, .95 }, border = { .68, .73, .79, .30 } },
+    baseline = { width = 1920, height = 1080, minScale = .9, maxScale = 1.0 },
+    radius = { card = 12, compact = 9, socket = 7, rail = 5 },
+    spacing = { hairline = 1, inset = 3, gap = 2, group = 6, section = 10 },
+    depth = { peripheral = .78, standard = .90, combat = .96 },
+    surface = {
+        glass = { fill = { .025, .031, .040, .88 }, border = { .62, .67, .73, .22 } },
+        strong = { fill = { .020, .026, .034, .96 }, border = { .66, .71, .77, .30 } },
+        peripheral = { fill = { .025, .031, .040, .74 }, border = { .58, .63, .69, .16 } },
+        well = { fill = { .010, .014, .020, .82 }, border = { .52, .58, .65, .16 } },
+        wellSoft = { fill = { .010, .014, .020, .66 }, border = { .52, .58, .65, .10 } },
+        rail = { fill = { .018, .024, .032, .88 }, border = { .62, .67, .73, .16 } },
+        floating = { fill = { .030, .038, .049, .92 }, border = { .68, .73, .79, .26 } },
+    },
+    identity = {
+        edgeAlpha = .92,
+        edgeSoftAlpha = .42,
+        neutral = { .62, .67, .73, 1 },
+    },
+    focus = { color = { .34, .86, .49, 1 }, bracketAlpha = .96 },
     type = {
         title = { size = 15, weight = "semibold" },
         name = { size = 13, weight = "semibold" },
@@ -28,19 +38,31 @@ addon.design = {
         world = { size = 12, weight = "semibold", flags = "OUTLINE" },
     },
 }
+-- Compatibility aliases while existing 0.9 components migrate to semantic
+-- primitives. Remove these only after every module uses design.surface/radius.
+addon.design.cardRadius = addon.design.radius.card
+addon.design.compactRadius = addon.design.radius.compact
+addon.design.inset = addon.design.spacing.inset
+addon.design.gap = addon.design.spacing.gap
+addon.design.card = addon.design.surface.glass
+addon.design.cardStrong = addon.design.surface.strong
+addon.design.well = addon.design.surface.well
+addon.design.wellSoft = addon.design.surface.wellSoft
+addon.design.rail = addon.design.surface.rail
+addon.design.floating = addon.design.surface.floating
 
 addon.uiColors = {
-    fill = addon.design.cardStrong.fill,
+    fill = addon.design.surface.strong.fill,
     raised = { .065, .076, .091, .98 },
     border = { .42, .47, .53, .82 },
     borderSoft = { .32, .37, .43, .62 },
-    accent = { .34, .86, .49, 1 },
+    accent = addon.design.focus.color,
     text = { .94, .95, .96, 1 },
     muted = { .64, .67, .71, 1 },
 }
 
--- One semantic palette for every PSF bar family. Native bars keep their own
--- values and behavior; these colors only define presentation.
+-- One semantic palette for every PSF bar family. Resource/status color is
+-- deliberately separate from class identity and Xbox input color.
 addon.barColors = {
     neutral = { .67, .72, .78, 1 },
     health = { .18, .82, .31, 1 },
@@ -53,6 +75,21 @@ addon.barColors = {
     lunar = { .64, .36, 1, 1 },
     experience = { .52, .25, .88, 1 },
 }
+
+-- Identity color is intentionally not selection color. Player units use their
+-- own class color; NPC/pet identity falls back to a neutral glass edge.
+function addon:GetIdentityColor(unit)
+    if unit and UnitIsPlayer and UnitIsPlayer(unit) and UnitClass then
+        local _, class = UnitClass(unit)
+        local color = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+        if color then return { color.r, color.g, color.b, 1 } end
+    end
+    return self.design.identity.neutral
+end
+
+function addon:GetSurfacePalette(role)
+    return self.design.surface[role or "glass"] or self.design.surface.glass
+end
 
 local function Color(region, color)
     region:SetVertexColor(unpack(color))
