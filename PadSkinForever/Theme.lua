@@ -537,7 +537,31 @@ local function Map(enabled)
     end
     addon:ThemeAlpha(MinimapBorder, enabled)
     addon:ThemeAlpha(MinimapBorderTop, enabled)
-    addon:ThemeFont(MinimapZoneText, enabled, true)
+    -- Minimap header/footer typography follows the PSF reference: location is
+    -- the identity label; time and coordinates are quieter metadata.
+    addon:ApplyPSFFont(MinimapZoneText, "name")
+    local clock = _G["TimeManagerClockButton"]
+    if clock and clock.GetRegions then
+        for _, region in ipairs({ clock:GetRegions() }) do
+            if region:IsObjectType("FontString") then addon:ApplyPSFFont(region, "label") end
+        end
+    end
+    for _, candidate in ipairs({
+        MinimapCluster and MinimapCluster.Coordinates,
+        MinimapCluster and MinimapCluster.CoordinateText,
+        _G["MinimapCoordinates"],
+        _G["MinimapCoordinatesText"],
+    }) do
+        if candidate then
+            if candidate.IsObjectType and candidate:IsObjectType("FontString") then
+                addon:ApplyPSFFont(candidate, "label")
+            elseif candidate.GetRegions then
+                for _, region in ipairs({ candidate:GetRegions() }) do
+                    if region:IsObjectType("FontString") then addon:ApplyPSFFont(region, "label") end
+                end
+            end
+        end
+    end
 
     local card = EnsureMinimapClusterCard()
     if card then card:SetShown(enabled and square) end
