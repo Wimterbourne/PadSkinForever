@@ -56,6 +56,27 @@ addon.design.wellSoft = addon.design.surface.wellSoft
 addon.design.rail = addon.design.surface.rail
 addon.design.floating = addon.design.surface.floating
 
+-- Shared controller interaction language. Modules can apply these visual
+-- states without taking ownership of Blizzard's navigation or bindings.
+addon.design.input = {
+    glyph = { face = "xboxColor", dpad = "xboxAccent" },
+    state = {
+        normal = { alpha = 1, edgeAlpha = .26, scale = 1 },
+        focused = { alpha = 1, edgeAlpha = .96, scale = 1.035 },
+        pressed = { alpha = .92, edgeAlpha = .78, scale = .985 },
+        selected = { alpha = 1, edgeAlpha = .72, scale = 1 },
+        disabled = { alpha = .46, edgeAlpha = .12, scale = 1 },
+    },
+}
+
+function addon:GetInputState(name)
+    return self.design.input.state[name or "normal"] or self.design.input.state.normal
+end
+
+function addon:GetInputFocusColor()
+    return self.design.focus.color
+end
+
 addon.uiColors = {
     fill = addon.design.surface.strong.fill,
     raised = { .065, .076, .091, .98 },
