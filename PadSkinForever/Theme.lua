@@ -275,6 +275,37 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
     end
 end
 
+local function MinimapDayCycle(enabled)
+    if not MinimapCluster or not MinimapCluster.GetChildren then return end
+    for _, child in ipairs({ MinimapCluster:GetChildren() }) do
+        if child.GetRegions then
+            local dayCycle = false
+            for _, region in ipairs({ child:GetRegions() }) do
+                if region.IsObjectType and region:IsObjectType("Texture") and region.GetAtlas then
+                    local atlas = region:GetAtlas()
+                    if atlas == "UI-HUD-Minimap-DayCycle" or atlas == "UI-HUD-Minimap-Frame-Cycle" then
+                        dayCycle = true
+                        break
+                    end
+                end
+            end
+            if dayCycle then
+                -- Forever exposes this circular day/night presentation as an
+                -- unnamed cluster child. Hide only its two decorative textures;
+                -- the cluster and every native interactive control stay intact.
+                for _, region in ipairs({ child:GetRegions() }) do
+                    if region.IsObjectType and region:IsObjectType("Texture") and region.GetAtlas then
+                        local atlas = region:GetAtlas()
+                        if atlas == "UI-HUD-Minimap-DayCycle" or atlas == "UI-HUD-Minimap-Frame-Cycle" then
+                            addon:ThemeAlpha(region, enabled)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
 local DOCK_VISIBLE_LIMIT, DOCK_ITEM, DOCK_HEIGHT, DOCK_CONTROL = 5, 28, 30, 24
 
 local function MinimapDockVisible()
@@ -537,6 +568,9 @@ local function Map(enabled)
     end
     addon:ThemeAlpha(MinimapBorder, enabled)
     addon:ThemeAlpha(MinimapBorderTop, enabled)
+    -- Runtime diagnostics identify Forever's remaining upper-right circle by
+    -- atlas rather than frame name, so this remains resilient to unnamed frames.
+    MinimapDayCycle(enabled)
     -- Minimap header/footer typography follows the PSF reference: location is
     -- the identity label; time and coordinates are quieter metadata.
     addon:ApplyPSFFont(MinimapZoneText, "name")
