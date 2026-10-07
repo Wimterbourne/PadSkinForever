@@ -70,23 +70,150 @@ The result must remain flat enough to belong in WoW: no photorealistic plastic, 
 
 ## Color language
 
-Color communicates meaning.
+Color communicates meaning through three separate layers:
 
-- PSF focus/selection: mint green.
-- Health: green.
-- Mana: blue.
-- Focus: orange.
-- Energy: yellow.
-- Rage: red.
-- Neutral timers/rails: silver/graphite.
-- Xbox face buttons retain their learned semantics: **A green, B red, X blue, Y yellow**.
+1. **Class color = identity.** Glass-edge accents on player-owned identity surfaces use the player's class color. For other player units, use that unit's class color where known. NPCs do not inherit the player's class color.
+2. **Resource/status color = state.** Health green, mana blue, focus orange, energy yellow, rage red, neutral timers/rails silver/graphite. Reaction, threat and encounter states keep their own semantic meaning.
+3. **Xbox ABXY color = input.** A green, B red, X blue, Y yellow. These colors belong to controller actions and must not become general decoration.
 
-Xbox colors belong primarily to input/action language. They must not turn the entire UI into four-color decoration.
+PSF focus/selection remains a distinct controlled mint cue where a controller focus state needs to be communicated. Class-colored glass edges are identity, not selection.
+
+## Spatial glass language
+
+PSF borrows the useful visual principles of modern spatial Xbox UI without copying a floating-window layout.
+
+- Surfaces feel lightly suspended over the world through translucency, restrained depth and selective edge light.
+- Prefer floating components and connected rails over stacks of rectangular panels.
+- Borders may fade or strengthen along a contour instead of outlining every surface uniformly.
+- Thin luminous edge segments should resemble molded controller seams.
+- Depth establishes hierarchy: combat-critical elements are visually nearer/clearer; peripheral chat/objective information is quieter.
+- Do not use heavy blur, excessive glow, fake glass reflections or photorealistic plastic.
+- At 1080p the treatment must remain crisp and readable; spatial styling may never depend on tiny text or excessive transparency.
+
+## Unit Frames & Nameplates
+
+### Core information rule
+
+**Information is shown by relevance, and every piece of information should have one dominant home.**
+
+Unit frames communicate identity and important unit state. Nameplates communicate immediate tactical world information. The target frame bridges the two.
+
+### Player frame
+
+The player frame at top-left is an identity/status component, not a second combat dashboard.
+
+Show:
+- square/soft-square portrait as the dominant shape;
+- player name;
+- level only where useful;
+- relevant buffs/debuffs attached as compact icon sockets;
+- class-colored glass-edge accent.
+
+Do not show prominent health or power bars. The central combat HUD is the primary source for the player's health/resources.
+
+### Pet frame
+
+The pet frame uses the same compact identity language.
+
+Show:
+- portrait;
+- name;
+- relevant buffs/debuffs;
+- pet happiness/status.
+
+The native pet happiness icon should be skinned/integrated as a small controller-like status socket rather than floating as an unrelated Blizzard icon. Pet identity should not blindly inherit the player's class-color accent.
+
+### Party frames
+
+Party frames continue vertically from the identity area but must carry more state because party health is not represented in the central HUD.
+
+Show:
+- compact portrait;
+- name;
+- one thin health rail;
+- relevant debuffs/status.
+
+Power is optional and should only appear where it provides useful gameplay information. Debuffs take priority over decorative/full buff lists.
+
+The glance test is: **who is this, how healthy are they, and is something wrong?**
+
+### Target frame
+
+The target frame is a minimalist boss-health hierarchy rather than a conventional WoW unit card.
+
+Show:
+- small portrait/socket at one end;
+- target name;
+- level/elite/boss status where relevant;
+- long, very thin health rail;
+- compact buffs/debuffs directly below.
+
+Own player/pet/vehicle debuffs receive priority, followed by other relevant effects. Target-of-target is substantially smaller and secondary.
+
+Normal targets remain sparse. Elite/boss targets may reveal additional encounter-relevant state without changing into a different visual system.
+
+### Nameplates
+
+Nameplates belong in the world and must be more aggressively minimal than unit frames.
+
+A normal hostile nameplate primarily shows:
+- name;
+- thin health rail;
+- only immediately relevant state.
+
+Do not add portraits, large background cards, resource bars, full aura grids or redundant metadata by default.
+
+Information scales with relevance:
+- neutral/unimportant NPC: name, and health only if useful;
+- hostile unit: name + thin health rail;
+- current target: stronger rail + controller focus brackets;
+- quest unit: small quest-status indicator;
+- elite/boss: name + health + elite/boss status;
+- casting enemy: temporary cast rail becomes prominent;
+- important debuff: compact relevant aura indicator only;
+- friendly player: name + class identity, health where relevant;
+- party member in world: restrained group indicator;
+- dead unit: heavily reduced/dimmed presentation.
+
+Twenty nearby enemies must not create twenty full UI panels.
+
+### Controller target/focus language
+
+Selection should use compact geometric **focus brackets** around or adjacent to the health rail, inspired by Xbox focus/navigation geometry. Avoid a thick glowing rectangle around the entire nameplate.
+
+The bracket can strengthen while actively controller-targeted and recede when not selected.
+
+Class color is never a universal target-selection color. Class color communicates identity; reaction/threat/health/focus retain their own semantics.
+
+### Casts and auras
+
+For world nameplates, casts are generally more important than aura volume.
+
+- Enemy casts appear as a second thin rail associated with the health rail.
+- Interruptibility must be immediately distinguishable without excessive color/glow.
+- Nameplate aura display is deliberately filtered.
+- Player-owned combat-relevant effects may appear as compact icons/status sockets.
+- Do not reproduce a full target-frame aura grid on every nameplate.
+
+### Shared component grammar
+
+Unit frames, target frames and nameplates use the same visual vocabulary at different information densities:
+
+- **portrait/socket** = identity;
+- **thin rail** = measurable state;
+- **small socket/icon** = status;
+- **class-colored glass edge** = class identity;
+- **semantic fill color** = resource/reaction/threat/status;
+- **focus bracket** = controller selection;
+- **ABXY color** = controller action only.
+
+This shared grammar should make the HUD feel like one system without forcing every component into the same box.
 
 ## Surfaces and lines
 
 - Base surfaces: dark anthracite/graphite, translucent where world readability permits.
 - Borders: thin neutral grey, low contrast.
+- Identity surfaces: selective glass-edge accent using the appropriate class color.
 - Active/focused state: controlled mint highlight, not a glowing frame around everything.
 - Resource/status wells: dark recessed rails with semantic fill.
 - Use negative space before adding another container.
@@ -121,14 +248,15 @@ The UI should be understandable from the controller before reading help text.
 6. Prefer a line, well or icon over another panel.
 7. Preserve native behavior before replacing it.
 8. At 1080p/0.9–1.0 scale, readability wins over fitting more elements.
+9. Information density increases only with gameplay relevance.
 
 ## Concept-image prompt
 
 Use this as the canonical visual-generation prompt and update this document when the design direction changes:
 
-> Create a 1920x1080 in-game concept for PadSkinForever, a minimalist controller-first UI for World of Warcraft: Forever. Preserve the recognizable WoW world and native GamepadUI composition, but translate the visual language through the forms and lines of a modern Xbox controller. The Xbox controller is a geometry reference, not a decorative object: use soft controller-shell curves, recessed thumbstick/button-like wells, thin molded seam lines, restrained shoulder/trigger-inspired edge shapes, circular status sockets and clear grouped controls. Use dark translucent anthracite/graphite surfaces, thin neutral borders, mint-green PSF focus accents, Inter-style clean typography, and semantic resource colors. Xbox A/B/X/Y retain green/red/blue/yellow only as input language.
+> Create a 1920x1080 in-game concept for PadSkinForever, a minimalist controller-first UI for World of Warcraft: Forever. Preserve the recognizable WoW world and native GamepadUI composition, but translate the visual language through the forms and lines of a modern Xbox controller. The Xbox controller is a geometry reference, not a decorative object: use soft controller-shell curves, recessed thumbstick/button-like wells, thin molded seam lines, restrained shoulder/trigger-inspired edge shapes, circular status sockets and clear grouped controls. Add a restrained modern spatial-Xbox surface language: translucent graphite glass, selective luminous edge segments, floating connected rails and subtle depth hierarchy without heavy blur or fake plastic. Class-colored glass edges communicate identity; resource colors communicate state; Xbox A/B/X/Y green/red/blue/yellow communicate input. Keep these color systems separate.
 
-> Design for real WoW at 1920x1080 with UI scale 0.9–1.0, so elements must be genuinely compact and readable without relying on tiny scaling. Keep the center/world view open. Top-left: compact player and pet identity frames with square/soft-square portraits, names and attached buffs/debuffs; do not put large health/resource bars there. Integrate and skin the pet happiness/status icon. Party frames continue compactly below. Top-center: a Breath-of-the-Wild-like boss hierarchy for the target — a long, very thin health bar, small integrated portrait, restrained name/level, with compact buffs/debuffs directly underneath; target-of-target is much smaller. Bottom-center: preserve the actual PSF architecture — player/pet health and resource rows form one central combat-status block with the native swing timers, and the native controller action bars/glyph cluster sits immediately below. Make this read as one clean Xbox-inspired combat cockpit without enclosing everything in one giant box. Top-right: compact minimap and objectives column. Bottom-left: quiet translucent chat. Bottom-right: quiet damage meter. Bottom edge: extremely thin XP/progress bar. Use negative space aggressively. Avoid redundant information, oversized panels, generic addon-box aesthetics, excessive neon, photorealistic controller plastic and decorative clutter. The final impression is WoW Forever reimagined as a first-party Xbox interface: immersive, controller-native, minimal, coherent and immediately readable.
+> Design for real WoW at 1920x1080 with UI scale 0.9–1.0, so elements must be genuinely compact and readable without relying on tiny scaling. Keep the center/world view open. Top-left: compact player and pet identity frames with square/soft-square portraits, names and attached buffs/debuffs; do not put large health/resource bars there. Integrate and skin the pet happiness/status icon. Party frames continue compactly below with portrait, name, thin health rail and relevant debuffs. Top-center: a Breath-of-the-Wild-like boss hierarchy for the target — a long, very thin health bar, small integrated portrait, restrained name/level, with compact buffs/debuffs directly underneath; target-of-target is much smaller. Bottom-center: preserve the actual PSF architecture — player/pet health and resource rows form one central combat-status block with the native swing timers, and the native controller action bars/glyph cluster sits immediately below. Make this read as one clean Xbox-inspired combat cockpit without enclosing everything in one giant box. Top-right: compact minimap and objectives column. Bottom-left: quiet translucent chat. Bottom-right: quiet damage meter. Bottom edge: extremely thin XP/progress bar. World nameplates are exceptionally minimal: name + thin health rail, controller-focus brackets only on the current target, a second thin rail for casts, and only highly relevant aura/status icons. Use negative space aggressively. Avoid redundant information, oversized panels, generic addon-box aesthetics, excessive neon, photorealistic controller plastic and decorative clutter. The final impression is WoW Forever reimagined as a first-party Xbox interface: immersive, controller-native, spatially light, minimal, coherent and immediately readable.
 
 ## Review test
 
@@ -136,6 +264,7 @@ A proposed PSF component is on-design when:
 - it remains readable at 1080p and 0.9–1.0 scale;
 - it reduces rather than increases visual competition with the world;
 - its shape plausibly belongs to the same Xbox-inspired component family;
-- its colors communicate state/input rather than decoration;
+- its colors communicate identity/state/input without mixing those roles;
 - it does not duplicate a stronger information source elsewhere;
+- its information density matches the gameplay relevance of the unit;
 - it preserves native secure/controller behavior wherever practical.
