@@ -9,7 +9,9 @@ local rings = setmetatable({}, { __mode = "k" })
 local watched = setmetatable({}, { __mode = "k" })
 local minimapMask, minimapChanged
 local minimapSockets = setmetatable({}, { __mode = "k" })
-local minimapDock, minimapDocked = nil, setmetatable({}, { __mode = "k" })
+local minimapDock, minimapDockPanel, minimapDockLauncher
+local minimapDocked = setmetatable({}, { __mode = "k" })
+local minimapDockOpen = false
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
 
@@ -271,21 +273,45 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
     end
 end
 
+local DOCK_VISIBLE_LIMIT, DOCK_ITEM, DOCK_HEIGHT = 5, 28, 30
+
 local function EnsureMinimapDock()
     if minimapDock or not Minimap then return minimapDock end
     minimapDock = CreateFrame("Frame", "PadSkinForeverMinimapDock", Minimap)
     minimapDock:EnableMouse(false)
     minimapDock:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapDock:SetHeight(34)
-    minimapDock:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, -5)
+    minimapDock:SetHeight(DOCK_HEIGHT)
+    minimapDock:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, -4)
     addon:CreateRoundedPanel(minimapDock, addon.design.surface.peripheral, addon.design.radius.compact)
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
+
+    minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
+    minimapDockPanel:EnableMouse(false)
+    minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
+    minimapDockPanel:SetPoint("TOPRIGHT", minimapDock, "BOTTOMRIGHT", 0, -4)
+    addon:CreateRoundedPanel(minimapDockPanel, addon.design.surface.glass, addon.design.radius.compact)
+    addon:DebugSurface(minimapDockPanel, "Minimap/IconDock/Overflow", "overflow minimap controls")
+    minimapDockPanel:Hide()
+
+    minimapDockLauncher = CreateFrame("Button", "PadSkinForeverMinimapDockLauncher", minimapDock)
+    minimapDockLauncher:SetSize(24, 24)
+    minimapDockLauncher:SetPoint("CENTER", minimapDock, "CENTER", 0, 0)
+    local mark = minimapDockLauncher:CreateFontString(nil, "OVERLAY")
+    mark:SetPoint("CENTER")
+    mark:SetText("•••")
+    addon:ThemeFont(mark, true, true)
+    minimapDockLauncher:SetScript("OnClick", function()
+        minimapDockOpen = not minimapDockOpen
+        addon:QueueRefresh()
+    end)
+    minimapDockLauncher:Hide()
+    addon:DebugSurface(minimapDockLauncher, "Minimap/IconDock/Launcher", "overflow launcher")
     return minimapDock
 end
 
 local function SaveDockAnchor(control)
     if minimapDocked[control] then return minimapDocked[control] end
-    local saved = { points = {} }
+    local saved = { points = {}, shown = control.IsShown and control:IsShown() }
     local count = control.GetNumPoints and control:GetNumPoints() or 1
     if control.GetPoint then
         for index = 1, math.max(1, count) do
@@ -302,16 +328,22 @@ local function RestoreDockAnchor(control)
     if not saved then return end
     control:ClearAllPoints()
     for _, point in ipairs(saved.points) do control:SetPoint(unpack(point)) end
+    if control.SetShown and saved.shown ~= nil then control:SetShown(saved.shown) end
     minimapDocked[control] = nil
 end
 
-local function DockMinimapControl(control, dock, index, enabled, label, thirdParty)
+local function DockMinimapControl(control, parent, index, columns, enabled, label, thirdParty)
     if not control then return end
     MinimapControlSocket(control, enabled, label, thirdParty)
     if enabled then
         SaveDockAnchor(control)
         control:ClearAllPoints()
-        control:SetPoint("LEFT", dock, "LEFT", 5 + (index - 1) * 30, 0)
+        local column = (index - 1) % columns
+        local row = math.floor((index - 1) / columns)
+        control:SetPoint("CENTER", parent, "TOPLEFT",
+            6 + DOCK_ITEM / 2 + column * DOCK_ITEM,
+            -6 - DOCK_ITEM / 2 - row * DOCK_ITEM)
+        if control.Show then control:Show() end
     else
         RestoreDockAnchor(control)
     end
@@ -333,47 +365,80 @@ local function MinimapControls(enabled)
         { _G["MiniMapMailFrame"], "Mail" },
     }
     local controls, seen = {}, {}
-    for _, entry in ipairs(candidates) do
-        local control, label = entry[1], entry[2]
-        if control and not seen[control] then
-            seen[control] = true
-            controls[#controls + 1] = { control, label, false }
-        end
+    local function Add(control, label, thirdParty)
+        if not control or seen[control] then return end
+        seen[control] = true
+        -- Hidden native status controls (mail/queue/etc.) do not consume dock
+        -- space until Blizzard actually presents them.
+        if control.IsShown and not control:IsShown() and not minimapDocked[control] then return end
+        controls[#controls + 1] = { control, label, thirdParty }
     end
+    for _, entry in ipairs(candidates) do Add(entry[1], entry[2], false) end
 
     -- Third-party minimap launchers conventionally parent their Button directly
-    -- to Minimap (LibDBIcon does this). Collect every such button rather than
-    -- maintaining an addon allowlist. Known native controls above win first.
+    -- to Minimap (LibDBIcon does this). Collect every visible direct button,
+    -- without maintaining an addon allowlist.
     if Minimap and Minimap.GetChildren then
         for _, control in ipairs({ Minimap:GetChildren() }) do
-            if control ~= minimapDock and not seen[control] and control.IsObjectType and control:IsObjectType("Button") then
-                seen[control] = true
+            if control ~= minimapDock and control ~= minimapDockPanel and not seen[control]
+                and control.IsObjectType and control:IsObjectType("Button") then
                 local name = control.GetName and control:GetName()
-                controls[#controls + 1] = { control, type(name) == "string" and name or "AddonButton", true }
+                Add(control, type(name) == "string" and name or "AddonButton", true)
             end
         end
     end
 
     local dock = EnsureMinimapDock()
     if not dock then return end
+    local overflow = enabled and #controls > DOCK_VISIBLE_LIMIT
     if enabled and #controls > 0 then
-        dock:SetWidth(10 + #controls * 30)
+        dock:SetWidth(overflow and 32 or (8 + #controls * DOCK_ITEM))
         dock:Show()
     else
         dock:Hide()
     end
-    for index, entry in ipairs(controls) do
-        DockMinimapControl(entry[1], dock, index, enabled, entry[2], entry[3])
+    minimapDockLauncher:SetShown(overflow)
+    if not overflow then minimapDockOpen = false end
+
+    if overflow then
+        local columns = math.min(DOCK_VISIBLE_LIMIT, #controls)
+        local rows = math.ceil(#controls / columns)
+        minimapDockPanel:SetSize(12 + columns * DOCK_ITEM, 12 + rows * DOCK_ITEM)
+        minimapDockPanel:SetShown(minimapDockOpen)
+        for index, entry in ipairs(controls) do
+            if minimapDockOpen then
+                DockMinimapControl(entry[1], minimapDockPanel, index, columns, true, entry[2], entry[3])
+            else
+                -- Keep the original button and behavior intact, but remove it
+                -- visually until the PSF overflow launcher is opened.
+                MinimapControlSocket(entry[1], true, entry[2], entry[3])
+                SaveDockAnchor(entry[1])
+                entry[1]:Hide()
+            end
+        end
+    else
+        minimapDockPanel:Hide()
+        for index, entry in ipairs(controls) do
+            DockMinimapControl(entry[1], dock, index, math.max(1, #controls), enabled, entry[2], entry[3])
+        end
     end
 
-    -- Restore controls that disappeared from discovery while PSF was active.
+    -- Restore controls no longer discovered, and restore everything when the
+    -- theme is disabled. This also restores each button's prior shown state.
+    local active = {}
+    if enabled then for _, entry in ipairs(controls) do active[entry[1]] = true end end
+    local restore = {}
+    for control in pairs(minimapDocked) do
+        if not active[control] then restore[#restore + 1] = control end
+    end
+    for _, control in ipairs(restore) do
+        MinimapControlSocket(control, false, "Restored", true)
+        RestoreDockAnchor(control)
+    end
     if not enabled then
-        local restore = {}
-        for control in pairs(minimapDocked) do restore[#restore + 1] = control end
-        for _, control in ipairs(restore) do
-            MinimapControlSocket(control, false, "Restored", true)
-            RestoreDockAnchor(control)
-        end
+        minimapDockOpen = false
+        minimapDockPanel:Hide()
+        minimapDockLauncher:Hide()
     end
 end
 
