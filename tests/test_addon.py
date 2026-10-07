@@ -553,6 +553,57 @@ class AddonTests(unittest.TestCase):
             assert(MiniMapTracking.scripts.OnClick == click)
         ''')
 
+    def test_minimap_discovers_libdbicon_and_preserves_behavior(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            Minimap = surface(); Minimap.mask = "native-circle"
+            function Minimap:SetMaskTexture(value) self.mask = value end
+            MinimapCluster = surface()
+
+            GameTimeFrame = surface("Button", MinimapCluster)
+            local moon = GameTimeFrame:CreateTexture()
+            moon:SetTexture("Interface\\Calendar\\UI-Calendar-Button")
+            local nativeBorder = GameTimeFrame:CreateTexture()
+            nativeBorder:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+
+            local addonButton = surface("Button", Minimap)
+            function addonButton:GetName() return "LibDBIcon10_BugSack" end
+            local addonIcon = addonButton:CreateTexture()
+            addonIcon:SetTexture("Interface\\Icons\\INV_Misc_Bug_01")
+            local addonBackground = addonButton:CreateTexture()
+            addonBackground:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+            local addonBorder = addonButton:CreateTexture()
+            addonBorder:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+            local click, enter, drag = function() end, function() end, function() end
+            addonButton.scripts.OnClick = click
+            addonButton.scripts.OnEnter = enter
+            addonButton.scripts.OnDragStart = drag
+            addonButton:SetPoint("CENTER", Minimap, "CENTER", -40, -40)
+            local originalPoint = {addonButton:GetPoint()}
+
+            local unknown = surface("Button", Minimap)
+            local unknownArt = unknown:CreateTexture()
+            unknownArt:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+
+            addon:QueueRefresh(); drain()
+            assert(nativeBorder.alpha == 0 and moon.alpha == 1, "day/night icon must survive its round chrome")
+            assert(addonBackground.alpha == 0 and addonBorder.alpha == 0)
+            assert(addonIcon.alpha == 1, "addon icon must remain visible")
+            assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnEnter == enter)
+            assert(addonButton.scripts.OnDragStart == drag)
+            local point = {addonButton:GetPoint()}
+            assert(point[1] == originalPoint[1] and point[4] == originalPoint[4] and point[5] == originalPoint[5])
+            local socket = addonButton.children[#addonButton.children]
+            assert(socket and socket.visible and socket.mouse == false)
+            assert(unknownArt.alpha == 1 and #unknown.children == 0, "unknown buttons must fail open")
+
+            addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
+            assert(nativeBorder.alpha == 1 and moon.alpha == 1)
+            assert(addonBackground.alpha == 1 and addonBorder.alpha == 1 and addonIcon.alpha == 1)
+            assert(not socket.visible)
+            assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnDragStart == drag)
+        ''')
+
     def test_quest_details_and_border_skin_do_not_touch_map_canvas(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
