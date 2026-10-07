@@ -546,7 +546,8 @@ class AddonTests(unittest.TestCase):
             assert(MiniMapTracking.Border.alpha == 0)
             assert(MiniMapTracking.scripts.OnClick == click)
             local point = {MiniMapTracking:GetPoint()}
-            assert(point[1] == "LEFT" and point[2] == dock)
+            assert(point[1] == "CENTER" and point[2] == dock)
+            assert(dock.height == 30 and dock.width == 36)
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
             point = {MiniMapTracking:GetPoint()}
             assert(point[1] == original[1] and point[2] == original[2] and point[4] == original[4] and point[5] == original[5])
@@ -601,6 +602,50 @@ class AddonTests(unittest.TestCase):
             assert(point[1] == original[1] and point[2] == original[2] and point[4] == original[4] and point[5] == original[5])
             assert(addonBorder.alpha == 1 and addonIcon.alpha == 1 and not dock.visible)
             assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnDragStart == drag)
+        ''')
+
+    def test_minimap_dock_overflow_collapses_and_opens_grid(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            Minimap = surface(); Minimap.mask = "native-circle"
+            function Minimap:SetMaskTexture(value) self.mask = value end
+            MinimapCluster = surface()
+            local buttons = {}
+            for index = 1, 6 do
+                local button = surface("Button", Minimap)
+                button:SetPoint("CENTER", Minimap, "CENTER", index, index)
+                local icon = button:CreateTexture()
+                icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+                buttons[index] = button
+            end
+            addon:QueueRefresh(); drain()
+            local dock = PadSkinForeverMinimapDock
+            local panel = PadSkinForeverMinimapDockPanel
+            local launcher = PadSkinForeverMinimapDockLauncher
+            assert(dock.visible and dock.height == 30 and dock.width == 32)
+            assert(launcher.visible and not panel.visible)
+            for _, button in ipairs(buttons) do assert(not button.visible) end
+
+            launcher.scripts.OnClick(launcher)
+            drain()
+            assert(panel.visible)
+            assert(panel.width == 152 and panel.height == 68)
+            for _, button in ipairs(buttons) do
+                assert(button.visible and select(2, button:GetPoint()) == panel)
+            end
+
+            launcher.scripts.OnClick(launcher)
+            drain()
+            assert(not panel.visible)
+            for _, button in ipairs(buttons) do assert(not button.visible) end
+
+            addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
+            assert(not dock.visible and not panel.visible and not launcher.visible)
+            for index, button in ipairs(buttons) do
+                assert(button.visible)
+                local point = {button:GetPoint()}
+                assert(point[1] == "CENTER" and point[2] == Minimap and point[4] == index and point[5] == index)
+            end
         ''')
 
     def test_quest_details_and_border_skin_do_not_touch_map_canvas(self):
