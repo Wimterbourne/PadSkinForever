@@ -12,6 +12,8 @@ local minimapSockets = setmetatable({}, { __mode = "k" })
 local minimapDock, minimapDockPanel, minimapDockLauncher
 local minimapDocked = setmetatable({}, { __mode = "k" })
 local minimapDockOpen = false
+local minimapDockHover = false
+local minimapClusterCard
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
 
@@ -275,13 +277,40 @@ end
 
 local DOCK_VISIBLE_LIMIT, DOCK_ITEM, DOCK_HEIGHT, DOCK_CONTROL = 5, 28, 30, 24
 
+local function MinimapDockVisible()
+    return minimapDockHover or minimapDockOpen
+end
+
+local function EnsureMinimapClusterCard()
+    if minimapClusterCard or not MinimapCluster or not Minimap then return minimapClusterCard end
+    minimapClusterCard = CreateFrame("Frame", "PadSkinForeverMinimapCard", MinimapCluster)
+    minimapClusterCard:EnableMouse(true)
+    minimapClusterCard:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 2))
+    -- Follow Blizzard/Edit Mode geometry. The card only extends the visual surface
+    -- around the native map so header/footer belong to the same component.
+    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -4, 24)
+    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 4, -24)
+    addon:CreateRoundedPanel(minimapClusterCard, addon.design.surface.peripheral, addon.design.radius.card)
+    addon:DebugSurface(minimapClusterCard, "Minimap/card", "native minimap cluster presentation")
+    minimapClusterCard:SetScript("OnEnter", function()
+        minimapDockHover = true
+        addon:QueueRefresh()
+    end)
+    minimapClusterCard:SetScript("OnLeave", function()
+        minimapDockHover = false
+        addon:QueueRefresh()
+    end)
+    return minimapClusterCard
+end
+
 local function EnsureMinimapDock()
     if minimapDock or not Minimap then return minimapDock end
     minimapDock = CreateFrame("Frame", "PadSkinForeverMinimapDock", Minimap)
     minimapDock:EnableMouse(false)
     minimapDock:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
     minimapDock:SetHeight(DOCK_HEIGHT)
-    minimapDock:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, -4)
+    -- Overlay the footer zone instead of permanently extending the minimap.
+    minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, -22)
     addon:CreateRoundedPanel(minimapDock, addon.design.surface.peripheral, addon.design.radius.compact)
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
@@ -404,8 +433,9 @@ local function MinimapControls(enabled)
 
     local dock = EnsureMinimapDock()
     if not dock then return end
-    local overflow = enabled and #controls > DOCK_VISIBLE_LIMIT
-    if enabled and #controls > 0 then
+    local visible = enabled and MinimapDockVisible()
+    local overflow = visible and #controls > DOCK_VISIBLE_LIMIT
+    if visible and #controls > 0 then
         dock:SetWidth(overflow and 32 or (8 + #controls * DOCK_ITEM))
         dock:Show()
     else
@@ -414,7 +444,15 @@ local function MinimapControls(enabled)
     minimapDockLauncher:SetShown(overflow)
     if not overflow then minimapDockOpen = false end
 
-    if overflow then
+    if not visible then
+        minimapDockPanel:Hide()
+        minimapDockLauncher:Hide()
+        for _, entry in ipairs(controls) do
+            MinimapControlSocket(entry[1], true, entry[2], entry[3])
+            SaveDockAnchor(entry[1])
+            entry[1]:Hide()
+        end
+    elseif overflow then
         local columns = math.min(DOCK_VISIBLE_LIMIT, #controls)
         local rows = math.ceil(#controls / columns)
         minimapDockPanel:SetSize(12 + columns * DOCK_ITEM, 12 + rows * DOCK_ITEM)
@@ -450,6 +488,7 @@ local function MinimapControls(enabled)
         RestoreDockAnchor(control)
     end
     if not enabled then
+        minimapDockHover = false
         minimapDockOpen = false
         minimapDockPanel:Hide()
         minimapDockLauncher:Hide()
@@ -499,6 +538,9 @@ local function Map(enabled)
     addon:ThemeAlpha(MinimapBorder, enabled)
     addon:ThemeAlpha(MinimapBorderTop, enabled)
     addon:ThemeFont(MinimapZoneText, enabled, true)
+
+    local card = EnsureMinimapClusterCard()
+    if card then card:SetShown(enabled and square) end
 
     -- Complete collects native and third-party controls into one compact PSF dock.
     -- Original buttons remain clickable; only their presentation/placement changes.
