@@ -13,7 +13,8 @@ local minimapDock, minimapDockPanel, minimapDockLauncher
 local minimapDocked = setmetatable({}, { __mode = "k" })
 local minimapDockOpen = false
 local minimapDockHover = false
-local minimapClusterCard, minimapHeader, minimapFooter, minimapDayGlyph
+local minimapClusterCard, minimapHeader, minimapFooter, minimapDayGlyph, minimapCoordinateLabel
+local minimapNativeCoordinate
 local minimapHoverHooked = setmetatable({}, { __mode = "k" })
 local minimapControlHoverHooked = setmetatable({}, { __mode = "k" })
 local minimapHeaderSaved = setmetatable({}, { __mode = "k" })
@@ -386,6 +387,12 @@ local function EnsureMinimapClusterCard()
     minimapFooter:SetSize(68, 16)
     minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 0)
     addon:CreateRoundedPanel(minimapFooter, addon.design.surface.peripheral, addon.design.radius.compact)
+    minimapCoordinateLabel = minimapFooter:CreateFontString(nil, "OVERLAY")
+    minimapCoordinateLabel:SetPoint("CENTER")
+    addon:ApplyPSFFont(minimapCoordinateLabel, "label")
+    minimapCoordinateLabel:SetTextColor(.86, .88, .91, 1)
+    minimapCoordinateLabel:SetText("")
+    addon:DebugSurface(minimapCoordinateLabel, "Minimap/footer/coordinates", "PSF coordinate presentation")
     addon:DebugSurface(minimapFooter, "Minimap/footer", "coordinate tab")
 
     -- The visual card sits behind the native map and is not a reliable hit
@@ -699,22 +706,22 @@ local function Map(enabled)
             if clock.SetFrameLevel then clock:SetFrameLevel(minimapHeader:GetFrameLevel() + 1) end
         end
         if coordinates then
-            addon:ApplyPSFFont(coordinates, "label")
-            if coordinates.SetTextColor then coordinates:SetTextColor(.86, .88, .91, 1) end
-            AnchorMinimapPresentation(coordinates, "CENTER", minimapFooter, "CENTER", 0, 0)
-            -- FontStrings inherit their parent's draw order. Raise the native
-            -- coordinate owner above the PSF footer rather than replacing it.
-            local owner = coordinates.GetParent and coordinates:GetParent()
-            if owner and owner ~= minimapFooter and owner.SetFrameLevel then
-                SaveMinimapPresentation(owner)
-                owner:SetFrameLevel(minimapFooter:GetFrameLevel() + 1)
+            -- Blizzard/Forever remains the coordinate data source. PSF owns only
+            -- the visible presentation so draw order/font are deterministic.
+            minimapNativeCoordinate = coordinates
+            if minimapCoordinateLabel and coordinates.GetText then
+                minimapCoordinateLabel:SetText(coordinates:GetText() or "")
             end
+            addon:ThemeAlpha(coordinates, true)
+        elseif minimapCoordinateLabel then
+            minimapCoordinateLabel:SetText("")
         end
     else
         RestoreMinimapPresentation(MinimapZoneText)
         RestoreMinimapPresentation(clock)
-        if coordinates and coordinates.GetParent then RestoreMinimapPresentation(coordinates:GetParent()) end
-        RestoreMinimapPresentation(coordinates)
+        if minimapNativeCoordinate then addon:ThemeAlpha(minimapNativeCoordinate, false) end
+        minimapNativeCoordinate = nil
+        if minimapCoordinateLabel then minimapCoordinateLabel:SetText("") end
     end
 
     -- Complete collects native and third-party controls into one compact PSF dock.
