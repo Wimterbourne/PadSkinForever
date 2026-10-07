@@ -3,6 +3,7 @@ local surfaces = setmetatable({}, { __mode = "k" })
 local methods = { "SetAtlas", "SetTexture", "SetVertexColor", "SetDesaturation", "SetFont", "SetFontObject", "SetScale", "SetAlpha", "SetTextColor", "SetMaskTexture", "SetStatusBarTexture" }
 local history = {}
 local auraHistory = {}
+local minimapHistory = {}
 local enabled = false
 
 -- Never concatenate, format or compare secret values returned by native UI getters.
@@ -62,6 +63,55 @@ function addon:RecordTargetAuraDebug(entry)
     if #auraHistory > 16 then table.remove(auraHistory) end
 end
 
+local function ObjectType(object)
+    if not object or not object.GetObjectType then return "[unknown]" end
+    local ok, value = pcall(object.GetObjectType, object)
+    return ok and Display(value) or "[unavailable]"
+end
+
+local function MinimapObjectLine(object, prefix)
+    if not object then return nil end
+    local parts = { prefix, "type=" .. ObjectType(object) }
+    if object.GetName then parts[#parts + 1] = "name=" .. Read(object, "GetName") end
+    if object.GetAtlas then parts[#parts + 1] = "atlas=" .. Read(object, "GetAtlas") end
+    if object.GetTexture then parts[#parts + 1] = "texture=" .. Read(object, "GetTexture") end
+    if object.GetAlpha then parts[#parts + 1] = "alpha=" .. Read(object, "GetAlpha") end
+    if object.IsShown then parts[#parts + 1] = "shown=" .. Read(object, "IsShown") end
+    return table.concat(parts, " | ")
+end
+
+function addon:CaptureMinimapDebug()
+    wipe(minimapHistory)
+    local roots = {
+        { MinimapCluster, "MinimapCluster" },
+        { Minimap, "Minimap" },
+    }
+    local seen = {}
+    local function Walk(object, path, depth)
+        if not object or seen[object] or depth > 3 then return end
+        seen[object] = true
+        local line = MinimapObjectLine(object, path)
+        if line then minimapHistory[#minimapHistory + 1] = line end
+        if object.GetRegions then
+            local ok, regions = pcall(function() return { object:GetRegions() } end)
+            if ok then
+                for index, region in ipairs(regions) do
+                    local regionLine = MinimapObjectLine(region, path .. "/region" .. index)
+                    if regionLine then minimapHistory[#minimapHistory + 1] = regionLine end
+                end
+            end
+        end
+        if object.GetChildren then
+            local ok, children = pcall(function() return { object:GetChildren() } end)
+            if ok then
+                for index, child in ipairs(children) do Walk(child, path .. "/child" .. index, depth + 1) end
+            end
+        end
+    end
+    for _, root in ipairs(roots) do Walk(root[1], root[2], 0) end
+    self:Print("Captured minimap diagnostics. Open /psf > Debug and copy the report.")
+end
+
 local function Snapshot(object)
     local parts = {}
     for _, field in ipairs({ { "GetName", "name" }, { "GetAtlas", "atlas" },
@@ -93,6 +143,9 @@ function addon:GetDebugReport()
     end
     table.sort(entries)
     for _, entry in ipairs(entries) do lines[#lines + 1] = entry end
+    lines[#lines + 1] = "\nMINIMAP SNAPSHOT"
+    if #minimapHistory == 0 then lines[#lines + 1] = "No minimap snapshot captured yet. Use /psf minimapdebug." end
+    for _, entry in ipairs(minimapHistory) do lines[#lines + 1] = entry end
     lines[#lines + 1] = "\nTARGET AURA SCANS (maximum 16; newest first)"
     if #auraHistory == 0 then lines[#lines + 1] = "No target aura scan recorded yet." end
     for _, entry in ipairs(auraHistory) do lines[#lines + 1] = entry end
