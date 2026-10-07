@@ -273,7 +273,7 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
     end
 end
 
-local DOCK_VISIBLE_LIMIT, DOCK_ITEM, DOCK_HEIGHT = 5, 28, 30
+local DOCK_VISIBLE_LIMIT, DOCK_ITEM, DOCK_HEIGHT, DOCK_CONTROL = 5, 28, 30, 24
 
 local function EnsureMinimapDock()
     if minimapDock or not Minimap then return minimapDock end
@@ -313,7 +313,13 @@ end
 
 local function SaveDockAnchor(control)
     if minimapDocked[control] then return minimapDocked[control] end
-    local saved = { points = {}, shown = control.IsShown and control:IsShown() }
+    local saved = {
+        points = {},
+        shown = control.IsShown and control:IsShown(),
+        width = control.GetWidth and control:GetWidth(),
+        height = control.GetHeight and control:GetHeight(),
+        scale = control.GetScale and control:GetScale(),
+    }
     local count = control.GetNumPoints and control:GetNumPoints() or 1
     if control.GetPoint then
         for index = 1, math.max(1, count) do
@@ -330,6 +336,8 @@ local function RestoreDockAnchor(control)
     if not saved then return end
     control:ClearAllPoints()
     for _, point in ipairs(saved.points) do control:SetPoint(unpack(point)) end
+    if control.SetSize and saved.width and saved.height then control:SetSize(saved.width, saved.height) end
+    if control.SetScale and saved.scale then control:SetScale(saved.scale) end
     if control.SetShown and saved.shown ~= nil then control:SetShown(saved.shown) end
     minimapDocked[control] = nil
 end
@@ -339,6 +347,10 @@ local function DockMinimapControl(control, parent, index, columns, enabled, labe
     MinimapControlSocket(control, enabled, label, thirdParty)
     if enabled then
         SaveDockAnchor(control)
+        -- Normalize the visual/click footprint inside the dock. SaveDockAnchor
+        -- preserves addon/native geometry so disabling PSF restores it exactly.
+        if control.SetScale then control:SetScale(1) end
+        if control.SetSize then control:SetSize(DOCK_CONTROL, DOCK_CONTROL) end
         control:ClearAllPoints()
         local column = (index - 1) % columns
         local row = math.floor((index - 1) / columns)
