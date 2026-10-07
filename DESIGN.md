@@ -220,6 +220,7 @@ This shared grammar should make the HUD feel like one system without forcing eve
 - Avoid stacks of independent black boxes.
 - Avoid heavy Warcraft ornamental frames unless native context requires them.
 - The PSF infinity mark is identity branding, not a repeated watermark.
+- **Branding rule:** use the canonical `PadSkinForever/Media/PSFLogo.svg` artwork (and its runtime TGA export) wherever a PSF brandmark is needed. Never substitute an Xbox logo or a text-only `PSF` approximation. The logo itself remains flat/clean and does **not** receive glass, glow, class-color edge, or spatial-surface treatment.
 
 ## Typography
 
@@ -257,6 +258,20 @@ Use this as the canonical visual-generation prompt and update this document when
 > Create a 1920x1080 in-game concept for PadSkinForever, a minimalist controller-first UI for World of Warcraft: Forever. Preserve the recognizable WoW world and native GamepadUI composition, but translate the visual language through the forms and lines of a modern Xbox controller. The Xbox controller is a geometry reference, not a decorative object: use soft controller-shell curves, recessed thumbstick/button-like wells, thin molded seam lines, restrained shoulder/trigger-inspired edge shapes, circular status sockets and clear grouped controls. Add a restrained modern spatial-Xbox surface language: translucent graphite glass, selective luminous edge segments, floating connected rails and subtle depth hierarchy without heavy blur or fake plastic. Class-colored glass edges communicate identity; resource colors communicate state; Xbox A/B/X/Y green/red/blue/yellow communicate input. Keep these color systems separate.
 
 > Design for real WoW at 1920x1080 with UI scale 0.9–1.0, so elements must be genuinely compact and readable without relying on tiny scaling. Keep the center/world view open. Top-left: compact player and pet identity frames with square/soft-square portraits, names and attached buffs/debuffs; do not put large health/resource bars there. Integrate and skin the pet happiness/status icon. Party frames continue compactly below with portrait, name, thin health rail and relevant debuffs. Top-center: a Breath-of-the-Wild-like boss hierarchy for the target — a long, very thin health bar, small integrated portrait, restrained name/level, with compact buffs/debuffs directly underneath; target-of-target is much smaller. Bottom-center: preserve the actual PSF architecture — player/pet health and resource rows form one central combat-status block with the native swing timers, and the native controller action bars/glyph cluster sits immediately below. Make this read as one clean Xbox-inspired combat cockpit without enclosing everything in one giant box. Top-right: compact minimap and objectives column. Bottom-left: quiet translucent chat. Bottom-right: quiet damage meter. Bottom edge: extremely thin XP/progress bar. World nameplates are exceptionally minimal: name + thin health rail, controller-focus brackets only on the current target, a second thin rail for casts, and only highly relevant aura/status icons. Use negative space aggressively. Avoid redundant information, oversized panels, generic addon-box aesthetics, excessive neon, photorealistic controller plastic and decorative clutter. The final impression is WoW Forever reimagined as a first-party Xbox interface: immersive, controller-native, spatially light, minimal, coherent and immediately readable.
+
+## Implementation foundation
+
+The visual system is implemented through shared semantic tokens before individual modules are migrated. Modules should request roles instead of inventing local styling.
+
+- **surface:** glass, strong, peripheral, well, soft well, rail, floating;
+- **geometry:** card, compact, socket and rail radii plus shared spacing;
+- **depth:** peripheral, standard and combat hierarchy;
+- **identity:** per-unit class color where applicable, otherwise neutral;
+- **focus:** PSF mint selection/focus, separate from identity;
+- **status:** semantic health/power/reaction/threat colors;
+- **input:** Xbox ABXY colors remain controller-only.
+
+Migration rule: preserve compatibility aliases while existing 0.9 components move onto these semantic roles. First centralize the vocabulary, then migrate component families one at a time. Do not mix unrelated feature expansion into the visual migration.
 
 ## Review test
 
