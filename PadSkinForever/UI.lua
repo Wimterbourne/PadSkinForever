@@ -77,6 +77,47 @@ function addon:GetInputFocusColor()
     return self.design.focus.color
 end
 
+-- Presentation-only focus treatment. The caller supplies the state discovered
+-- from Blizzard/Forever; this helper never chooses focus or changes bindings.
+local inputFocus = setmetatable({}, { __mode = "k" })
+function addon:SetInputFocusTreatment(frame, state)
+    if not frame then return end
+    local data = inputFocus[frame]
+    if not data then
+        data = { regions = {} }
+        inputFocus[frame] = data
+        local focus = self:GetInputFocusColor()
+        for _, edge in ipairs({
+            { "TOPLEFT", "TOPRIGHT", 2, 1, -2, 0 },
+            { "BOTTOMLEFT", "BOTTOMRIGHT", 2, 0, -2, -1 },
+            { "TOPLEFT", "BOTTOMLEFT", 1, -2, 0, 2 },
+            { "TOPRIGHT", "BOTTOMRIGHT", -1, -2, -2, 2 },
+        }) do
+            local region = Rect(frame, "OVERLAY", { focus[1], focus[2], focus[3], 1 },
+                edge[1], edge[2], edge[3], edge[4], edge[5], edge[6])
+            region:Hide()
+            table.insert(data.regions, region)
+        end
+    end
+
+    local visual = self:GetInputState(state)
+    local showFocus = state == "focused" or state == "selected" or state == "pressed"
+    for _, region in ipairs(data.regions) do
+        region:SetAlpha(visual.edgeAlpha or 1)
+        region:SetShown(showFocus)
+    end
+    if frame.SetAlpha then frame:SetAlpha(visual.alpha or 1) end
+    data.state = state or "normal"
+end
+
+function addon:ClearInputFocusTreatment(frame)
+    local data = frame and inputFocus[frame]
+    if not data then return end
+    for _, region in ipairs(data.regions) do region:Hide() end
+    if frame.SetAlpha then frame:SetAlpha(1) end
+    data.state = "normal"
+end
+
 addon.uiColors = {
     fill = addon.design.surface.strong.fill,
     raised = { .065, .076, .091, .98 },
