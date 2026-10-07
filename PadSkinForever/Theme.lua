@@ -8,6 +8,7 @@ local cards = setmetatable({}, { __mode = "k" })
 local rings = setmetatable({}, { __mode = "k" })
 local watched = setmetatable({}, { __mode = "k" })
 local minimapMask, minimapChanged
+local minimapSockets = setmetatable({}, { __mode = "k" })
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
 
@@ -230,6 +231,55 @@ local function SupplementalUnits(enabled)
     end
 end
 
+-- Minimap Complete deliberately recognizes only stable, named native controls.
+-- Unknown/new Forever children stay visible and untouched so alpha updates fail open.
+local function MinimapControlSocket(control, enabled, label)
+    if not control then return end
+    local socket = minimapSockets[control]
+    if enabled and not socket then
+        socket = CreateFrame("Frame", nil, control)
+        socket:EnableMouse(false)
+        socket:SetFrameLevel(math.max(0, control:GetFrameLevel() - 1))
+        socket:SetPoint("TOPLEFT", control, "TOPLEFT", -2, 2)
+        socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 2, -2)
+        addon:CreateRoundedPanel(socket, addon.design.surface.floating, addon.design.radius.socket)
+        minimapSockets[control] = socket
+        addon:DebugSurface(socket, "Minimap/" .. label .. "/socket", "native minimap control presentation")
+    end
+    if socket then socket:SetShown(enabled) end
+
+    -- Hide only explicitly decorative fields. The control, its icon, scripts,
+    -- tooltip, checked/attention state and native controller ownership remain native.
+    for _, key in ipairs({ "Border", "Background", "BG", "Ring", "Circle", "HighlightRing" }) do
+        addon:ThemeAlpha(control[key], enabled)
+    end
+end
+
+local function MinimapControls(enabled)
+    local cluster = MinimapCluster
+    local candidates = {
+        { cluster and cluster.Tracking, "Tracking" },
+        { cluster and cluster.TrackingButton, "Tracking" },
+        { cluster and cluster.ZoomIn, "ZoomIn" },
+        { cluster and cluster.ZoomOut, "ZoomOut" },
+        { Minimap and Minimap.ZoomIn, "ZoomIn" },
+        { Minimap and Minimap.ZoomOut, "ZoomOut" },
+        { _G["MiniMapTracking"], "Tracking" },
+        { _G["GameTimeFrame"], "Calendar" },
+        { _G["QueueStatusButton"], "QueueStatus" },
+        { _G["ExpansionLandingPageMinimapButton"], "ExpansionLandingPage" },
+        { _G["MiniMapMailFrame"], "Mail" },
+    }
+    local seen = {}
+    for _, entry in ipairs(candidates) do
+        local control, label = entry[1], entry[2]
+        if control and not seen[control] then
+            seen[control] = true
+            MinimapControlSocket(control, enabled, label)
+        end
+    end
+end
+
 local function Map(enabled)
     local map = Minimap
     if not map then return end
@@ -273,6 +323,10 @@ local function Map(enabled)
     addon:ThemeAlpha(MinimapBorder, enabled)
     addon:ThemeAlpha(MinimapBorderTop, enabled)
     addon:ThemeFont(MinimapZoneText, enabled, true)
+
+    -- Complete integrates known native controls into one compact socket language.
+    -- No scripts, clicks, bindings, focus managers, anchors or sizes are replaced.
+    MinimapControls(enabled)
 end
 
 local function Chat(enabled)
