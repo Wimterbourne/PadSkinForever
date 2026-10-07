@@ -15,6 +15,7 @@ local minimapDockOpen = false
 local minimapDockHover = false
 local minimapClusterCard, minimapHeader, minimapFooter, minimapDayGlyph
 local minimapHoverHooked = setmetatable({}, { __mode = "k" })
+local minimapControlHoverHooked = setmetatable({}, { __mode = "k" })
 local minimapHeaderSaved = setmetatable({}, { __mode = "k" })
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
@@ -320,16 +321,32 @@ local function SetMinimapDockHover(hovered)
     addon:QueueRefresh()
 end
 
+local function MinimapHoverStillActive()
+    if Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver() then return true end
+    for control in pairs(minimapDocked) do
+        if control.IsMouseOver and control:IsMouseOver() then return true end
+    end
+    return false
+end
+
 local function HookMinimapHover(frame)
     if not frame or not frame.HookScript or minimapHoverHooked[frame] then return end
     minimapHoverHooked[frame] = true
     frame:HookScript("OnEnter", function() SetMinimapDockHover(true) end)
     frame:HookScript("OnLeave", function()
         C_Timer.After(0, function()
-            local overMap = Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver()
-            local overDock = minimapDock and minimapDock.IsMouseOver and minimapDock:IsMouseOver()
-            local overPanel = minimapDockPanel and minimapDockPanel.IsMouseOver and minimapDockPanel:IsMouseOver()
-            if not overMap and not overDock and not overPanel then SetMinimapDockHover(false) end
+            if not MinimapHoverStillActive() then SetMinimapDockHover(false) end
+        end)
+    end)
+end
+
+local function HookMinimapControlHover(control)
+    if not control or not control.HookScript or minimapControlHoverHooked[control] then return end
+    minimapControlHoverHooked[control] = true
+    control:HookScript("OnEnter", function() SetMinimapDockHover(true) end)
+    control:HookScript("OnLeave", function()
+        C_Timer.After(0, function()
+            if not MinimapHoverStillActive() then SetMinimapDockHover(false) end
         end)
     end)
 end
@@ -344,6 +361,13 @@ local function EnsureMinimapClusterCard()
     minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -4, 28)
     minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 4, -4)
     addon:CreateRoundedPanel(minimapClusterCard, addon.design.surface.peripheral, addon.design.radius.card)
+    -- The outer seam carries player class identity; map/status colors remain semantic.
+    local identity = addon:GetIdentityColor("player")
+    if minimapClusterCard.PSFRoundedRegions then
+        for _, region in ipairs(minimapClusterCard.PSFRoundedRegions.border) do
+            region:SetVertexColor(identity[1], identity[2], identity[3], addon.design.identity.edgeSoftAlpha)
+        end
+    end
     addon:DebugSurface(minimapClusterCard, "Minimap/card", "native minimap cluster presentation")
 
     minimapHeader = CreateFrame("Frame", "PadSkinForeverMinimapHeader", MinimapCluster)
@@ -372,7 +396,7 @@ end
 
 local function SaveMinimapPresentation(frame)
     if not frame or minimapHeaderSaved[frame] then return end
-    local saved = { points = {} }
+    local saved = { points = {}, frameLevel = frame.GetFrameLevel and frame:GetFrameLevel() }
     local count = frame.GetNumPoints and frame:GetNumPoints() or 0
     for index = 1, count do saved.points[#saved.points + 1] = { frame:GetPoint(index) } end
     minimapHeaderSaved[frame] = saved
@@ -390,6 +414,7 @@ local function RestoreMinimapPresentation(frame)
     if not saved then return end
     frame:ClearAllPoints()
     for _, point in ipairs(saved.points) do frame:SetPoint(unpack(point)) end
+    if saved.frameLevel and frame.SetFrameLevel then frame:SetFrameLevel(saved.frameLevel) end
     minimapHeaderSaved[frame] = nil
 end
 
@@ -412,7 +437,8 @@ end
 local function EnsureMinimapDock()
     if minimapDock or not Minimap then return minimapDock end
     minimapDock = CreateFrame("Frame", "PadSkinForeverMinimapDock", Minimap)
-    minimapDock:EnableMouse(true)
+    -- Presentation only: never let the PSF surface intercept native button clicks.
+    minimapDock:EnableMouse(false)
     minimapDock:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
     minimapDock:SetHeight(DOCK_HEIGHT)
     -- Reveal a compact floating control row against the lower-right map edge.
@@ -423,7 +449,7 @@ local function EnsureMinimapDock()
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
     minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
-    minimapDockPanel:EnableMouse(true)
+    minimapDockPanel:EnableMouse(false)
     minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
     minimapDockPanel:SetPoint("BOTTOMRIGHT", minimapDock, "TOPRIGHT", 0, 4)
     addon:CreateRoundedPanel(minimapDockPanel, addon.design.surface.glass, addon.design.radius.compact)
@@ -446,8 +472,6 @@ local function EnsureMinimapDock()
     end)
     minimapDockLauncher:Hide()
     addon:DebugSurface(minimapDockLauncher, "Minimap/IconDock/Launcher", "overflow launcher")
-    HookMinimapHover(minimapDock)
-    HookMinimapHover(minimapDockPanel)
     return minimapDock
 end
 
@@ -497,6 +521,7 @@ local function DockMinimapControl(control, parent, index, columns, enabled, labe
         control:SetPoint("CENTER", parent, "TOPLEFT",
             2 + DOCK_ITEM / 2 + column * DOCK_ITEM,
             -1 - DOCK_ITEM / 2 - row * DOCK_ITEM)
+        HookMinimapControlHover(control)
         if control.Show then control:Show() end
     else
         RestoreDockAnchor(control)
@@ -669,6 +694,9 @@ local function Map(enabled)
         if ticker then addon:ApplyPSFFont(ticker, "label") end
         if clock then
             AnchorMinimapPresentation(clock, "RIGHT", minimapHeader, "RIGHT", -6, 0)
+            -- Re-anchoring does not change strata. Keep native clock behavior but
+            -- render it above the glass/header presentation.
+            if clock.SetFrameLevel then clock:SetFrameLevel(minimapHeader:GetFrameLevel() + 1) end
         end
         if coordinates then
             addon:ApplyPSFFont(coordinates, "label")
