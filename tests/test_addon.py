@@ -528,6 +528,29 @@ class AddonTests(unittest.TestCase):
             assert(MinimapCompassTexture.rgba[1] == 1)
         ''')
 
+    def test_minimap_day_cycle_chrome_is_hidden_by_atlas_and_restored(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check(r'''
+            Minimap = surface(); Minimap.mask = "native-circle"
+            function Minimap:SetMaskTexture(value) self.mask = value end
+            MinimapCluster = surface()
+            local cycle = surface(nil, MinimapCluster)
+            local day = cycle:CreateTexture()
+            day:SetAtlas("UI-HUD-Minimap-DayCycle")
+            local ring = cycle:CreateTexture()
+            ring:SetAtlas("UI-HUD-Minimap-Frame-Cycle")
+            local unrelated = cycle:CreateTexture()
+            unrelated:SetAtlas("UI-HUD-Minimap-Mail-Up")
+
+            addon:QueueRefresh(); drain()
+            assert(day.alpha == 0 and ring.alpha == 0)
+            assert(unrelated.alpha == 1, "unrelated native minimap art must remain untouched")
+
+            addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
+            assert(day.alpha == 1 and ring.alpha == 1)
+            assert(unrelated.alpha == 1)
+        ''')
+
     def test_minimap_dock_collects_native_controls_and_restores_them(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
