@@ -37,6 +37,24 @@ end
 local function Watch(frame)
     if hooked[frame] then return end
     hooked[frame] = true
+
+    -- Follow native hover/focus-capable prompt frames without creating a new
+    -- navigation owner. Mouse hover is also useful as a deterministic visual
+    -- validation of the same PSF focus language.
+    if frame.HookScript then
+        frame:HookScript("OnEnter", function(self)
+            addon:SetInputFocusTreatment(self, "focused")
+        end)
+        frame:HookScript("OnLeave", function(self)
+            addon:SetInputFocusTreatment(self, "normal")
+        end)
+        frame:HookScript("OnMouseDown", function(self)
+            addon:SetInputFocusTreatment(self, "pressed")
+        end)
+        frame:HookScript("OnMouseUp", function(self)
+            addon:SetInputFocusTreatment(self, self.IsMouseOver and self:IsMouseOver() and "focused" or "normal")
+        end)
+    end
     for _, method in ipairs({ "SetPromptText", "SetPromptFont", "SetInputIconSize" }) do
         if type(frame[method]) == "function" then
             hooksecurefunc(frame, method, function()
@@ -77,6 +95,7 @@ function addon:LayoutLegend(legend)
         end
         if not self.db.skinLegend then
             for _, frame in ipairs(entries) do
+                addon:ClearInputFocusTreatment(frame)
                 Restore(frame)
                 for _, part in ipairs({ "InputIcon1", "InputIcon2", "IconDivider1", "ControlDescText" }) do Restore(frame[part]) end
                 local text = frame.ControlDescText.FontString
