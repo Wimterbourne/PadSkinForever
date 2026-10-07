@@ -702,10 +702,18 @@ local function Map(enabled)
             addon:ApplyPSFFont(coordinates, "label")
             if coordinates.SetTextColor then coordinates:SetTextColor(.86, .88, .91, 1) end
             AnchorMinimapPresentation(coordinates, "CENTER", minimapFooter, "CENTER", 0, 0)
+            -- FontStrings inherit their parent's draw order. Raise the native
+            -- coordinate owner above the PSF footer rather than replacing it.
+            local owner = coordinates.GetParent and coordinates:GetParent()
+            if owner and owner ~= minimapFooter and owner.SetFrameLevel then
+                SaveMinimapPresentation(owner)
+                owner:SetFrameLevel(minimapFooter:GetFrameLevel() + 1)
+            end
         end
     else
         RestoreMinimapPresentation(MinimapZoneText)
         RestoreMinimapPresentation(clock)
+        if coordinates and coordinates.GetParent then RestoreMinimapPresentation(coordinates:GetParent()) end
         RestoreMinimapPresentation(coordinates)
     end
 
