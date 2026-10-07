@@ -353,16 +353,13 @@ local function EnsureMinimapClusterCard()
     minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 0, 0)
     minimapHeader:SetHeight(24)
 
-    minimapDayGlyph = minimapHeader:CreateTexture(nil, "ARTWORK")
-    minimapDayGlyph:SetSize(14, 14)
-    minimapDayGlyph:SetPoint("RIGHT", minimapHeader, "RIGHT", -42, 0)
-    minimapDayGlyph:SetAtlas("UI-HUD-Minimap-DayCycle")
-    addon:DebugSurface(minimapDayGlyph, "Minimap/header/dayCycle", "day/night status glyph")
+    -- Keep the header visually quiet until Forever exposes a reliable standalone
+    -- day/night state glyph. The circular DayCycle atlas is chrome, not the state.
 
     minimapFooter = CreateFrame("Frame", "PadSkinForeverMinimapFooter", MinimapCluster)
     minimapFooter:EnableMouse(false)
     minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 1))
-    minimapFooter:SetSize(72, 18)
+    minimapFooter:SetSize(68, 16)
     minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 0)
     addon:CreateRoundedPanel(minimapFooter, addon.design.surface.peripheral, addon.design.radius.compact)
     addon:DebugSurface(minimapFooter, "Minimap/footer", "coordinate tab")
@@ -418,15 +415,17 @@ local function EnsureMinimapDock()
     minimapDock:EnableMouse(true)
     minimapDock:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
     minimapDock:SetHeight(DOCK_HEIGHT)
-    -- Overlay the footer zone instead of permanently extending the minimap.
-    minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, -22)
+    -- Reveal a compact floating control row against the lower-right map edge.
+    -- This avoids creating a second full-width footer or colliding with the
+    -- centered coordinate tab.
+    minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -4, 4)
     addon:CreateRoundedPanel(minimapDock, addon.design.surface.peripheral, addon.design.radius.compact)
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
     minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
     minimapDockPanel:EnableMouse(true)
     minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
-    minimapDockPanel:SetPoint("TOPRIGHT", minimapDock, "BOTTOMRIGHT", 0, -4)
+    minimapDockPanel:SetPoint("BOTTOMRIGHT", minimapDock, "TOPRIGHT", 0, 4)
     addon:CreateRoundedPanel(minimapDockPanel, addon.design.surface.glass, addon.design.radius.compact)
     addon:DebugSurface(minimapDockPanel, "Minimap/IconDock/Overflow", "overflow minimap controls")
     minimapDockPanel:Hide()
@@ -496,8 +495,8 @@ local function DockMinimapControl(control, parent, index, columns, enabled, labe
         local column = (index - 1) % columns
         local row = math.floor((index - 1) / columns)
         control:SetPoint("CENTER", parent, "TOPLEFT",
-            6 + DOCK_ITEM / 2 + column * DOCK_ITEM,
-            -6 - DOCK_ITEM / 2 - row * DOCK_ITEM)
+            2 + DOCK_ITEM / 2 + column * DOCK_ITEM,
+            -1 - DOCK_ITEM / 2 - row * DOCK_ITEM)
         if control.Show then control:Show() end
     else
         RestoreDockAnchor(control)
@@ -548,7 +547,7 @@ local function MinimapControls(enabled)
     local visible = enabled and MinimapDockVisible()
     local overflow = visible and #controls > DOCK_VISIBLE_LIMIT
     if visible and #controls > 0 then
-        dock:SetWidth(overflow and 32 or (8 + #controls * DOCK_ITEM))
+        dock:SetWidth(overflow and 32 or (4 + #controls * DOCK_ITEM))
         dock:Show()
     else
         dock:Hide()
@@ -673,6 +672,7 @@ local function Map(enabled)
         end
         if coordinates then
             addon:ApplyPSFFont(coordinates, "label")
+            if coordinates.SetTextColor then coordinates:SetTextColor(.86, .88, .91, 1) end
             AnchorMinimapPresentation(coordinates, "CENTER", minimapFooter, "CENTER", 0, 0)
         end
     else
