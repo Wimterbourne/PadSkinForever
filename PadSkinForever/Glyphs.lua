@@ -12,6 +12,19 @@ addon.faceStyleLabels = { "Blizzard default", "Xbox monochrome", "Xbox colored" 
 addon.dpadStyles = { "native", "xbox", "xboxAccent" }
 addon.dpadStyleLabels = { "Blizzard default", "Xbox monochrome", "Xbox blue" }
 
+-- Canonical PSF input presentation. This does not bind keys or alter Blizzard's
+-- controller stack; it only gives modules one place to resolve glyph language.
+function addon:GetInputGlyphStyle(key)
+    if face[key] then return self.design.input.glyph.face end
+    if dpad[key] then return self.design.input.glyph.dpad end
+    return "native"
+end
+
+function addon:GetInputGlyphColor(key)
+    if face[key] then return colors[key] end
+    if dpad[key] then return self:GetInputFocusColor() end
+end
+
 local function CaptureAtlases(icon, original)
     for state, texture in pairs(icon.textureStateTextures or {}) do
         original.atlases[state] = texture:GetAtlas()
