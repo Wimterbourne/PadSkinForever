@@ -133,6 +133,23 @@ function addon:CreateGlassPanel(parent, palette, radius)
     if not regions then return parent end
     regions.glass = regions.glass or {}
 
+    -- A second, low-alpha outer halo makes the silhouette survive both bright
+    -- skies and dark interiors. It is neutral glass light, not identity color.
+    -- Keep it behind the crisp border so the component reads as illuminated
+    -- transparent material rather than neon.
+    local halo = {}
+    for _, edgeInfo in ipairs({
+        { "TOPLEFT", "TOPRIGHT", 1, 0, -1, 0 },
+        { "BOTTOMLEFT", "BOTTOMRIGHT", 1, 0, -1, 0 },
+        { "TOPLEFT", "BOTTOMLEFT", 0, -1, 0, 1 },
+        { "TOPRIGHT", "BOTTOMRIGHT", 0, -1, 0, 1 },
+    }) do
+        local edge = Rect(parent, "BACKGROUND", { .66, .80, .96, .13 },
+            edgeInfo[1], edgeInfo[2], edgeInfo[3], edgeInfo[4], edgeInfo[5], edgeInfo[6])
+        table.insert(halo, edge)
+        table.insert(regions.glass, edge)
+    end
+
     -- Soft inner top light: enough to read as a reflective surface without
     -- becoming a bright frame or competing with class identity.
     local top = parent:CreateTexture(nil, "BORDER", nil, 1)
@@ -140,7 +157,7 @@ function addon:CreateGlassPanel(parent, palette, radius)
     top:SetPoint("TOPLEFT", parent, "TOPLEFT", radius, -1)
     top:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -radius, -1)
     top:SetHeight(1)
-    top:SetVertexColor(.92, .96, 1, .30)
+    top:SetVertexColor(.94, .97, 1, .38)
     table.insert(regions.glass, top)
 
     -- Side glints establish thickness on dark scenes while remaining quieter
@@ -151,7 +168,7 @@ function addon:CreateGlassPanel(parent, palette, radius)
         edge:SetPoint("TOP" .. side, parent, "TOP" .. side, side == "LEFT" and 1 or -1, -radius)
         edge:SetPoint("BOTTOM" .. side, parent, "BOTTOM" .. side, side == "LEFT" and 1 or -1, radius)
         edge:SetWidth(1)
-        edge:SetVertexColor(.78, .86, .96, .14)
+        edge:SetVertexColor(.82, .90, 1, .20)
         table.insert(regions.glass, edge)
     end
 
