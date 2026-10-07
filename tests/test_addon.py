@@ -528,6 +528,31 @@ class AddonTests(unittest.TestCase):
             assert(MinimapCompassTexture.rgba[1] == 1)
         ''')
 
+    def test_minimap_complete_sockets_preserve_native_controls(self):
+        self.lua.execute(THEME_MOCKS)
+        self.check('''
+            Minimap = surface(); Minimap.mask = "native-circle"
+            function Minimap:SetMaskTexture(value) self.mask = value end
+            MinimapCluster = surface()
+            MiniMapTracking = surface(nil, MinimapCluster)
+            MiniMapTracking.Border = surface("Texture", MiniMapTracking)
+            local click = function() end
+            MiniMapTracking.scripts.OnClick = click
+            local unknown = surface(nil, MinimapCluster)
+            unknown.Border = surface("Texture", unknown)
+            addon:QueueRefresh(); drain()
+            assert(MiniMapTracking.Border.alpha == 0)
+            assert(MiniMapTracking.scripts.OnClick == click)
+            assert(MiniMapTracking.children[1] ~= nil)
+            local socket = MiniMapTracking.children[#MiniMapTracking.children]
+            assert(socket.visible == true and socket.mouse == false)
+            assert(unknown.Border.alpha == 1)
+            addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
+            assert(MiniMapTracking.Border.alpha == 1)
+            assert(socket.visible == false)
+            assert(MiniMapTracking.scripts.OnClick == click)
+        ''')
+
     def test_quest_details_and_border_skin_do_not_touch_map_canvas(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
