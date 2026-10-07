@@ -146,8 +146,11 @@ end)
 SLASH_PADSKINFOREVER1 = "/psf"
 SLASH_PADSKINFOREVER2 = "/padskin"
 SlashCmdList.PADSKINFOREVER = function(message)
-    if message:lower():match("^legend%s*$") then
+    local command = message:lower()
+    if command:match("^legend%s*$") then
         addon:ToggleLegend()
+    elseif command:match("^minimapdebug%s*$") then
+        if addon.CaptureMinimapDebug then addon:CaptureMinimapDebug() end
     else
         addon:ShowOptions()
     end
