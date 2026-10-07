@@ -361,7 +361,7 @@ local function EnsureMinimapClusterCard()
     -- The 3 px map inset, compact header and lower coordinate notch are PSF-owned.
     minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -3, 23)
     minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 3, -3)
-    addon:CreateRoundedPanel(minimapClusterCard, addon.design.surface.glass, addon.design.radius.card)
+    addon:CreateGlassPanel(minimapClusterCard, addon.design.surface.glass, addon.design.radius.card)
     -- Class identity lives only in the thin outer seam; map/status colors remain semantic.
     local identity = addon:GetIdentityColor("player")
     if minimapClusterCard.PSFRoundedRegions then
@@ -377,7 +377,7 @@ local function EnsureMinimapClusterCard()
     minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 3, 0)
     minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", -3, 0)
     minimapHeader:SetHeight(20)
-    addon:CreateRoundedPanel(minimapHeader, addon.design.surface.peripheral, addon.design.radius.compact)
+    addon:CreateGlassPanel(minimapHeader, addon.design.surface.peripheral, addon.design.radius.compact)
 
     -- Keep the header visually quiet until Forever exposes a reliable standalone
     -- day/night state glyph. The circular DayCycle atlas is chrome, not the state.
@@ -387,7 +387,7 @@ local function EnsureMinimapClusterCard()
     minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
     minimapFooter:SetSize(78, 18)
     minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 2)
-    addon:CreateRoundedPanel(minimapFooter, addon.design.surface.glass, addon.design.radius.compact)
+    addon:CreateGlassPanel(minimapFooter, addon.design.surface.glass, addon.design.radius.compact)
     if minimapFooter.PSFRoundedRegions then
         for _, region in ipairs(minimapFooter.PSFRoundedRegions.border) do
             region:SetVertexColor(identity[1], identity[2], identity[3], .34)
@@ -509,14 +509,14 @@ local function EnsureMinimapDock()
     -- This avoids creating a second full-width footer or colliding with the
     -- centered coordinate tab.
     minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -4, 4)
-    addon:CreateRoundedPanel(minimapDock, addon.design.surface.floating, addon.design.radius.socket)
+    addon:CreateGlassPanel(minimapDock, addon.design.surface.floating, addon.design.radius.socket)
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
     minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
     minimapDockPanel:EnableMouse(false)
     minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
     minimapDockPanel:SetPoint("BOTTOMRIGHT", minimapDock, "TOPRIGHT", 0, 4)
-    addon:CreateRoundedPanel(minimapDockPanel, addon.design.surface.floating, addon.design.radius.socket)
+    addon:CreateGlassPanel(minimapDockPanel, addon.design.surface.floating, addon.design.radius.socket)
     addon:DebugSurface(minimapDockPanel, "Minimap/IconDock/Overflow", "overflow minimap controls")
     minimapDockPanel:Hide()
 
