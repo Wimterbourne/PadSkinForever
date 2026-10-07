@@ -13,7 +13,7 @@ local minimapDock, minimapDockPanel, minimapDockLauncher
 local minimapDocked = setmetatable({}, { __mode = "k" })
 local minimapDockOpen = false
 local minimapDockHover = false
-local minimapClusterCard, minimapHeader, minimapFooter, minimapDayGlyph, minimapCoordinateLabel
+local minimapClusterCard, minimapHeader, minimapFooter, minimapMapInset, minimapDayGlyph, minimapCoordinateLabel
 local minimapNativeCoordinate
 local minimapHoverHooked = setmetatable({}, { __mode = "k" })
 local minimapControlHoverHooked = setmetatable({}, { __mode = "k" })
@@ -371,6 +371,17 @@ local function EnsureMinimapClusterCard()
     end
     addon:DebugSurface(minimapClusterCard, "Minimap/card", "native minimap cluster presentation")
 
+    -- A shallow inner well makes the square map read as seated inside the clear
+    -- housing. It is mouse-transparent and deliberately extends only 2 px past
+    -- Blizzard's map, so native map interaction and geometry remain untouched.
+    minimapMapInset = CreateFrame("Frame", "PadSkinForeverMinimapInset", MinimapCluster)
+    minimapMapInset:EnableMouse(false)
+    minimapMapInset:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 1))
+    minimapMapInset:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -2, 2)
+    minimapMapInset:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 2, -2)
+    addon:CreateRoundedPanel(minimapMapInset, addon.design.surface.wellSoft, addon.design.radius.compact)
+    addon:DebugSurface(minimapMapInset, "Minimap/inset", "square map depth well")
+
     minimapHeader = CreateFrame("Frame", "PadSkinForeverMinimapHeader", MinimapCluster)
     minimapHeader:EnableMouse(false)
     minimapHeader:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
@@ -378,6 +389,9 @@ local function EnsureMinimapClusterCard()
     minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 7, 7)
     minimapHeader:SetHeight(23)
     addon:CreateGlassPanel(minimapHeader, addon.design.surface.frosted, addon.design.radius.compact)
+    -- Frosted zones need more body than the clear shell; preserve translucency
+    -- while making the information band legible as a distinct material.
+    addon:SetRoundedPanelVisualAlpha(minimapHeader, 1, 1)
 
     -- Keep the header visually quiet until Forever exposes a reliable standalone
     -- day/night state glyph. The circular DayCycle atlas is chrome, not the state.
@@ -386,7 +400,7 @@ local function EnsureMinimapClusterCard()
     minimapFooter:EnableMouse(false)
     minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
     minimapFooter:SetSize(94, 20)
-    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 1)
+    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 4)
     addon:CreateGlassPanel(minimapFooter, addon.design.surface.frosted, addon.design.radius.compact)
     if minimapFooter.PSFRoundedRegions then
         for _, region in ipairs(minimapFooter.PSFRoundedRegions.border) do
