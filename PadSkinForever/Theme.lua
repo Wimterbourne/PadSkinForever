@@ -437,17 +437,27 @@ local function FindCoordinateText()
     -- Once discovered, keep the native Forever FontString as the authoritative
     -- data source. Its own alpha may be zero while PSF owns presentation.
     if minimapNativeCoordinate then return minimapNativeCoordinate end
-    if not MinimapCluster or not MinimapCluster.GetChildren then return end
-    for _, child in ipairs({ MinimapCluster:GetChildren() }) do
-        if child ~= minimapHeader and child ~= minimapFooter and child ~= minimapClusterCard and child.GetRegions then
-            for _, region in ipairs({ child:GetRegions() }) do
+    if not MinimapCluster then return end
+
+    local function Scan(frame)
+        if not frame or frame == minimapHeader or frame == minimapFooter or frame == minimapClusterCard then return end
+        if frame.GetRegions then
+            for _, region in ipairs({ frame:GetRegions() }) do
                 if region.IsObjectType and region:IsObjectType("FontString") and CoordinateValue(region) then
-                    minimapNativeCoordinate = region
                     return region
                 end
             end
         end
+        if frame.GetChildren then
+            for _, child in ipairs({ frame:GetChildren() }) do
+                local region = Scan(child)
+                if region then return region end
+            end
+        end
     end
+
+    minimapNativeCoordinate = Scan(MinimapCluster)
+    return minimapNativeCoordinate
 end
 
 local function EnsureMinimapDock()
