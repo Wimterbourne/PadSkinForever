@@ -359,14 +359,14 @@ local function EnsureMinimapClusterCard()
     minimapClusterCard:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 2))
     -- One restrained glass shell around Blizzard's authoritative map geometry.
     -- The 3 px map inset, compact header and lower coordinate notch are PSF-owned.
-    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -3, 23)
-    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 3, -3)
+    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -7, 27)
+    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 7, -7)
     addon:CreateGlassPanel(minimapClusterCard, addon.design.surface.glass, addon.design.radius.card)
     -- Class identity lives only in the thin outer seam; map/status colors remain semantic.
     local identity = addon:GetIdentityColor("player")
     if minimapClusterCard.PSFRoundedRegions then
         for _, region in ipairs(minimapClusterCard.PSFRoundedRegions.border) do
-            region:SetVertexColor(identity[1], identity[2], identity[3], .62)
+            region:SetVertexColor(identity[1], identity[2], identity[3], .78)
         end
     end
     addon:DebugSurface(minimapClusterCard, "Minimap/card", "native minimap cluster presentation")
@@ -374,8 +374,8 @@ local function EnsureMinimapClusterCard()
     minimapHeader = CreateFrame("Frame", "PadSkinForeverMinimapHeader", MinimapCluster)
     minimapHeader:EnableMouse(false)
     minimapHeader:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 3, 0)
-    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", -3, 0)
+    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 0, 4)
+    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 0, 4)
     minimapHeader:SetHeight(20)
     addon:CreateGlassPanel(minimapHeader, addon.design.surface.peripheral, addon.design.radius.compact)
 
@@ -385,12 +385,12 @@ local function EnsureMinimapClusterCard()
     minimapFooter = CreateFrame("Frame", "PadSkinForeverMinimapFooter", MinimapCluster)
     minimapFooter:EnableMouse(false)
     minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
-    minimapFooter:SetSize(78, 18)
-    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 2)
+    minimapFooter:SetSize(82, 18)
+    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, -3)
     addon:CreateGlassPanel(minimapFooter, addon.design.surface.glass, addon.design.radius.compact)
     if minimapFooter.PSFRoundedRegions then
         for _, region in ipairs(minimapFooter.PSFRoundedRegions.border) do
-            region:SetVertexColor(identity[1], identity[2], identity[3], .34)
+            region:SetVertexColor(identity[1], identity[2], identity[3], .52)
         end
     end
     minimapCoordinateLabel = minimapFooter:CreateFontString(nil, "OVERLAY")
