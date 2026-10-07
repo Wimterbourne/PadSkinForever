@@ -591,7 +591,11 @@ class AddonTests(unittest.TestCase):
 
             addon:QueueRefresh(); drain()
             local dock = PadSkinForeverMinimapDock
-            assert(dock and dock.visible)
+            assert(dock and not dock.visible)
+            local card = PadSkinForeverMinimapCard
+            assert(card and card.visible and card.mouse == true)
+            card.scripts.OnEnter(card); drain()
+            assert(dock.visible)
             assert(nativeBorder.alpha == 0 and moon.alpha == 1)
             assert(addonBorder.alpha == 0 and addonIcon.alpha == 1 and customIcon.alpha == 1)
             assert(select(2, GameTimeFrame:GetPoint()) == dock)
@@ -599,6 +603,8 @@ class AddonTests(unittest.TestCase):
             assert(select(2, custom:GetPoint()) == dock)
             assert(addonButton:GetWidth() == 24 and addonButton:GetHeight() == 24 and addonButton:GetScale() == 1)
             assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnEnter == enter and addonButton.scripts.OnDragStart == drag)
+            card.scripts.OnLeave(card); drain()
+            assert(not dock.visible and not addonButton.visible and not custom.visible)
 
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
             local point = {addonButton:GetPoint()}
