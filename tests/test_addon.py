@@ -528,32 +528,33 @@ class AddonTests(unittest.TestCase):
             assert(MinimapCompassTexture.rgba[1] == 1)
         ''')
 
-    def test_minimap_complete_sockets_preserve_native_controls(self):
+    def test_minimap_dock_collects_native_controls_and_restores_them(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
             Minimap = surface(); Minimap.mask = "native-circle"
             function Minimap:SetMaskTexture(value) self.mask = value end
             MinimapCluster = surface()
-            MiniMapTracking = surface(nil, MinimapCluster)
+            MiniMapTracking = surface("Button", MinimapCluster)
             MiniMapTracking.Border = surface("Texture", MiniMapTracking)
+            MiniMapTracking:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", -4, -4)
             local click = function() end
             MiniMapTracking.scripts.OnClick = click
-            local unknown = surface(nil, MinimapCluster)
-            unknown.Border = surface("Texture", unknown)
+            local original = {MiniMapTracking:GetPoint()}
             addon:QueueRefresh(); drain()
+            local dock = PadSkinForeverMinimapDock
+            assert(dock and dock.visible and dock.mouse == false)
             assert(MiniMapTracking.Border.alpha == 0)
             assert(MiniMapTracking.scripts.OnClick == click)
-            assert(MiniMapTracking.children[1] ~= nil)
-            local socket = MiniMapTracking.children[#MiniMapTracking.children]
-            assert(socket.visible == true and socket.mouse == false)
-            assert(unknown.Border.alpha == 1)
+            local point = {MiniMapTracking:GetPoint()}
+            assert(point[1] == "LEFT" and point[2] == dock)
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
-            assert(MiniMapTracking.Border.alpha == 1)
-            assert(socket.visible == false)
+            point = {MiniMapTracking:GetPoint()}
+            assert(point[1] == original[1] and point[2] == original[2] and point[4] == original[4] and point[5] == original[5])
+            assert(MiniMapTracking.Border.alpha == 1 and not dock.visible)
             assert(MiniMapTracking.scripts.OnClick == click)
         ''')
 
-    def test_minimap_discovers_libdbicon_and_preserves_behavior(self):
+    def test_minimap_dock_collects_addon_buttons_without_replacing_behavior(self):
         self.lua.execute(THEME_MOCKS)
         self.check('''
             Minimap = surface(); Minimap.mask = "native-circle"
@@ -561,6 +562,7 @@ class AddonTests(unittest.TestCase):
             MinimapCluster = surface()
 
             GameTimeFrame = surface("Button", MinimapCluster)
+            GameTimeFrame:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 0)
             local moon = GameTimeFrame:CreateTexture()
             moon:SetTexture("Interface\\Calendar\\UI-Calendar-Button")
             local nativeBorder = GameTimeFrame:CreateTexture()
@@ -568,39 +570,36 @@ class AddonTests(unittest.TestCase):
 
             local addonButton = surface("Button", Minimap)
             function addonButton:GetName() return "LibDBIcon10_BugSack" end
+            addonButton:SetPoint("CENTER", Minimap, "CENTER", -40, -40)
             local addonIcon = addonButton:CreateTexture()
             addonIcon:SetTexture("Interface\\Icons\\INV_Misc_Bug_01")
-            local addonBackground = addonButton:CreateTexture()
-            addonBackground:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
             local addonBorder = addonButton:CreateTexture()
             addonBorder:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
             local click, enter, drag = function() end, function() end, function() end
-            addonButton.scripts.OnClick = click
-            addonButton.scripts.OnEnter = enter
-            addonButton.scripts.OnDragStart = drag
-            addonButton:SetPoint("CENTER", Minimap, "CENTER", -40, -40)
-            local originalPoint = {addonButton:GetPoint()}
+            addonButton.scripts.OnClick, addonButton.scripts.OnEnter, addonButton.scripts.OnDragStart = click, enter, drag
+            local original = {addonButton:GetPoint()}
 
-            local unknown = surface("Button", Minimap)
-            local unknownArt = unknown:CreateTexture()
-            unknownArt:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+            -- A custom addon button without LibDBIcon artwork must be collected too.
+            local custom = surface("Button", Minimap)
+            function custom:GetName() return "CustomAddonLauncher" end
+            custom:SetPoint("CENTER", Minimap, "CENTER", 40, -40)
+            local customIcon = custom:CreateTexture()
+            customIcon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
 
             addon:QueueRefresh(); drain()
-            assert(nativeBorder.alpha == 0 and moon.alpha == 1, "day/night icon must survive its round chrome")
-            assert(addonBackground.alpha == 0 and addonBorder.alpha == 0)
-            assert(addonIcon.alpha == 1, "addon icon must remain visible")
-            assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnEnter == enter)
-            assert(addonButton.scripts.OnDragStart == drag)
-            local point = {addonButton:GetPoint()}
-            assert(point[1] == originalPoint[1] and point[4] == originalPoint[4] and point[5] == originalPoint[5])
-            local socket = addonButton.children[#addonButton.children]
-            assert(socket and socket.visible and socket.mouse == false)
-            assert(unknownArt.alpha == 1 and #unknown.children == 0, "unknown buttons must fail open")
+            local dock = PadSkinForeverMinimapDock
+            assert(dock and dock.visible)
+            assert(nativeBorder.alpha == 0 and moon.alpha == 1)
+            assert(addonBorder.alpha == 0 and addonIcon.alpha == 1 and customIcon.alpha == 1)
+            assert(select(2, GameTimeFrame:GetPoint()) == dock)
+            assert(select(2, addonButton:GetPoint()) == dock)
+            assert(select(2, custom:GetPoint()) == dock)
+            assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnEnter == enter and addonButton.scripts.OnDragStart == drag)
 
             addon.db.themeMinimap = false; addon:QueueRefresh(); drain()
-            assert(nativeBorder.alpha == 1 and moon.alpha == 1)
-            assert(addonBackground.alpha == 1 and addonBorder.alpha == 1 and addonIcon.alpha == 1)
-            assert(not socket.visible)
+            local point = {addonButton:GetPoint()}
+            assert(point[1] == original[1] and point[2] == original[2] and point[4] == original[4] and point[5] == original[5])
+            assert(addonBorder.alpha == 1 and addonIcon.alpha == 1 and not dock.visible)
             assert(addonButton.scripts.OnClick == click and addonButton.scripts.OnDragStart == drag)
         ''')
 
