@@ -273,6 +273,72 @@ The visual system is implemented through shared semantic tokens before individua
 
 Migration rule: preserve compatibility aliases while existing 0.9 components move onto these semantic roles. First centralize the vocabulary, then migrate component families one at a time. Do not mix unrelated feature expansion into the visual migration.
 
+## Module architecture
+
+PSF is organized as a presentation layer with clear, product-owned module names. The module map describes responsibility; existing Lua files may migrate toward it incrementally rather than through a disruptive rewrite.
+
+| Module | Responsibility |
+| --- | --- |
+| **Foundation** | Design tokens, surfaces, typography, colors, geometry and shared visual primitives. |
+| **Input** | Controller glyphs, focus states and input legend while native GamepadUI remains behaviorally authoritative. |
+| **Combat** | Central player/pet resources, native swing-timer presentation and the visual bridge to GamepadUI. |
+| **Units** | Player, pet, target, focus, target-of-target, party/raid and aura presentation. |
+| **Nameplates** | Minimal tactical presentation attached to units in the world. |
+| **Minimap** | Native minimap presentation and, after the base skin is complete, controller access and minimap-button support. |
+| **Moments** | Temporary cinematic world/event text: zones, subzones, quests, achievements, level-ups, boss emotes, scenarios/delves and similar meaningful events. |
+| **Quests** | Persistent objective tracker, quest log and longer-lived quest presentation. |
+| **Chat** | Chat frames and chat input. |
+| **Loot** | Loot window, loot presentation and loot notifications. |
+| **Interface** | Game menu, settings, tooltips and other general Blizzard UI presentation. |
+| **Diagnostics** | Debugging, compatibility probes and development tooling. |
+
+These are PSF concepts. External addon module names are references for research only and do not define PSF architecture.
+
+### Module development rule
+
+**Base → complete → extend.**
+
+Every module first becomes the smallest complete PSF skin over native Blizzard/Forever behavior. Only after that base is stable should PSF add functionality.
+
+1. **Base:** establish the module's visual language while preserving native behavior.
+2. **Complete:** cover the normal native states, scaling, layout and interaction expected from that component.
+3. **Extend:** add PSF-owned behavior only where it meaningfully improves the controller-first experience or fills a demonstrated native gap.
+
+This rule prevents a visual migration from silently becoming a replacement framework.
+
+### Minimap progression
+
+The Minimap module is deliberately called **Minimap**: its responsibility should be obvious in code.
+
+- **Base:** keep the native Blizzard/Forever minimap, remove the circular Blizzard presentation/overlay and present the map as a clean square PSF component. Do not replace minimap behavior.
+- **Complete:** integrate the useful native minimap information and states into the square PSF language and validate it at the 1080p/0.9–1.0 baseline.
+- **Extend:** add controller focus/navigation and controller-accessible minimap buttons while retaining native functionality wherever practical.
+
+**Gauge** is reserved as a possible Foundation component term for measurable-state presentation (health, resources, casts, swing timers), not as the name of the minimap module.
+
+### Moments progression
+
+Moments is PSF's temporary cinematic text layer, not a persistent HUD panel. When inactive it should leave no visual footprint in the world viewport.
+
+The base is a single reusable presentation path: a moment has a type, title and optional subtitle, enters cleanly, holds briefly, exits, and yields to the next item in a small queue. Event providers plug into that presentation rather than implementing their own visual systems.
+
+The intended Moments family includes:
+- zone and subzone changes;
+- quest accepted, progress and completion;
+- achievements and achievement progress where useful;
+- level-up;
+- boss/emote moments where appropriate;
+- scenario/delve start, progress and completion;
+- other future events only when they qualify as meaningful temporary moments.
+
+The base presentation and queue come first. Individual event families are then added and validated incrementally so the module remains one coherent system rather than a collection of notification implementations.
+
+### Ownership rule
+
+**PSF owns presentation; Blizzard/Forever owns behavior.**
+
+PSF may skin native frames, add informational presentation and suppress or replace redundant visual chrome when safe. Native controller navigation, targeting, protected actions, bindings, timers and secure state remain authoritative wherever a usable native path exists. PSF takes over behavior only when a native alternative demonstrably does not exist and the controller-first experience requires it.
+
 ## Review test
 
 A proposed PSF component is on-design when:
