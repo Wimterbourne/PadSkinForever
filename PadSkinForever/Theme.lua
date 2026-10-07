@@ -9,6 +9,7 @@ local rings = setmetatable({}, { __mode = "k" })
 local watched = setmetatable({}, { __mode = "k" })
 local minimapMask, minimapChanged
 local minimapSockets = setmetatable({}, { __mode = "k" })
+local minimapDock, minimapDocked = nil, setmetatable({}, { __mode = "k" })
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
 
@@ -231,9 +232,9 @@ local function SupplementalUnits(enabled)
     end
 end
 
--- Minimap Complete keeps native/addon buttons authoritative and changes only
--- their presentation. Known Blizzard controls are explicit; third-party buttons
--- are discovered conservatively from the Minimap's direct children.
+-- Minimap Complete collects minimap controls into one PSF-owned visual dock.
+-- The original buttons remain the interaction layer: their scripts, tooltips and
+-- addon/Blizzard ownership are never replaced.
 local function MinimapDecoration(region)
     if not region or not region.IsObjectType or not region:IsObjectType("Texture") then return false end
     local atlas = region.GetAtlas and region:GetAtlas()
@@ -252,17 +253,14 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
         socket = CreateFrame("Frame", nil, control)
         socket:EnableMouse(false)
         socket:SetFrameLevel(math.max(0, control:GetFrameLevel() - 1))
-        socket:SetPoint("TOPLEFT", control, "TOPLEFT", -2, 2)
-        socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 2, -2)
+        socket:SetPoint("TOPLEFT", control, "TOPLEFT", -1, 1)
+        socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 1, -1)
         addon:CreateRoundedPanel(socket, addon.design.surface.floating, addon.design.radius.socket)
         minimapSockets[control] = socket
         addon:DebugSurface(socket, "Minimap/" .. label .. "/socket",
-            thirdParty and "third-party minimap control presentation" or "native minimap control presentation")
+            thirdParty and "third-party minimap dock item" or "native minimap dock item")
     end
     if socket then socket:SetShown(enabled) end
-
-    -- Hide only decorative chrome. The button/icon, scripts, tooltip, dragging,
-    -- anchors and controller ownership stay with Blizzard or the originating addon.
     for _, key in ipairs({ "Border", "Background", "BG", "Ring", "Circle", "HighlightRing" }) do
         addon:ThemeAlpha(control[key], enabled)
     end
@@ -273,18 +271,50 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
     end
 end
 
-local function IsThirdPartyMinimapButton(control, native)
-    if not control or native[control] or not control.IsObjectType or not control:IsObjectType("Button") then return false end
-    local name = control.GetName and control:GetName()
-    if type(name) == "string" and name:match("^LibDBIcon10_") then return true end
-    -- LibDBIcon and many hand-rolled buttons use Blizzard's traditional round
-    -- minimap chrome. This is a presentation signature, not an addon allowlist.
-    if control.GetRegions then
-        for _, region in ipairs({ control:GetRegions() }) do
-            if MinimapDecoration(region) then return true end
+local function EnsureMinimapDock()
+    if minimapDock or not Minimap then return minimapDock end
+    minimapDock = CreateFrame("Frame", "PadSkinForeverMinimapDock", Minimap)
+    minimapDock:EnableMouse(false)
+    minimapDock:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
+    minimapDock:SetHeight(34)
+    minimapDock:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, -5)
+    addon:CreateRoundedPanel(minimapDock, addon.design.surface.peripheral, addon.design.radius.compact)
+    addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
+    return minimapDock
+end
+
+local function SaveDockAnchor(control)
+    if minimapDocked[control] then return minimapDocked[control] end
+    local saved = { points = {} }
+    local count = control.GetNumPoints and control:GetNumPoints() or 1
+    if control.GetPoint then
+        for index = 1, math.max(1, count) do
+            local point, relativeTo, relativePoint, x, y = control:GetPoint(index)
+            if point then saved.points[#saved.points + 1] = { point, relativeTo, relativePoint, x, y } end
         end
     end
-    return false
+    minimapDocked[control] = saved
+    return saved
+end
+
+local function RestoreDockAnchor(control)
+    local saved = minimapDocked[control]
+    if not saved then return end
+    control:ClearAllPoints()
+    for _, point in ipairs(saved.points) do control:SetPoint(unpack(point)) end
+    minimapDocked[control] = nil
+end
+
+local function DockMinimapControl(control, dock, index, enabled, label, thirdParty)
+    if not control then return end
+    MinimapControlSocket(control, enabled, label, thirdParty)
+    if enabled then
+        SaveDockAnchor(control)
+        control:ClearAllPoints()
+        control:SetPoint("LEFT", dock, "LEFT", 5 + (index - 1) * 30, 0)
+    else
+        RestoreDockAnchor(control)
+    end
 end
 
 local function MinimapControls(enabled)
@@ -302,23 +332,47 @@ local function MinimapControls(enabled)
         { _G["ExpansionLandingPageMinimapButton"], "ExpansionLandingPage" },
         { _G["MiniMapMailFrame"], "Mail" },
     }
-    local native = {}
+    local controls, seen = {}, {}
     for _, entry in ipairs(candidates) do
         local control, label = entry[1], entry[2]
-        if control and not native[control] then
-            native[control] = true
-            MinimapControlSocket(control, enabled, label, false)
+        if control and not seen[control] then
+            seen[control] = true
+            controls[#controls + 1] = { control, label, false }
         end
     end
 
-    -- ADDON_LOADED already queues a PSF refresh for every addon, so LibDBIcon
-    -- registrations made during addon load are picked up without an OnUpdate poll.
+    -- Third-party minimap launchers conventionally parent their Button directly
+    -- to Minimap (LibDBIcon does this). Collect every such button rather than
+    -- maintaining an addon allowlist. Known native controls above win first.
     if Minimap and Minimap.GetChildren then
         for _, control in ipairs({ Minimap:GetChildren() }) do
-            if IsThirdPartyMinimapButton(control, native) then
+            if control ~= minimapDock and not seen[control] and control.IsObjectType and control:IsObjectType("Button") then
+                seen[control] = true
                 local name = control.GetName and control:GetName()
-                MinimapControlSocket(control, enabled, type(name) == "string" and name or "AddonButton", true)
+                controls[#controls + 1] = { control, type(name) == "string" and name or "AddonButton", true }
             end
+        end
+    end
+
+    local dock = EnsureMinimapDock()
+    if not dock then return end
+    if enabled and #controls > 0 then
+        dock:SetWidth(10 + #controls * 30)
+        dock:Show()
+    else
+        dock:Hide()
+    end
+    for index, entry in ipairs(controls) do
+        DockMinimapControl(entry[1], dock, index, enabled, entry[2], entry[3])
+    end
+
+    -- Restore controls that disappeared from discovery while PSF was active.
+    if not enabled then
+        local restore = {}
+        for control in pairs(minimapDocked) do restore[#restore + 1] = control end
+        for _, control in ipairs(restore) do
+            MinimapControlSocket(control, false, "Restored", true)
+            RestoreDockAnchor(control)
         end
     end
 end
@@ -367,8 +421,8 @@ local function Map(enabled)
     addon:ThemeAlpha(MinimapBorderTop, enabled)
     addon:ThemeFont(MinimapZoneText, enabled, true)
 
-    -- Complete integrates known native controls into one compact socket language.
-    -- No scripts, clicks, bindings, focus managers, anchors or sizes are replaced.
+    -- Complete collects native and third-party controls into one compact PSF dock.
+    -- Original buttons remain clickable; only their presentation/placement changes.
     MinimapControls(enabled)
 end
 
