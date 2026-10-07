@@ -425,16 +425,25 @@ local function RestoreMinimapPresentation(frame)
     minimapHeaderSaved[frame] = nil
 end
 
+local function CoordinateValue(region)
+    if not region or not region.GetText then return end
+    local value = region:GetText()
+    if type(value) == "string" and value:match("^%s*%d+%.?%d*%s*,%s*%d+%.?%d*%s*$") then
+        return value
+    end
+end
+
 local function FindCoordinateText()
+    -- Once discovered, keep the native Forever FontString as the authoritative
+    -- data source. Its own alpha may be zero while PSF owns presentation.
+    if minimapNativeCoordinate then return minimapNativeCoordinate end
     if not MinimapCluster or not MinimapCluster.GetChildren then return end
     for _, child in ipairs({ MinimapCluster:GetChildren() }) do
         if child ~= minimapHeader and child ~= minimapFooter and child ~= minimapClusterCard and child.GetRegions then
             for _, region in ipairs({ child:GetRegions() }) do
-                if region.IsObjectType and region:IsObjectType("FontString") and region.GetText then
-                    local value = region:GetText()
-                    if type(value) == "string" and value:match("^%s*%d+%.?%d*%s*,%s*%d+%.?%d*%s*$") then
-                        return region
-                    end
+                if region.IsObjectType and region:IsObjectType("FontString") and CoordinateValue(region) then
+                    minimapNativeCoordinate = region
+                    return region
                 end
             end
         end
@@ -709,8 +718,8 @@ local function Map(enabled)
             -- Blizzard/Forever remains the coordinate data source. PSF owns only
             -- the visible presentation so draw order/font are deterministic.
             minimapNativeCoordinate = coordinates
-            if minimapCoordinateLabel and coordinates.GetText then
-                minimapCoordinateLabel:SetText(coordinates:GetText() or "")
+            if minimapCoordinateLabel then
+                minimapCoordinateLabel:SetText(CoordinateValue(coordinates) or "")
             end
             addon:ThemeAlpha(coordinates, true)
         elseif minimapCoordinateLabel then
@@ -720,7 +729,8 @@ local function Map(enabled)
         RestoreMinimapPresentation(MinimapZoneText)
         RestoreMinimapPresentation(clock)
         if minimapNativeCoordinate then addon:ThemeAlpha(minimapNativeCoordinate, false) end
-        minimapNativeCoordinate = nil
+        -- Keep the discovered source cached across theme refreshes; clearing it
+        -- makes rediscovery timing-dependent once the native presentation is hidden.
         if minimapCoordinateLabel then minimapCoordinateLabel:SetText("") end
     end
 
