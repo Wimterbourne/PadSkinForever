@@ -379,9 +379,63 @@ The base presentation and queue come first. Individual event families are then a
 
 ### Ownership rule
 
-**PSF owns presentation; Blizzard/Forever owns behavior.**
+**PSF owns presentation; Blizzard/Forever owns behavior wherever possible.**
 
-PSF may skin native frames, add informational presentation and suppress or replace redundant visual chrome when safe. Native controller navigation, targeting, protected actions, bindings, timers and secure state remain authoritative wherever a usable native path exists. PSF takes over behavior only when a native alternative demonstrably does not exist and the controller-first experience requires it.
+**Every PSF feature must be fully operable by controller.**
+
+Full controller operation does not mean PSF should own every controller path. Controller ownership follows this priority:
+
+1. **Native first:** use Blizzard/Forever controller navigation when it already reaches the feature.
+2. **Native augmentation:** if native controller infrastructure exists but leaves a small accessibility gap, integrate with or minimally supplement it without replacing the native behavior.
+3. **PSF fallback:** only when no usable native route exists, provide isolated PSF-owned controller behavior.
+
+Forever controller support is still evolving. Any PSF fallback must therefore be modular, detectable and removable/bypassable when Blizzard adds an equivalent native path. Do not build permanent navigation assumptions around an alpha limitation.
+
+For **Blizzard-owned UI**, PSF continuously prefers native controller behavior and treats custom navigation as compatibility fallback. For **PSF-owned UI**, complete controller operation is a requirement from the first usable version.
+
+### Controller compatibility review
+
+Every module's Complete/Extend review must answer:
+
+- Can every user-facing action be reached and completed without mouse or touch?
+- Is the route native, augmented native, or PSF fallback?
+- Does PSF alter protected bindings, focus managers or secure navigation unnecessarily?
+- Can a future Blizzard implementation take ownership without redesigning the module?
+- Does the feature fail safely if a Forever alpha API/frame changes or disappears?
+
+Controller compatibility is part of module completeness, not a later accessibility pass.
+
+### Implementation roadmap
+
+The near-term migration order is:
+
+1. **Minimap Complete** — inventory and visually integrate native minimap information/controls without assuming ownership of their behavior.
+2. **Input foundation** — formalize reusable PSF focus, navigation and fallback rules/components.
+3. **PSF Menu redesign** — use the fully PSF-owned settings UI as the reference implementation for the new visual language and complete controller interaction.
+4. **Minimap Extend** — make every minimap action controller-accessible, preferring whatever native Forever support exists at implementation time and filling only demonstrated gaps.
+5. **Moments** — establish the reusable transient event layer, then add event providers incrementally.
+6. **Remaining modules** — migrate through Base → Complete → Extend using the same presentation and controller rules.
+
+The PSF Menu redesign is intentionally early: it is the controlled environment in which PSF can establish its own controller interaction grammar before that grammar is used as fallback around Blizzard-owned UI.
+
+### Minimap Complete audit
+
+The current code confirms that Minimap Base changes only presentation: it replaces the native round mask with a square mask, hides known circular/top chrome, adds a thin PSF surface, and leaves the native Minimap/MinimapCluster hierarchy and child controls in place.
+
+For Complete, minimap elements are classified by role rather than by fragile frame-name assumptions:
+
+| Element | Presentation owner | Behavior owner | Complete target |
+| --- | --- | --- | --- |
+| Map canvas, pins and POIs | PSF skin / native content | Blizzard/Forever | Preserve square map and all native map interaction. |
+| Zone title | PSF | Blizzard/Forever | Integrate typography/spacing with the square map without changing its source/state. |
+| Coordinates | PSF when present | Native/provider that supplies them | Keep restrained and subordinate below/near the map. |
+| Native minimap buttons | PSF skin | Blizzard/Forever | Give compatible buttons one compact socket language while preserving click, tooltip, state and native ownership. |
+| Attention/status indicators | PSF skin where safe | Blizzard/Forever | Preserve semantic state/color and visibility; never flatten meaningful alerts into decoration. |
+| Zoom/tracking and other map actions | PSF skin where exposed | Blizzard/Forever | Preserve native action behavior; do not recreate actions in Complete. |
+| Controller navigation | observation only in Complete | Blizzard/Forever first | Record what Forever can already reach; implementation belongs to Extend after Input foundation. |
+
+Because Forever's controller/minimap implementation is alpha and may change, Complete must not hard-code a closed list of Blizzard buttons based solely on current assumptions. The implementation should skin known compatible controls defensively and leave unknown/new native children functional and visible. Runtime diagnostics should be used when a control's ownership or state is unclear.
+
 
 ## Review test
 
