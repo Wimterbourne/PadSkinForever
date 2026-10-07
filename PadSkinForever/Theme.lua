@@ -263,7 +263,7 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
         socket:SetFrameLevel(math.max(0, control:GetFrameLevel() - 1))
         socket:SetPoint("TOPLEFT", control, "TOPLEFT", -1, 1)
         socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 1, -1)
-        addon:CreateRoundedPanel(socket, addon.design.surface.floating, addon.design.radius.socket)
+        addon:CreateGlassPanel(socket, addon.design.surface.floating, addon.design.radius.socket)
         minimapSockets[control] = socket
         addon:DebugSurface(socket, "Minimap/" .. label .. "/socket",
             thirdParty and "third-party minimap dock item" or "native minimap dock item")
@@ -522,7 +522,7 @@ local function EnsureMinimapDock()
     -- Reveal a compact floating control row against the lower-right map edge.
     -- This avoids creating a second full-width footer or colliding with the
     -- centered coordinate tab.
-    minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -4, 4)
+    minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -7, 8)
     addon:CreateGlassPanel(minimapDock, addon.design.surface.wellSoft, addon.design.radius.socket)
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
@@ -768,6 +768,11 @@ local function Map(enabled)
         addon:ApplyPSFFont(MinimapZoneText, "name")
         if MinimapZoneText then
             AnchorMinimapPresentation(MinimapZoneText, "LEFT", minimapHeader, "LEFT", 9, 0)
+            if MinimapZoneText.SetDrawLayer then MinimapZoneText:SetDrawLayer("OVERLAY", 2) end
+            local zoneParent = MinimapZoneText.GetParent and MinimapZoneText:GetParent()
+            if zoneParent and zoneParent.SetFrameLevel then
+                zoneParent:SetFrameLevel(minimapHeader:GetFrameLevel() + 1)
+            end
         end
         if ticker then addon:ApplyPSFFont(ticker, "label") end
         if clock then
