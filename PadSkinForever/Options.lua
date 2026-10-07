@@ -34,12 +34,14 @@ end
 
 local function SetControllerFocus(control)
     if controllerFocus == control then return end
-    if controllerFocus and controllerFocus.SetPSFControllerFocused then
-        controllerFocus:SetPSFControllerFocused(false)
+    if controllerFocus then
+        if controllerFocus.SetPSFControllerFocused then controllerFocus:SetPSFControllerFocused(false) end
+        addon:SetInputFocusTreatment(controllerFocus, "normal")
     end
     controllerFocus = ControlIsUsable(control) and control or nil
-    if controllerFocus and controllerFocus.SetPSFControllerFocused then
-        controllerFocus:SetPSFControllerFocused(true)
+    if controllerFocus then
+        if controllerFocus.SetPSFControllerFocused then controllerFocus:SetPSFControllerFocused(true) end
+        addon:SetInputFocusTreatment(controllerFocus, "focused")
         EnsureControlVisible(controllerFocus)
     end
     -- PSF owns this marker. Never move or reconfigure Blizzard's focus cursor.
@@ -263,7 +265,7 @@ function addon:ShowOptions()
         panel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         panel:SetBackdropColor(0, 0, 0, 0)
         panel:SetBackdropBorderColor(0, 0, 0, 0)
-        addon:CreateRoundedPanel(panel)
+        addon:CreateGlassPanel(panel, addon.design.surface.glass, addon.design.radius.card)
         panel:EnableMouse(true)
         panel:SetMovable(true)
         panel:RegisterForDrag("LeftButton")
@@ -286,6 +288,15 @@ function addon:ShowOptions()
         panel.settings:SetPoint("TOPLEFT", 0, -36)
         panel.settings:SetPoint("BOTTOMRIGHT")
         panel.pages.general = panel.settings
+
+        local navGlass = CreateFrame("Frame", nil, panel)
+        navGlass:EnableMouse(false)
+        navGlass:SetFrameLevel(math.max(0, panel:GetFrameLevel() - 1))
+        navGlass:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, -43)
+        navGlass:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -14, -43)
+        navGlass:SetHeight(43)
+        addon:CreateGlassPanel(navGlass, addon.design.surface.frosted, addon.design.radius.compact)
+
         panel.tabs.general = Button(panel, "General", 22, -50, 82, function() ShowTab("general") end)
         panel.tabs.glyphs = Button(panel, "Glyphs", 110, -50, 82, function() ShowTab("glyphs") end)
         panel.tabs.buttons = Button(panel, "Buttons", 198, -50, 82, function() ShowTab("buttons") end)
@@ -294,7 +305,7 @@ function addon:ShowOptions()
         for _, tab in pairs(panel.tabs) do tab:SetPSFStyle("tab") end
         local navLine = panel:CreateTexture(nil, "ARTWORK")
         navLine:SetTexture("Interface\\Buttons\\WHITE8X8")
-        navLine:SetVertexColor(.24, .28, .25, 1)
+        navLine:SetVertexColor(.48, .54, .61, .28)
         navLine:SetHeight(1)
         navLine:SetPoint("TOPLEFT", panel, "TOPLEFT", 22, -84)
         navLine:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -22, -84)
@@ -311,8 +322,9 @@ function addon:ShowOptions()
         fontWell:SetPoint("TOPLEFT", 20, -269)
         fontWell:SetSize(442, 186)
         fontWell:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        fontWell:SetBackdropColor(.035, .04, .05, .68)
-        fontWell:SetBackdropBorderColor(unpack(addon.uiColors.borderSoft))
+        local wellSurface = addon.design.surface.well
+        fontWell:SetBackdropColor(unpack(wellSurface.fill))
+        fontWell:SetBackdropBorderColor(unpack(wellSurface.border))
         local scroll = CreateFrame("ScrollFrame", nil, panel.settings, "UIPanelScrollFrameTemplate")
         scroll:SetPoint("TOPLEFT", 22, -273)
         scroll:SetSize(438, 180)
@@ -340,7 +352,7 @@ function addon:ShowOptions()
             addon:QueueRefresh()
         end)
         panel.toggleLegend = Button(panel.settings, "Toggle native legend", 22, -557, 210, function() addon:ToggleLegend() end)
-        local help = Hint(panel.settings, "D-pad navigates PSF; A selects and B returns to the Game Menu.\nPSF uses isolated bindings and releases them automatically before combat.", 22, -596)
+        local help = Hint(panel.settings, "D-pad  Navigate     A  Select     B  Back\nPSF releases its temporary menu bindings before combat.", 22, -596)
         help:SetWidth(460)
         help:SetJustifyH("LEFT")
         local glyphPage = CreateFrame("Frame", nil, panel)
