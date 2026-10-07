@@ -15,13 +15,15 @@ addon.design = {
     spacing = { hairline = 1, inset = 3, gap = 2, group = 6, section = 10 },
     depth = { peripheral = .78, standard = .90, combat = .96 },
     surface = {
-        glass = { fill = { .025, .031, .040, .88 }, border = { .62, .67, .73, .22 } },
-        strong = { fill = { .020, .026, .034, .96 }, border = { .66, .71, .77, .30 } },
-        peripheral = { fill = { .025, .031, .040, .74 }, border = { .58, .63, .69, .16 } },
-        well = { fill = { .010, .014, .020, .82 }, border = { .52, .58, .65, .16 } },
-        wellSoft = { fill = { .010, .014, .020, .66 }, border = { .52, .58, .65, .10 } },
-        rail = { fill = { .018, .024, .032, .88 }, border = { .62, .67, .73, .16 } },
-        floating = { fill = { .030, .038, .049, .92 }, border = { .68, .73, .79, .26 } },
+        -- Spatial glass keeps the world visible. Edges/highlights define shape;
+        -- opaque fills are reserved for wells and readability-critical surfaces.
+        glass = { fill = { .030, .040, .055, .34 }, border = { .78, .84, .92, .34 } },
+        strong = { fill = { .020, .026, .034, .88 }, border = { .66, .71, .77, .30 } },
+        peripheral = { fill = { .028, .038, .052, .26 }, border = { .72, .79, .87, .24 } },
+        well = { fill = { .010, .014, .020, .72 }, border = { .52, .58, .65, .16 } },
+        wellSoft = { fill = { .010, .014, .020, .54 }, border = { .52, .58, .65, .10 } },
+        rail = { fill = { .018, .024, .032, .66 }, border = { .62, .67, .73, .18 } },
+        floating = { fill = { .034, .046, .064, .42 }, border = { .80, .86, .94, .36 } },
     },
     identity = {
         edgeAlpha = .92,
@@ -138,7 +140,7 @@ function addon:CreateGlassPanel(parent, palette, radius)
     top:SetPoint("TOPLEFT", parent, "TOPLEFT", radius, -1)
     top:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -radius, -1)
     top:SetHeight(1)
-    top:SetVertexColor(.88, .92, .98, .16)
+    top:SetVertexColor(.92, .96, 1, .30)
     table.insert(regions.glass, top)
 
     -- Side glints establish thickness on dark scenes while remaining quieter
@@ -149,7 +151,7 @@ function addon:CreateGlassPanel(parent, palette, radius)
         edge:SetPoint("TOP" .. side, parent, "TOP" .. side, side == "LEFT" and 1 or -1, -radius)
         edge:SetPoint("BOTTOM" .. side, parent, "BOTTOM" .. side, side == "LEFT" and 1 or -1, radius)
         edge:SetWidth(1)
-        edge:SetVertexColor(.72, .78, .86, .07)
+        edge:SetVertexColor(.78, .86, .96, .14)
         table.insert(regions.glass, edge)
     end
 
@@ -160,7 +162,7 @@ function addon:CreateGlassPanel(parent, palette, radius)
     bottom:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", radius, 1)
     bottom:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -radius, 1)
     bottom:SetHeight(1)
-    bottom:SetVertexColor(.01, .015, .025, .42)
+    bottom:SetVertexColor(.01, .015, .025, .30)
     table.insert(regions.glass, bottom)
 
     parent.PSFGlassPanel = parent
