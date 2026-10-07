@@ -77,6 +77,25 @@ local function MinimapObjectLine(object, prefix)
     if object.GetTexture then parts[#parts + 1] = "texture=" .. Read(object, "GetTexture") end
     if object.GetAlpha then parts[#parts + 1] = "alpha=" .. Read(object, "GetAlpha") end
     if object.IsShown then parts[#parts + 1] = "shown=" .. Read(object, "IsShown") end
+    if object.GetText then parts[#parts + 1] = "text=" .. Read(object, "GetText") end
+    if object.GetFont then
+        local path, size, flags = Read(object, "GetFont")
+        parts[#parts + 1] = "font=" .. path .. " size=" .. size .. " flags=" .. flags
+    end
+    if object.GetParent then
+        local parent = object:GetParent()
+        if parent and parent.GetName then parts[#parts + 1] = "parent=" .. Read(parent, "GetName") end
+    end
+    if object.GetPoint then
+        local point, relativeTo, relativePoint, x, y = object:GetPoint(1)
+        local relativeName = relativeTo and relativeTo.GetName and relativeTo:GetName() or tostring(relativeTo)
+        parts[#parts + 1] = "point=" .. tostring(point) .. "/" .. tostring(relativeName) .. "/"
+            .. tostring(relativePoint) .. "/" .. tostring(x) .. "/" .. tostring(y)
+    end
+    if object.GetSize then
+        local width, height = object:GetSize()
+        parts[#parts + 1] = "size=" .. tostring(width) .. "x" .. tostring(height)
+    end
     return table.concat(parts, " | ")
 end
 
