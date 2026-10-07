@@ -298,8 +298,10 @@ local function EnsureMinimapDock()
     minimapDockLauncher:SetPoint("CENTER", minimapDock, "CENTER", 0, 0)
     local mark = minimapDockLauncher:CreateFontString(nil, "OVERLAY")
     mark:SetPoint("CENTER")
-    mark:SetText("•••")
+    -- A newly-created FontString has no inherited font. Theme it before assigning
+    -- text; WoW raises "Font not set" if SetText is called first.
     addon:ThemeFont(mark, true, true)
+    mark:SetText("•••")
     minimapDockLauncher:SetScript("OnClick", function()
         minimapDockOpen = not minimapDockOpen
         addon:QueueRefresh()
