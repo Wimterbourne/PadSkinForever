@@ -13,7 +13,8 @@ local minimapDock, minimapDockPanel, minimapDockLauncher
 local minimapDocked = setmetatable({}, { __mode = "k" })
 local minimapDockOpen = false
 local minimapDockHover = false
-local minimapClusterCard
+local minimapClusterCard, minimapHeader, minimapFooter, minimapDayGlyph
+local minimapHeaderSaved = setmetatable({}, { __mode = "k" })
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
 
@@ -317,12 +318,34 @@ local function EnsureMinimapClusterCard()
     minimapClusterCard = CreateFrame("Frame", "PadSkinForeverMinimapCard", MinimapCluster)
     minimapClusterCard:EnableMouse(true)
     minimapClusterCard:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() - 2))
-    -- Follow Blizzard/Edit Mode geometry. The card only extends the visual surface
-    -- around the native map so header/footer belong to the same component.
-    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -4, 24)
-    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 4, -24)
+    -- Header/footer are part of one visual card while Blizzard/Edit Mode remains
+    -- authoritative for the Minimap root geometry.
+    minimapClusterCard:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -4, 28)
+    minimapClusterCard:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 4, -4)
     addon:CreateRoundedPanel(minimapClusterCard, addon.design.surface.peripheral, addon.design.radius.card)
     addon:DebugSurface(minimapClusterCard, "Minimap/card", "native minimap cluster presentation")
+
+    minimapHeader = CreateFrame("Frame", "PadSkinForeverMinimapHeader", MinimapCluster)
+    minimapHeader:EnableMouse(false)
+    minimapHeader:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
+    minimapHeader:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 0, 0)
+    minimapHeader:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 0, 0)
+    minimapHeader:SetHeight(24)
+
+    minimapDayGlyph = minimapHeader:CreateTexture(nil, "ARTWORK")
+    minimapDayGlyph:SetSize(14, 14)
+    minimapDayGlyph:SetPoint("RIGHT", minimapHeader, "RIGHT", -42, 0)
+    minimapDayGlyph:SetAtlas("UI-HUD-Minimap-DayCycle")
+    addon:DebugSurface(minimapDayGlyph, "Minimap/header/dayCycle", "day/night status glyph")
+
+    minimapFooter = CreateFrame("Frame", "PadSkinForeverMinimapFooter", MinimapCluster)
+    minimapFooter:EnableMouse(false)
+    minimapFooter:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 1))
+    minimapFooter:SetSize(72, 18)
+    minimapFooter:SetPoint("TOP", Minimap, "BOTTOM", 0, 0)
+    addon:CreateRoundedPanel(minimapFooter, addon.design.surface.peripheral, addon.design.radius.compact)
+    addon:DebugSurface(minimapFooter, "Minimap/footer", "coordinate tab")
+
     minimapClusterCard:SetScript("OnEnter", function()
         minimapDockHover = true
         addon:QueueRefresh()
@@ -332,6 +355,45 @@ local function EnsureMinimapClusterCard()
         addon:QueueRefresh()
     end)
     return minimapClusterCard
+end
+
+local function SaveMinimapPresentation(frame)
+    if not frame or minimapHeaderSaved[frame] then return end
+    local saved = { points = {} }
+    local count = frame.GetNumPoints and frame:GetNumPoints() or 0
+    for index = 1, count do saved.points[#saved.points + 1] = { frame:GetPoint(index) } end
+    minimapHeaderSaved[frame] = saved
+end
+
+local function AnchorMinimapPresentation(frame, ...)
+    if not frame then return end
+    SaveMinimapPresentation(frame)
+    frame:ClearAllPoints()
+    frame:SetPoint(...)
+end
+
+local function RestoreMinimapPresentation(frame)
+    local saved = frame and minimapHeaderSaved[frame]
+    if not saved then return end
+    frame:ClearAllPoints()
+    for _, point in ipairs(saved.points) do frame:SetPoint(unpack(point)) end
+    minimapHeaderSaved[frame] = nil
+end
+
+local function FindCoordinateText()
+    if not MinimapCluster or not MinimapCluster.GetChildren then return end
+    for _, child in ipairs({ MinimapCluster:GetChildren() }) do
+        if child ~= minimapHeader and child ~= minimapFooter and child ~= minimapClusterCard and child.GetRegions then
+            for _, region in ipairs({ child:GetRegions() }) do
+                if region.IsObjectType and region:IsObjectType("FontString") and region.GetText then
+                    local value = region:GetText()
+                    if type(value) == "string" and value:match("^%s*%d+%.?%d*%s*,%s*%d+%.?%d*%s*$") then
+                        return region
+                    end
+                end
+            end
+        end
+    end
 end
 
 local function EnsureMinimapDock()
@@ -573,32 +635,32 @@ local function Map(enabled)
     MinimapDayCycle(enabled)
     -- Minimap header/footer typography follows the PSF reference: location is
     -- the identity label; time and coordinates are quieter metadata.
-    addon:ApplyPSFFont(MinimapZoneText, "name")
-    local clock = _G["TimeManagerClockButton"]
-    if clock and clock.GetRegions then
-        for _, region in ipairs({ clock:GetRegions() }) do
-            if region:IsObjectType("FontString") then addon:ApplyPSFFont(region, "label") end
-        end
-    end
-    for _, candidate in ipairs({
-        MinimapCluster and MinimapCluster.Coordinates,
-        MinimapCluster and MinimapCluster.CoordinateText,
-        _G["MinimapCoordinates"],
-        _G["MinimapCoordinatesText"],
-    }) do
-        if candidate then
-            if candidate.IsObjectType and candidate:IsObjectType("FontString") then
-                addon:ApplyPSFFont(candidate, "label")
-            elseif candidate.GetRegions then
-                for _, region in ipairs({ candidate:GetRegions() }) do
-                    if region:IsObjectType("FontString") then addon:ApplyPSFFont(region, "label") end
-                end
-            end
-        end
-    end
-
     local card = EnsureMinimapClusterCard()
     if card then card:SetShown(enabled and square) end
+    if minimapHeader then minimapHeader:SetShown(enabled and square) end
+    if minimapFooter then minimapFooter:SetShown(enabled and square) end
+
+    local clock = _G["TimeManagerClockButton"]
+    local ticker = _G["TimeManagerClockTicker"]
+    local coordinates = FindCoordinateText()
+    if enabled and square then
+        addon:ApplyPSFFont(MinimapZoneText, "name")
+        if MinimapZoneText then
+            AnchorMinimapPresentation(MinimapZoneText, "LEFT", minimapHeader, "LEFT", 8, 0)
+        end
+        if ticker then addon:ApplyPSFFont(ticker, "label") end
+        if clock then
+            AnchorMinimapPresentation(clock, "RIGHT", minimapHeader, "RIGHT", -6, 0)
+        end
+        if coordinates then
+            addon:ApplyPSFFont(coordinates, "label")
+            AnchorMinimapPresentation(coordinates, "CENTER", minimapFooter, "CENTER", 0, 0)
+        end
+    else
+        RestoreMinimapPresentation(MinimapZoneText)
+        RestoreMinimapPresentation(clock)
+        RestoreMinimapPresentation(coordinates)
+    end
 
     -- Complete collects native and third-party controls into one compact PSF dock.
     -- Original buttons remain clickable; only their presentation/placement changes.
