@@ -261,8 +261,8 @@ local function MinimapControlSocket(control, enabled, label, thirdParty)
         socket = CreateFrame("Frame", nil, control)
         socket:EnableMouse(false)
         socket:SetFrameLevel(math.max(0, control:GetFrameLevel() - 1))
-        socket:SetPoint("TOPLEFT", control, "TOPLEFT", -1, 1)
-        socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 1, -1)
+        socket:SetPoint("TOPLEFT", control, "TOPLEFT", -3, 3)
+        socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 3, -3)
         addon:CreateGlassPanel(socket, addon.design.surface.floating, addon.design.radius.socket)
         minimapSockets[control] = socket
         addon:DebugSurface(socket, "Minimap/" .. label .. "/socket",
@@ -694,13 +694,15 @@ local function MinimapControls(enabled)
             if control.SetSize then control:SetSize(DOCK_CONTROL, DOCK_CONTROL) end
             control:ClearAllPoints()
             if index <= 3 then
-                -- Primary controls form a vertical rail on the right edge.
-                control:SetPoint("CENTER", Minimap, "RIGHT", 9, 28 - ((index - 1) * DOCK_ITEM))
+                -- Primary controls sit inside the clear housing rather than on
+                -- its outer seam. The wider rhythm lets each glass socket read
+                -- independently around the native icon.
+                control:SetPoint("CENTER", Minimap, "RIGHT", 5, 30 - ((index - 1) * 30))
             else
-                -- Additional controls continue along the lower edge, stopping
-                -- before the centered coordinate notch.
+                -- Additional controls continue along the lower housing edge,
+                -- leaving the centered coordinate notch visually untouched.
                 control:SetPoint("CENTER", Minimap, "BOTTOMRIGHT",
-                    -12 - ((index - 4) * DOCK_ITEM), -8)
+                    -16 - ((index - 4) * 30), -5)
             end
             HookMinimapControlHover(control)
             if control.Show then control:Show() end
