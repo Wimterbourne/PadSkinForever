@@ -436,9 +436,10 @@ local function EnsureMinimapDock()
     minimapDockLauncher:SetPoint("CENTER", minimapDock, "CENTER", 0, 0)
     local mark = minimapDockLauncher:CreateFontString(nil, "OVERLAY")
     mark:SetPoint("CENTER")
-    -- A newly-created FontString has no inherited font. Theme it before assigning
-    -- text; WoW raises "Font not set" if SetText is called first.
-    addon:ThemeFont(mark, true, true)
+    -- ThemeFont intentionally only restyles FontStrings that already own a font.
+    -- This PSF-created label starts fontless, so assign the PSF UI font directly
+    -- before SetText or WoW raises "FontString:SetText(): Font not set".
+    addon:ApplyPSFFont(mark, "name")
     mark:SetText("•••")
     minimapDockLauncher:SetScript("OnClick", function()
         minimapDockOpen = not minimapDockOpen
