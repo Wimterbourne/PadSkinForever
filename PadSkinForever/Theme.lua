@@ -231,9 +231,21 @@ local function SupplementalUnits(enabled)
     end
 end
 
--- Minimap Complete deliberately recognizes only stable, named native controls.
--- Unknown/new Forever children stay visible and untouched so alpha updates fail open.
-local function MinimapControlSocket(control, enabled, label)
+-- Minimap Complete keeps native/addon buttons authoritative and changes only
+-- their presentation. Known Blizzard controls are explicit; third-party buttons
+-- are discovered conservatively from the Minimap's direct children.
+local function MinimapDecoration(region)
+    if not region or not region.IsObjectType or not region:IsObjectType("Texture") then return false end
+    local atlas = region.GetAtlas and region:GetAtlas()
+    local texture = region.GetTexture and region:GetTexture()
+    local value = type(atlas) == "string" and atlas or type(texture) == "string" and texture or ""
+    value = value:lower()
+    return value:find("minimap%-trackingborder")
+        or value:find("ui%-minimap%-background")
+        or value:find("minimap_trackingborder")
+end
+
+local function MinimapControlSocket(control, enabled, label, thirdParty)
     if not control then return end
     local socket = minimapSockets[control]
     if enabled and not socket then
@@ -244,15 +256,35 @@ local function MinimapControlSocket(control, enabled, label)
         socket:SetPoint("BOTTOMRIGHT", control, "BOTTOMRIGHT", 2, -2)
         addon:CreateRoundedPanel(socket, addon.design.surface.floating, addon.design.radius.socket)
         minimapSockets[control] = socket
-        addon:DebugSurface(socket, "Minimap/" .. label .. "/socket", "native minimap control presentation")
+        addon:DebugSurface(socket, "Minimap/" .. label .. "/socket",
+            thirdParty and "third-party minimap control presentation" or "native minimap control presentation")
     end
     if socket then socket:SetShown(enabled) end
 
-    -- Hide only explicitly decorative fields. The control, its icon, scripts,
-    -- tooltip, checked/attention state and native controller ownership remain native.
+    -- Hide only decorative chrome. The button/icon, scripts, tooltip, dragging,
+    -- anchors and controller ownership stay with Blizzard or the originating addon.
     for _, key in ipairs({ "Border", "Background", "BG", "Ring", "Circle", "HighlightRing" }) do
         addon:ThemeAlpha(control[key], enabled)
     end
+    if control.GetRegions then
+        for _, region in ipairs({ control:GetRegions() }) do
+            if MinimapDecoration(region) then addon:ThemeAlpha(region, enabled) end
+        end
+    end
+end
+
+local function IsThirdPartyMinimapButton(control, native)
+    if not control or native[control] or not control.IsObjectType or not control:IsObjectType("Button") then return false end
+    local name = control.GetName and control:GetName()
+    if type(name) == "string" and name:match("^LibDBIcon10_") then return true end
+    -- LibDBIcon and many hand-rolled buttons use Blizzard's traditional round
+    -- minimap chrome. This is a presentation signature, not an addon allowlist.
+    if control.GetRegions then
+        for _, region in ipairs({ control:GetRegions() }) do
+            if MinimapDecoration(region) then return true end
+        end
+    end
+    return false
 end
 
 local function MinimapControls(enabled)
@@ -265,17 +297,28 @@ local function MinimapControls(enabled)
         { Minimap and Minimap.ZoomIn, "ZoomIn" },
         { Minimap and Minimap.ZoomOut, "ZoomOut" },
         { _G["MiniMapTracking"], "Tracking" },
-        { _G["GameTimeFrame"], "Calendar" },
+        { _G["GameTimeFrame"], "DayNight" },
         { _G["QueueStatusButton"], "QueueStatus" },
         { _G["ExpansionLandingPageMinimapButton"], "ExpansionLandingPage" },
         { _G["MiniMapMailFrame"], "Mail" },
     }
-    local seen = {}
+    local native = {}
     for _, entry in ipairs(candidates) do
         local control, label = entry[1], entry[2]
-        if control and not seen[control] then
-            seen[control] = true
-            MinimapControlSocket(control, enabled, label)
+        if control and not native[control] then
+            native[control] = true
+            MinimapControlSocket(control, enabled, label, false)
+        end
+    end
+
+    -- ADDON_LOADED already queues a PSF refresh for every addon, so LibDBIcon
+    -- registrations made during addon load are picked up without an OnUpdate poll.
+    if Minimap and Minimap.GetChildren then
+        for _, control in ipairs({ Minimap:GetChildren() }) do
+            if IsThirdPartyMinimapButton(control, native) then
+                local name = control.GetName and control:GetName()
+                MinimapControlSocket(control, enabled, type(name) == "string" and name or "AddonButton", true)
+            end
         end
     end
 end
