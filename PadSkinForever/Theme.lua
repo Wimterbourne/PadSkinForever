@@ -523,15 +523,13 @@ local function EnsureMinimapDock()
     -- This avoids creating a second full-width footer or colliding with the
     -- centered coordinate tab.
     minimapDock:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -7, 8)
-    addon:CreateGlassPanel(minimapDock, addon.design.surface.wellSoft, addon.design.radius.socket)
-    addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
+    addon:DebugSurface(minimapDock, "Minimap/IconDock", "layout anchor for floating minimap controls")
 
     minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
     minimapDockPanel:EnableMouse(false)
     minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
     minimapDockPanel:SetPoint("BOTTOMRIGHT", minimapDock, "TOPRIGHT", 0, 4)
-    addon:CreateGlassPanel(minimapDockPanel, addon.design.surface.wellSoft, addon.design.radius.socket)
-    addon:DebugSurface(minimapDockPanel, "Minimap/IconDock/Overflow", "overflow minimap controls")
+    addon:DebugSurface(minimapDockPanel, "Minimap/IconDock/Overflow", "overflow layout for minimap controls")
     minimapDockPanel:Hide()
 
     minimapDockLauncher = CreateFrame("Button", "PadSkinForeverMinimapDockLauncher", minimapDock)
@@ -684,8 +682,28 @@ local function MinimapControls(enabled)
         end
     else
         minimapDockPanel:Hide()
+        -- No shared dock plate: each native control is its own floating glass
+        -- socket around the housing. Keep the map center and coordinate notch free.
+        dock:SetWidth(1)
+        dock:SetHeight(1)
         for index, entry in ipairs(controls) do
-            DockMinimapControl(entry[1], dock, index, math.max(1, #controls), enabled, entry[2], entry[3])
+            local control = entry[1]
+            MinimapControlSocket(control, enabled, entry[2], entry[3])
+            SaveDockAnchor(control)
+            if control.SetScale then control:SetScale(1) end
+            if control.SetSize then control:SetSize(DOCK_CONTROL, DOCK_CONTROL) end
+            control:ClearAllPoints()
+            if index <= 3 then
+                -- Primary controls form a vertical rail on the right edge.
+                control:SetPoint("CENTER", Minimap, "RIGHT", 9, 28 - ((index - 1) * DOCK_ITEM))
+            else
+                -- Additional controls continue along the lower edge, stopping
+                -- before the centered coordinate notch.
+                control:SetPoint("CENTER", Minimap, "BOTTOMRIGHT",
+                    -12 - ((index - 4) * DOCK_ITEM), -8)
+            end
+            HookMinimapControlHover(control)
+            if control.Show then control:Show() end
         end
     end
 
