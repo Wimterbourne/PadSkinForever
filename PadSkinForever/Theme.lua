@@ -14,6 +14,7 @@ local minimapDocked = setmetatable({}, { __mode = "k" })
 local minimapDockOpen = false
 local minimapDockHover = false
 local minimapClusterCard, minimapHeader, minimapFooter, minimapDayGlyph
+local minimapHoverHooked = setmetatable({}, { __mode = "k" })
 local minimapHeaderSaved = setmetatable({}, { __mode = "k" })
 local white = "Interface\\Buttons\\WHITE8X8"
 local grey = { .34, .37, .41 }
@@ -313,6 +314,26 @@ local function MinimapDockVisible()
     return minimapDockHover or minimapDockOpen
 end
 
+local function SetMinimapDockHover(hovered)
+    if minimapDockHover == hovered then return end
+    minimapDockHover = hovered
+    addon:QueueRefresh()
+end
+
+local function HookMinimapHover(frame)
+    if not frame or not frame.HookScript or minimapHoverHooked[frame] then return end
+    minimapHoverHooked[frame] = true
+    frame:HookScript("OnEnter", function() SetMinimapDockHover(true) end)
+    frame:HookScript("OnLeave", function()
+        C_Timer.After(0, function()
+            local overMap = Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver()
+            local overDock = minimapDock and minimapDock.IsMouseOver and minimapDock:IsMouseOver()
+            local overPanel = minimapDockPanel and minimapDockPanel.IsMouseOver and minimapDockPanel:IsMouseOver()
+            if not overMap and not overDock and not overPanel then SetMinimapDockHover(false) end
+        end)
+    end)
+end
+
 local function EnsureMinimapClusterCard()
     if minimapClusterCard or not MinimapCluster or not Minimap then return minimapClusterCard end
     minimapClusterCard = CreateFrame("Frame", "PadSkinForeverMinimapCard", MinimapCluster)
@@ -346,14 +367,9 @@ local function EnsureMinimapClusterCard()
     addon:CreateRoundedPanel(minimapFooter, addon.design.surface.peripheral, addon.design.radius.compact)
     addon:DebugSurface(minimapFooter, "Minimap/footer", "coordinate tab")
 
-    minimapClusterCard:SetScript("OnEnter", function()
-        minimapDockHover = true
-        addon:QueueRefresh()
-    end)
-    minimapClusterCard:SetScript("OnLeave", function()
-        minimapDockHover = false
-        addon:QueueRefresh()
-    end)
+    -- The visual card sits behind the native map and is not a reliable hit
+    -- target. Observe Blizzard's actual minimap instead without replacing its scripts.
+    HookMinimapHover(Minimap)
     return minimapClusterCard
 end
 
@@ -399,7 +415,7 @@ end
 local function EnsureMinimapDock()
     if minimapDock or not Minimap then return minimapDock end
     minimapDock = CreateFrame("Frame", "PadSkinForeverMinimapDock", Minimap)
-    minimapDock:EnableMouse(false)
+    minimapDock:EnableMouse(true)
     minimapDock:SetFrameLevel(math.max(0, Minimap:GetFrameLevel() + 2))
     minimapDock:SetHeight(DOCK_HEIGHT)
     -- Overlay the footer zone instead of permanently extending the minimap.
@@ -408,7 +424,7 @@ local function EnsureMinimapDock()
     addon:DebugSurface(minimapDock, "Minimap/IconDock", "collected minimap controls")
 
     minimapDockPanel = CreateFrame("Frame", "PadSkinForeverMinimapDockPanel", Minimap)
-    minimapDockPanel:EnableMouse(false)
+    minimapDockPanel:EnableMouse(true)
     minimapDockPanel:SetFrameLevel(minimapDock:GetFrameLevel() + 1)
     minimapDockPanel:SetPoint("TOPRIGHT", minimapDock, "BOTTOMRIGHT", 0, -4)
     addon:CreateRoundedPanel(minimapDockPanel, addon.design.surface.glass, addon.design.radius.compact)
@@ -430,6 +446,8 @@ local function EnsureMinimapDock()
     end)
     minimapDockLauncher:Hide()
     addon:DebugSurface(minimapDockLauncher, "Minimap/IconDock/Launcher", "overflow launcher")
+    HookMinimapHover(minimapDock)
+    HookMinimapHover(minimapDockPanel)
     return minimapDock
 end
 
