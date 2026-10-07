@@ -247,20 +247,31 @@ local function Map(enabled)
         end)
     end
     if square then
+        -- Minimap Base: the native map remains authoritative, but its actual
+        -- rendered map fills the square instead of sitting behind a round mask.
         map:SetMaskTexture(white); minimapChanged = true
     elseif minimapChanged then
         map:SetMaskTexture(minimapMask); minimapChanged = false
     end
-    addon:ThemeCard(map, square, "Minimap", 2)
+
+    -- The PSF surface is deliberately only a thin frame around the native map.
+    -- Position, size, pins, zoom, clicks and minimap buttons remain Blizzard-owned.
+    addon:ThemeCard(map, square, "Minimap", 1, addon.design.surface.rail or addon.design.card)
     addon:ThemeAlpha(MinimapCompassTextureUnderlay, enabled)
-    -- Round and square are shape choices within the same independent skin.
-    addon:Tint(MinimapCompassTexture, enabled and { .65, .68, .72 } or nil)
-    -- Vertex tint restoration can also restore texture alpha: visibility goes last.
     addon:ThemeAlpha(MinimapCompassTexture, square)
+
     if MinimapCluster then
+        -- Remove Blizzard's remaining circular/top chrome without touching the
+        -- cluster itself or its child buttons.
         addon:ThemeAlpha(MinimapCluster.BorderTop, enabled)
+        addon:ThemeAlpha(MinimapCluster.Border, enabled)
+        addon:ThemeAlpha(MinimapCluster.Background, enabled)
+        addon:ThemeAlpha(MinimapCluster.MinimapBorder, enabled)
+        addon:ThemeAlpha(MinimapCluster.MinimapBorderTop, enabled)
         Fonts(MinimapCluster.ZoneTextButton, enabled, 0)
     end
+    addon:ThemeAlpha(MinimapBorder, enabled)
+    addon:ThemeAlpha(MinimapBorderTop, enabled)
     addon:ThemeFont(MinimapZoneText, enabled, true)
 end
 
