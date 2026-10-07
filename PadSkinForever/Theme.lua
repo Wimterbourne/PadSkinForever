@@ -460,6 +460,38 @@ local function FindCoordinateText()
     return minimapNativeCoordinate
 end
 
+local function SyncMinimapCoordinates()
+    if not minimapCoordinateLabel then return end
+    local coordinates = FindCoordinateText()
+    if not coordinates then
+        minimapCoordinateLabel:SetText("")
+        return
+    end
+
+    minimapNativeCoordinate = coordinates
+    minimapCoordinateLabel:SetText(CoordinateValue(coordinates) or "")
+    -- Forever remains the data owner; hide only its native presentation while
+    -- PSF mirrors the value in the footer above the glass backdrop.
+    addon:ThemeAlpha(coordinates, true)
+end
+
+local function SetMinimapCoordinateSync(enabled)
+    if not minimapFooter then return end
+    if not enabled then
+        minimapFooter:SetScript("OnUpdate", nil)
+        return
+    end
+
+    local elapsedSinceSync = 0
+    minimapFooter:SetScript("OnUpdate", function(_, elapsed)
+        elapsedSinceSync = elapsedSinceSync + elapsed
+        if elapsedSinceSync < 0.20 then return end
+        elapsedSinceSync = 0
+        SyncMinimapCoordinates()
+    end)
+    SyncMinimapCoordinates()
+end
+
 local function EnsureMinimapDock()
     if minimapDock or not Minimap then return minimapDock end
     minimapDock = CreateFrame("Frame", "PadSkinForeverMinimapDock", Minimap)
@@ -724,18 +756,12 @@ local function Map(enabled)
             -- render it above the glass/header presentation.
             if clock.SetFrameLevel then clock:SetFrameLevel(minimapHeader:GetFrameLevel() + 1) end
         end
-        if coordinates then
-            -- Blizzard/Forever remains the coordinate data source. PSF owns only
-            -- the visible presentation so draw order/font are deterministic.
-            minimapNativeCoordinate = coordinates
-            if minimapCoordinateLabel then
-                minimapCoordinateLabel:SetText(CoordinateValue(coordinates) or "")
-            end
-            addon:ThemeAlpha(coordinates, true)
-        elseif minimapCoordinateLabel then
-            minimapCoordinateLabel:SetText("")
-        end
+        -- Forever creates/updates its coordinate FontString independently of
+        -- PSF's theme pass. Keep a cheap 5 Hz mirror so delayed discovery and
+        -- movement updates are reflected without calculating coordinates ourselves.
+        SetMinimapCoordinateSync(true)
     else
+        SetMinimapCoordinateSync(false)
         RestoreMinimapPresentation(MinimapZoneText)
         RestoreMinimapPresentation(clock)
         if minimapNativeCoordinate then addon:ThemeAlpha(minimapNativeCoordinate, false) end
