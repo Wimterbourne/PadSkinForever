@@ -294,6 +294,50 @@ PSF is organized as a presentation layer with clear, product-owned module names.
 
 These are PSF concepts. External addon module names are references for research only and do not define PSF architecture.
 
+### Current code → module map
+
+This map is the migration audit for the current 0.9 codebase. It describes ownership, not an instruction to rename files immediately. Existing files stay in place until the receiving module is ready to migrate as one coherent slice.
+
+| Current file / area | Future owner | Migration note |
+| --- | --- | --- |
+| `Core.lua` | **Foundation** + module lifecycle | Keep database/bootstrap/refresh orchestration central; move feature-specific defaults toward their owning modules over time. |
+| `Fonts.lua` | **Foundation** | Typography provider and font resolution belong entirely to Foundation. |
+| `UI.lua` | **Foundation** | Already contains the shared PSF design tokens and addon-owned presentation primitives; this becomes the visual component library. |
+| `Theme.lua` | **temporary migration layer** → multiple modules | Currently mixes generic theming with Units, Minimap, Chat, Quests, Loot, Tooltip and other surfaces. Split only as each receiving module reaches its Base phase. |
+| `Glyphs.lua` | **Input** | Glyph discovery, mapping and Xbox input-color semantics. |
+| `Buttons.lua` | **Input** | Native GamepadUI/action-button presentation; gameplay actions remain native. |
+| `Legend.lua` | **Input** | Native input-legend skin and presentation. |
+| `Bindings.xml` | **Input** | User-exposed PSF controller binding declarations only; no secure-navigation ownership implied. |
+| `CombatHUD.lua` | **Combat** | Central player/pet gauges and native swing-timer presentation. |
+| `UnitFrames.lua` | **Units** | Addon-owned presentation attached to native unit buttons, portraits and target aura presentation. |
+| `Toasts.lua` | **Loot** | Current implementation is specifically loot-toast presentation; future non-loot transient events belong to Moments, not this file. |
+| `Skin.lua` | **module lifecycle / migration coordinator** | Current global skin pass coordinates legacy feature skinning. It should become thinner as Theme.lua responsibilities move into explicit modules. |
+| `Options.lua` | **Interface** + module settings registration | Settings shell belongs to Interface; individual option definitions should remain conceptually owned by their modules. |
+| `GameMenu.lua` | **Interface** | PSF entry point in Blizzard's game menu and its presentation. |
+| `Debug.lua` | **Diagnostics** | Surface tracing, compatibility diagnostics and development inspection. |
+| `Media/` | **Foundation assets** with module consumers | Shared visual assets stay centralized; ownership is semantic rather than requiring per-module asset folders. |
+| `tests/test_addon.py` | **cross-module regression suite** | Keep broad regression coverage while adding module-focused tests as modules are extracted. |
+
+#### Responsibilities currently concentrated in Theme.lua
+
+`Theme.lua` is intentionally treated as the main migration seam. Its generic helpers such as font/chrome/card/status-bar presentation belong in Foundation or shared primitives, while feature-specific passes migrate to their explicit owners:
+
+- unit/party/boss presentation → **Units**;
+- minimap mask, chrome and typography → **Minimap**;
+- chat presentation → **Chat**;
+- quest/objective presentation → **Quests**;
+- loot-window presentation → **Loot**;
+- tooltip and uncategorized Blizzard panels → **Interface**;
+- nameplate-specific presentation → **Nameplates** when that module is established.
+
+Do not split Theme.lua merely to match the table. A responsibility moves only when its destination module can own its Base state completely and existing behavior has regression coverage.
+
+#### New modules
+
+**Minimap**, **Moments**, **Nameplates**, **Quests** and **Chat** may eventually receive dedicated Lua files even though some of their current behavior lives in Theme.lua or does not yet exist. File creation follows implementation need, not architecture paperwork.
+
+The first extraction target is **Minimap Base** because its boundary is narrow and its desired first state is explicit: preserve the native minimap behavior, remove the circular Blizzard presentation, and establish the square PSF surface. Moments follows as a new addon-owned informational module after the Minimap base is stable.
+
 ### Module development rule
 
 **Base → complete → extend.**
