@@ -149,6 +149,8 @@ SlashCmdList.PADSKINFOREVER = function(message)
     local command = message:lower()
     if command:match("^legend%s*$") then
         addon:ToggleLegend()
+    elseif command:match("^gamepaddebug%s*$") then
+        if addon.CaptureGamepadDebug then addon:CaptureGamepadDebug() end
     elseif command:match("^minimapdebug%s*$") then
         if addon.CaptureMinimapDebug then addon:CaptureMinimapDebug() end
     else
