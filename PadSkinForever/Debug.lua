@@ -160,8 +160,23 @@ local gamepadHistory = {}
 function addon:CaptureGamepadDebug()
     wipe(gamepadHistory)
     local seen, matches = {}, 0
+    local function SafeShown(object)
+        if not object then return false end
+        local ok, shown = pcall(function()
+            if object.IsForbidden and object:IsForbidden() then return false end
+            return object.IsShown and object:IsShown()
+        end)
+        return ok and shown == true
+    end
+    local function SafeAccessible(object)
+        if not object then return false end
+        local ok, forbidden = pcall(function()
+            return object.IsForbidden and object:IsForbidden()
+        end)
+        return ok and not forbidden
+    end
     local function Walk(object, path, depth)
-        if not object or seen[object] or depth > 9 or matches >= 100 then return end
+        if not SafeAccessible(object) or seen[object] or depth > 9 or matches >= 100 then return end
         seen[object] = true
         local name = object.GetName and Read(object, "GetName") or ""
         local atlas = object.GetAtlas and Read(object, "GetAtlas") or ""
@@ -186,7 +201,7 @@ function addon:CaptureGamepadDebug()
             local ok, children = pcall(function() return { object:GetChildren() } end)
             if ok then
                 for i, child in ipairs(children) do
-                    if child.IsShown and child:IsShown() then
+                    if SafeShown(child) then
                         Walk(child, path .. "/child" .. i, depth + 1)
                     end
                 end
@@ -201,7 +216,7 @@ function addon:CaptureGamepadDebug()
     -- top-level frames for gamepad-related names, but never descend all UIParent.
     if UIParent and UIParent.GetChildren then
         for _, child in ipairs({ UIParent:GetChildren() }) do
-            if child.IsShown and child:IsShown() and child.GetName then
+            if SafeShown(child) and child.GetName then
                 local name = Read(child, "GetName"):lower()
                 if name:find("gamepad") or name:find("controller") or name:find("legend") then
                     Walk(child, "UIParent/" .. name, 0)
