@@ -249,7 +249,10 @@ function addon:GetDebugReport()
     lines[#lines + 1] = "\nMINIMAP SNAPSHOT"
     if #minimapHistory == 0 then lines[#lines + 1] = "No minimap snapshot captured yet. Use /psf minimapdebug." end
     for _, entry in ipairs(minimapHistory) do lines[#lines + 1] = entry end
-    lines[#lines + 1] = "\nGAMEPAD GLYPH SNAPSHOT"\n    if #gamepadHistory == 0 then lines[#lines + 1] = "Use /psf gamepaddebug with Character panel open." end\n    for _, entry in ipairs(gamepadHistory) do lines[#lines + 1] = entry end\n    lines[#lines + 1] = "\nTARGET AURA SCANS (maximum 16; newest first)"
+    lines[#lines + 1] = "\nGAMEPAD GLYPH SNAPSHOT"
+    if #gamepadHistory == 0 then lines[#lines + 1] = "Use /psf gamepaddebug with Character panel open." end
+    for _, entry in ipairs(gamepadHistory) do lines[#lines + 1] = entry end
+    lines[#lines + 1] = "\nTARGET AURA SCANS (maximum 16; newest first)"
     if #auraHistory == 0 then lines[#lines + 1] = "No target aura scan recorded yet." end
     for _, entry in ipairs(auraHistory) do lines[#lines + 1] = entry end
     lines[#lines + 1] = "\nRECENT SETTER CALLS (maximum 40; newest first)"
