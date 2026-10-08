@@ -531,7 +531,18 @@ local function SetButtonState(button)
         button.PSFIndicator:Hide()
         glass.light:SetShown(selected)
         glass.light:SetVertexColor(c[1], c[2], c[3], 1)
+        glass.base:SetVertexColor(selected and (0.72 + c[1] * .28) or 1, selected and (0.72 + c[2] * .28) or 1, selected and (0.72 + c[3] * .28) or 1, 1)
         glass.reflection:SetAlpha(selected and 1 or hovered and .84 or .68)
+    elseif (style == "action" or style == "flat") and button.PSFGlassControl then
+        local glass = button.PSFGlassControl
+        button:SetBackdropColor(0, 0, 0, 0)
+        button:SetBackdropBorderColor(0, 0, 0, 0)
+        for _, region in ipairs(glass.reflection) do
+            region:SetAlpha(active and .95 or .65)
+        end
+        -- Preserve the mint controller-focus indicator independently of class color.
+        button.PSFIndicator:SetShown(active and true or false)
+        button.PSFIndicator:SetVertexColor(unpack(colors.accent))
     elseif style == "tab" then
         button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
         button:SetBackdropBorderColor(0, 0, 0, 0)
@@ -615,6 +626,43 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
             base = texture("Glass_Tab_Base", "BACKGROUND", 1),
             light = texture("Glass_Tab_ClassLight", "BORDER", 1),
             reflection = texture("Glass_Tab_Reflection", "ARTWORK", 1),
+        }
+        SetButtonState(self)
+    end
+    -- Three-slice compact glass: fixed rounded endcaps, stretchable center.
+    -- Reuses approved tab textures; does not introduce new binary assets.
+    button.SetPSFGlassControl = function(self)
+        if self.PSFGlassControl then return end
+        local root = "Interface\\AddOns\\PadSkinForever\\Media\\SpatialGlass\\"
+        local function strip(name, layer, sublevel)
+            local parts = {}
+            for i = 1, 3 do
+                local t = self:CreateTexture(nil, layer, nil, sublevel)
+                t:SetTexture(root .. name .. ".tga")
+                local u1, u2 = 0, 1
+                if i == 1 then u1, u2 = 0, .16
+                elseif i == 2 then u1, u2 = .16, .84
+                else u1, u2 = .84, 1 end
+                t:SetTexCoord(u1, u2, 0, 1)
+                t:SetPoint("TOP", self, "TOP", 0, 0)
+                t:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
+                if i == 1 then
+                    t:SetPoint("LEFT", self, "LEFT", 0, 0)
+                    t:SetWidth(12)
+                elseif i == 3 then
+                    t:SetPoint("RIGHT", self, "RIGHT", 0, 0)
+                    t:SetWidth(12)
+                else
+                    t:SetPoint("LEFT", self, "LEFT", 12, 0)
+                    t:SetPoint("RIGHT", self, "RIGHT", -12, 0)
+                end
+                parts[#parts + 1] = t
+            end
+            return parts
+        end
+        self.PSFGlassControl = {
+            base = strip("Glass_Tab_Base", "BACKGROUND", 1),
+            reflection = strip("Glass_Tab_Reflection", "BORDER", 1),
         }
         SetButtonState(self)
     end
