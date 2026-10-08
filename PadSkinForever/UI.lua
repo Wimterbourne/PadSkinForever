@@ -603,7 +603,7 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
     -- Selection illuminates the existing glass silhouette, not a second ring.
     button.SetPSFClassTab = function(self)
         if self.PSFClassTab then return end
-        local root = "Interface\\\\AddOns\\\\PadSkinForever\\\\Media\\\\SpatialGlass\\\\"
+        local root = "Interface\\AddOns\\PadSkinForever\\Media\\SpatialGlass\\"
         local function texture(name, layer, sublevel)
             local t = self:CreateTexture(nil, layer, nil, sublevel)
             t:SetTexture(root .. name .. ".tga")
