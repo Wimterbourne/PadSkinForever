@@ -314,7 +314,10 @@ function addon:ShowOptions()
         panel.tabs.buttons = Button(panel, "Buttons", 243, -50, 82, function() ShowTab("buttons") end)
         panel.tabs.theme = Button(panel, "Theme", 331, -50, 82, function() ShowTab("theme") end)
         panel.tabs.debug = Button(panel, "Debug", 419, -50, 82, function() ShowTab("debug") end)
-        for _, tab in pairs(panel.tabs) do tab:SetPSFStyle("tab") end
+        for _, tab in pairs(panel.tabs) do
+            tab:SetPSFStyle("tab")
+            tab:SetPSFClassTab()
+        end
         local tabOrder = { "general", "glyphs", "buttons", "theme", "debug" }
         function panel:PSFCycleTab(direction)
             local index = 1
