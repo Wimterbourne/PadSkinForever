@@ -299,7 +299,13 @@ function addon:CreateSpatialGlass(parent, unit)
                 t:SetPoint("TOP", parent, "TOP", 0, -inset)
                 t:SetPoint("BOTTOM", parent, "BOTTOM", 0, inset)
             end
-            if tint then t:SetVertexColor(tint[1], tint[2], tint[3], .76) end
+            if tint then
+                -- Colored light is a restrained rim, not an opaque neon frame.
+                t:SetVertexColor(tint[1], tint[2], tint[3], .40)
+            elseif name == "Glass_Reflection" then
+                -- Keep white highlights neutral and separate from class identity.
+                t:SetVertexColor(1, 1, 1, 1)
+            end
             regions[#regions + 1] = t
         end
         return regions
