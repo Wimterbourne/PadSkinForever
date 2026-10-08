@@ -528,8 +528,16 @@ local function SetButtonState(button)
         button:SetBackdropColor(.025, .045, .065, selected and .92 or hovered and .60 or .28)
         button:SetBackdropBorderColor(0, 0, 0, 0)
         button.PSFIndicator:Hide()
-        button.PSFClassTab.glow:SetShown(selected)
-        button.PSFClassTab.sheen:SetAlpha(selected and .38 or hovered and .15 or .06)
+        local glass = button.PSFClassTab
+        glass.glow:SetShown(selected)
+        glass.glow:SetGradient("VERTICAL",
+            CreateColor(c[1], c[2], c[3], .38),
+            CreateColor(c[1] * .35, c[2] * .35, c[3] * .35, .04))
+        glass.sheen:SetAlpha(selected and .52 or hovered and .15 or .06)
+        glass.halo:SetShown(selected)
+        glass.halo:SetVertexColor(c[1], c[2], c[3], .44)
+        glass.topLight:SetShown(selected)
+        glass.topLight:SetVertexColor(c[1], c[2], c[3], .75)
         for _, piece in ipairs(button.PSFClassTab.edge) do
             piece:SetShown(selected)
             piece:SetVertexColor(c[1], c[2], c[3], .85)
@@ -654,6 +662,18 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
             end
             return regions
         end
+        -- Broad, low-alpha light behind the selected glass; not a focus cue.
+        glass.halo = self:CreateTexture(nil, "BACKGROUND", nil, 0)
+        glass.halo:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\SpatialGlass\\Glass_ClassEdge.tga")
+        glass.halo:SetPoint("TOPLEFT", self, "TOPLEFT", -3, 3)
+        glass.halo:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 3, -3)
+        glass.halo:SetBlendMode("ADD")
+        glass.topLight = self:CreateTexture(nil, "ARTWORK", nil, 1)
+        glass.topLight:SetTexture(WHITE)
+        glass.topLight:SetPoint("TOPLEFT", self, "TOPLEFT", 12, -3)
+        glass.topLight:SetPoint("TOPRIGHT", self, "TOPRIGHT", -12, -3)
+        glass.topLight:SetHeight(2)
+        glass.topLight:SetBlendMode("ADD")
         glass.edge = material("Glass_ClassEdge", "ARTWORK", 2)
         glass.reflection = material("Glass_Reflection", "BORDER", 1)
         self.PSFClassTab = glass
