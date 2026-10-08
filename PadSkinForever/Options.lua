@@ -320,7 +320,8 @@ function addon:ShowOptions()
         -- fallback for client builds with different controller atlas names.
         local function BumperHint(side, x, label)
             local holder = CreateFrame("Frame", nil, panel)
-            holder:SetSize(34, 28)
+            holder:SetSize(34, 30)
+            addon:CreateGlossyGlass(holder, "frosted", "player")
             holder:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -51)
             holder:EnableMouse(false)
             local art = holder:CreateTexture(nil, "OVERLAY")
@@ -348,8 +349,8 @@ function addon:ShowOptions()
         end
         -- Place prompts at the outer edges of the navigation strip.
         -- Tabs stay native PSF buttons; hints do not intercept input.
-        BumperHint("left", -25, "LB")
-        BumperHint("right", 501, "RB")
+        BumperHint("left", -28, "LB")
+        BumperHint("right", 500, "RB")
         local navLine = panel:CreateTexture(nil, "ARTWORK")
         navLine:SetTexture("Interface\\Buttons\\WHITE8X8")
         navLine:SetVertexColor(.48, .54, .61, .28)
