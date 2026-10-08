@@ -521,7 +521,23 @@ local function SetButtonState(button)
     local colors = addon.uiColors
     local active = button.PSFSelected or button.PSFHovered or button.PSFControllerFocused
     local style = button.PSFStyle or "action"
-    if style == "tab" then
+    if style == "tab" and button.PSFClassTab then
+        local selected = button.PSFSelected and true or false
+        local hovered = button.PSFHovered or button.PSFControllerFocused
+        local c = addon:GetIdentityColor("player")
+        button:SetBackdropColor(.025, .045, .065, selected and .92 or hovered and .60 or .28)
+        button:SetBackdropBorderColor(0, 0, 0, 0)
+        button.PSFIndicator:Hide()
+        button.PSFClassTab.glow:SetShown(selected)
+        button.PSFClassTab.sheen:SetAlpha(selected and .26 or hovered and .13 or .06)
+        button.PSFClassTab.top:SetShown(selected)
+        button.PSFClassTab.bottom:SetShown(selected)
+        button.PSFClassTab.left:SetShown(selected)
+        button.PSFClassTab.right:SetShown(selected)
+        for _, edge in ipairs({button.PSFClassTab.top, button.PSFClassTab.bottom, button.PSFClassTab.left, button.PSFClassTab.right}) do
+            edge:SetVertexColor(c[1], c[2], c[3], .82)
+        end
+    elseif style == "tab" then
         button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
         button:SetBackdropBorderColor(0, 0, 0, 0)
         button.PSFIndicator:SetShown(active and true or false)
@@ -584,6 +600,45 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
             self.PSFIndicator:SetPoint("BOTTOMLEFT", 0, 5)
             self.PSFIndicator:SetWidth(2)
         end
+        SetButtonState(self)
+    end
+    -- Compact floating glass material for tab navigation. Class identity is
+    -- visible only for the selected page; mint focus remains independent.
+    button.SetPSFClassTab = function(self)
+        if self.PSFClassTab then return end
+        local glass = {}
+        glass.glow = self:CreateTexture(nil, "BACKGROUND", nil, 1)
+        glass.glow:SetPoint("TOPLEFT", 3, -2)
+        glass.glow:SetPoint("BOTTOMRIGHT", -3, 2)
+        glass.glow:SetTexture(WHITE)
+        glass.glow:SetGradient("VERTICAL", CreateColor(.14, .24, .30, .26), CreateColor(.02, .04, .07, .02))
+        glass.sheen = self:CreateTexture(nil, "BORDER", nil, 2)
+        glass.sheen:SetTexture(WHITE)
+        glass.sheen:SetPoint("TOPLEFT", 7, -3)
+        glass.sheen:SetPoint("TOPRIGHT", -7, -3)
+        glass.sheen:SetHeight(5)
+        glass.sheen:SetGradient("VERTICAL", CreateColor(.84, .94, 1, .6), CreateColor(.84, .94, 1, 0))
+        local function edge(a, b, inset, height, width)
+            local t = self:CreateTexture(nil, "ARTWORK", nil, 2)
+            t:SetTexture(WHITE)
+            t:SetPoint(a, self, a, inset, a:find("TOP") and -3 or 3)
+            t:SetPoint(b, self, b, inset, b:find("BOTTOM") and 3 or -3)
+            if height then t:SetHeight(height) else t:SetWidth(width) end
+            return t
+        end
+        glass.top = edge("TOPLEFT", "TOPRIGHT", 6, 2)
+        glass.bottom = edge("BOTTOMLEFT", "BOTTOMRIGHT", 6, 2)
+        glass.left = self:CreateTexture(nil, "ARTWORK", nil, 2)
+        glass.left:SetTexture(WHITE)
+        glass.left:SetPoint("TOPLEFT", 3, -7)
+        glass.left:SetPoint("BOTTOMLEFT", 3, 7)
+        glass.left:SetWidth(2)
+        glass.right = self:CreateTexture(nil, "ARTWORK", nil, 2)
+        glass.right:SetTexture(WHITE)
+        glass.right:SetPoint("TOPRIGHT", -3, -7)
+        glass.right:SetPoint("BOTTOMRIGHT", -3, 7)
+        glass.right:SetWidth(2)
+        self.PSFClassTab = glass
         SetButtonState(self)
     end
     button.PSFStyle = "action"
