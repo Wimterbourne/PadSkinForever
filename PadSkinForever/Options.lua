@@ -307,6 +307,15 @@ function addon:ShowOptions()
         panel.tabs.theme = Button(panel, "Theme", 286, -50, 82, function() ShowTab("theme") end)
         panel.tabs.debug = Button(panel, "Debug", 374, -50, 82, function() ShowTab("debug") end)
         for _, tab in pairs(panel.tabs) do tab:SetPSFStyle("tab") end
+        local tabOrder = { "general", "glyphs", "buttons", "theme", "debug" }
+        function panel:PSFCycleTab(direction)
+            local index = 1
+            for i, name in ipairs(tabOrder) do
+                if name == self.currentPage then index = i; break end
+            end
+            local nextIndex = ((index - 1 + direction) % #tabOrder) + 1
+            ShowTab(tabOrder[nextIndex])
+        end
         local navLine = panel:CreateTexture(nil, "ARTWORK")
         navLine:SetTexture("Interface\\Buttons\\WHITE8X8")
         navLine:SetVertexColor(.48, .54, .61, .28)
@@ -356,7 +365,7 @@ function addon:ShowOptions()
             addon:QueueRefresh()
         end)
         panel.toggleLegend = Button(panel.settings, "Toggle native legend", 22, -557, 210, function() addon:ToggleLegend() end)
-        local help = Hint(panel.settings, "D-pad  Navigate     A  Select     B  Back\nPSF releases its temporary menu bindings before combat.", 22, -596)
+        local help = Hint(panel.settings, "LB/RB  Tabs     D-pad  Navigate     A  Select     B  Back\nPSF releases its temporary menu bindings before combat.", 22, -596)
         help:SetWidth(460)
         help:SetJustifyH("LEFT")
         local glyphPage = CreateFrame("Frame", nil, panel)
