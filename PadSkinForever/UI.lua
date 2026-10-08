@@ -525,26 +525,13 @@ local function SetButtonState(button)
         local selected = button.PSFSelected and true or false
         local hovered = button.PSFHovered or button.PSFControllerFocused
         local c = addon:GetIdentityColor("player")
-        button:SetBackdropColor(.025, .045, .065, selected and .92 or hovered and .60 or .28)
+        local glass = button.PSFClassTab
+        button:SetBackdropColor(0, 0, 0, 0)
         button:SetBackdropBorderColor(0, 0, 0, 0)
         button.PSFIndicator:Hide()
-        local glass = button.PSFClassTab
-        glass.glow:SetShown(selected)
-        glass.glow:SetGradient("VERTICAL",
-            CreateColor(c[1], c[2], c[3], .38),
-            CreateColor(c[1] * .35, c[2] * .35, c[3] * .35, .04))
-        glass.sheen:SetAlpha(selected and .52 or hovered and .15 or .06)
-        glass.halo:SetShown(selected)
-        glass.halo:SetVertexColor(c[1], c[2], c[3], .44)
-        glass.topLight:SetShown(selected)
-        glass.topLight:SetVertexColor(c[1], c[2], c[3], .75)
-        for _, piece in ipairs(button.PSFClassTab.edge) do
-            piece:SetShown(selected)
-            piece:SetVertexColor(c[1], c[2], c[3], .85)
-        end
-        for _, piece in ipairs(button.PSFClassTab.reflection) do
-            piece:SetAlpha(selected and .72 or hovered and .18 or .08)
-        end
+        glass.light:SetShown(selected)
+        glass.light:SetVertexColor(c[1], c[2], c[3], 1)
+        glass.reflection:SetAlpha(selected and 1 or hovered and .84 or .68)
     elseif style == "tab" then
         button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
         button:SetBackdropBorderColor(0, 0, 0, 0)
@@ -612,71 +599,23 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
     end
     -- Compact floating glass material for tab navigation. Class identity is
     -- visible only for the selected page; mint focus remains independent.
+    -- Compact rounded RGBA materials are authored at the tab aspect ratio.
+    -- Selection illuminates the existing glass silhouette, not a second ring.
     button.SetPSFClassTab = function(self)
         if self.PSFClassTab then return end
-        local glass = {}
-        glass.glow = self:CreateTexture(nil, "BACKGROUND", nil, 1)
-        glass.glow:SetPoint("TOPLEFT", 3, -2)
-        glass.glow:SetPoint("BOTTOMRIGHT", -3, 2)
-        glass.glow:SetTexture(WHITE)
-        glass.glow:SetGradient("VERTICAL", CreateColor(.14, .24, .30, .15), CreateColor(.02, .04, .07, 0))
-        glass.sheen = self:CreateTexture(nil, "BORDER", nil, 2)
-        glass.sheen:SetTexture(WHITE)
-        glass.sheen:SetPoint("TOPLEFT", 7, -3)
-        glass.sheen:SetPoint("TOPRIGHT", -7, -3)
-        glass.sheen:SetHeight(5)
-        glass.sheen:SetGradient("VERTICAL", CreateColor(.84, .94, 1, .6), CreateColor(.84, .94, 1, 0))
-        -- Reuse the approved Spatial Glass v3 curved alpha contour.
-        -- Nine-slicing keeps rounded corners intact on compact 82x28 tabs.
         local root = "Interface\\\\AddOns\\\\PadSkinForever\\\\Media\\\\SpatialGlass\\\\"
-        local coords = { 0, .125, .875, 1 }
-        local function material(name, layer, sublevel)
-            local regions = {}
-            for row = 1, 3 do
-                for col = 1, 3 do
-                    local t = self:CreateTexture(nil, layer, nil, sublevel)
-                    t:SetTexture(root .. name .. ".tga")
-                    t:SetTexCoord(coords[col], coords[col + 1], coords[row], coords[row + 1])
-                    if col == 1 then
-                        t:SetPoint("LEFT", self, "LEFT", 2, 0)
-                        t:SetWidth(8)
-                    elseif col == 3 then
-                        t:SetPoint("RIGHT", self, "RIGHT", -2, 0)
-                        t:SetWidth(8)
-                    else
-                        t:SetPoint("LEFT", self, "LEFT", 10, 0)
-                        t:SetPoint("RIGHT", self, "RIGHT", -10, 0)
-                    end
-                    if row == 1 then
-                        t:SetPoint("TOP", self, "TOP", 0, -2)
-                        t:SetHeight(8)
-                    elseif row == 3 then
-                        t:SetPoint("BOTTOM", self, "BOTTOM", 0, 2)
-                        t:SetHeight(8)
-                    else
-                        t:SetPoint("TOP", self, "TOP", 0, -10)
-                        t:SetPoint("BOTTOM", self, "BOTTOM", 0, 10)
-                    end
-                    regions[#regions + 1] = t
-                end
-            end
-            return regions
+        local function texture(name, layer, sublevel)
+            local t = self:CreateTexture(nil, layer, nil, sublevel)
+            t:SetTexture(root .. name .. ".tga")
+            t:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+            t:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
+            return t
         end
-        -- Broad, low-alpha light behind the selected glass; not a focus cue.
-        glass.halo = self:CreateTexture(nil, "BACKGROUND", nil, 0)
-        glass.halo:SetTexture("Interface\\AddOns\\PadSkinForever\\Media\\SpatialGlass\\Glass_ClassEdge.tga")
-        glass.halo:SetPoint("TOPLEFT", self, "TOPLEFT", -3, 3)
-        glass.halo:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 3, -3)
-        glass.halo:SetBlendMode("ADD")
-        glass.topLight = self:CreateTexture(nil, "ARTWORK", nil, 1)
-        glass.topLight:SetTexture(WHITE)
-        glass.topLight:SetPoint("TOPLEFT", self, "TOPLEFT", 12, -3)
-        glass.topLight:SetPoint("TOPRIGHT", self, "TOPRIGHT", -12, -3)
-        glass.topLight:SetHeight(2)
-        glass.topLight:SetBlendMode("ADD")
-        glass.edge = material("Glass_ClassEdge", "ARTWORK", 2)
-        glass.reflection = material("Glass_Reflection", "BORDER", 1)
-        self.PSFClassTab = glass
+        self.PSFClassTab = {
+            base = texture("Glass_Tab_Base", "BACKGROUND", 1),
+            light = texture("Glass_Tab_ClassLight", "BORDER", 1),
+            reflection = texture("Glass_Tab_Reflection", "ARTWORK", 1),
+        }
         SetButtonState(self)
     end
     button.PSFStyle = "action"
