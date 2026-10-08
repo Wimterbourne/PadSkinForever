@@ -703,6 +703,37 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     check:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
     check:SetBackdropColor(.08, .09, .105, .18)
     check:SetBackdropBorderColor(0, 0, 0, 0)
+    -- Three-slice rounded glass row, using the approved compact materials.
+    -- All visual regions are non-interactive; the native CheckButton owns input.
+    local root = "Interface\\AddOns\\PadSkinForever\\Media\\SpatialGlass\\"
+    local function rowGlass(name, layer, sublevel)
+        local parts = {}
+        for i = 1, 3 do
+            local t = check:CreateTexture(nil, layer, nil, sublevel)
+            t:SetTexture(root .. name .. ".tga")
+            local u1, u2
+            if i == 1 then u1, u2 = 0, .16
+            elseif i == 2 then u1, u2 = .16, .84
+            else u1, u2 = .84, 1 end
+            t:SetTexCoord(u1, u2, 0, 1)
+            t:SetPoint("TOP", check, "TOP", 0, 0)
+            t:SetPoint("BOTTOM", check, "BOTTOM", 0, 0)
+            if i == 1 then
+                t:SetPoint("LEFT", check, "LEFT", 0, 0)
+                t:SetWidth(12)
+            elseif i == 3 then
+                t:SetPoint("RIGHT", check, "RIGHT", 0, 0)
+                t:SetWidth(12)
+            else
+                t:SetPoint("LEFT", check, "LEFT", 12, 0)
+                t:SetPoint("RIGHT", check, "RIGHT", -12, 0)
+            end
+            parts[#parts + 1] = t
+        end
+        return parts
+    end
+    local rowBase = rowGlass("Glass_Tab_Base", "BACKGROUND", 1)
+    local rowReflection = rowGlass("Glass_Tab_Reflection", "BORDER", 1)
     local focusBar = check:CreateTexture(nil, "ARTWORK")
     focusBar:SetTexture(WHITE); focusBar:SetWidth(2)
     focusBar:SetPoint("TOPLEFT", 0, -5); focusBar:SetPoint("BOTTOMLEFT", 0, 5)
@@ -718,8 +749,14 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     check.Text:SetText(text)
     local function SetCheckboxState(self)
         local focused = self.PSFHovered or self.PSFControllerFocused
-        self:SetBackdropColor(focused and .09 or .08, focused and .14 or .09, focused and .11 or .105, focused and .76 or .18)
+        self:SetBackdropColor(0, 0, 0, 0)
         self:SetBackdropBorderColor(0, 0, 0, 0)
+        for _, part in ipairs(rowBase) do
+            part:SetVertexColor(.73, .84, .95, focused and .68 or .34)
+        end
+        for _, part in ipairs(rowReflection) do
+            part:SetAlpha(focused and .42 or .19)
+        end
         focusBar:SetShown(focused and true or false)
     end
     check:SetScript("OnEnter", function(self)
@@ -734,6 +771,7 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
         self.PSFControllerFocused = focused and true or nil
         SetCheckboxState(self)
     end
+    SetCheckboxState(check)
     check:SetScript("OnClick", callback)
     return check
 end
