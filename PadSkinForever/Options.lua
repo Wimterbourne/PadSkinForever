@@ -318,39 +318,35 @@ function addon:ShowOptions()
         end
         -- Use Blizzard's gamepad atlas when available. Text remains a safe
         -- fallback for client builds with different controller atlas names.
-        local function BumperHint(side, x, label)
+        local function BumperHint(side, x)
             local holder = CreateFrame("Frame", nil, panel)
             holder:SetSize(34, 30)
             addon:CreateGlossyGlass(holder, "frosted", "player")
             holder:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -51)
             holder:EnableMouse(false)
+
+            -- Exact Blizzard/Forever atlases captured from GamepadPersistentInputLegend.
+            -- The artwork already contains the bumper silhouette and LB/RB lettering.
+            local atlas = side == "left"
+                and "Gamepad-Xbox1-Trigger-LB-Normal"
+                or "Gamepad-Xbox1-Trigger-RB-Normal"
             local art = holder:CreateTexture(nil, "OVERLAY")
-            art:SetAllPoints(holder)
-            local candidates = side == "left"
-                and { "gamepad-xbox1-leftshoulder-normal", "gamepad-xbox1-leftbumper-normal" }
-                or { "gamepad-xbox1-rightshoulder-normal", "gamepad-xbox1-rightbumper-normal" }
-            local found = false
-            for _, atlas in ipairs(candidates) do
-                if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
-                    art:SetAtlas(atlas)
-                    found = true
-                    break
-                end
-            end
-            if not found then
+            art:SetPoint("CENTER", holder, "CENTER", 0, 0)
+            art:SetSize(30, 22)
+            if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
+                art:SetAtlas(atlas)
+                art:Show()
+            else
                 art:Hide()
-                local text = holder:CreateFontString(nil, "OVERLAY")
-                addon:ApplyPSFFont(text, "label")
-                text:SetPoint("CENTER")
-                text:SetText(label)
-                text:SetTextColor(.85, .89, .96, 1)
+                -- If the native atlas is absent on another client build,
+                -- do not render a misleading homemade bumper silhouette.
             end
             return holder
         end
-        -- Place prompts at the outer edges of the navigation strip.
-        -- Tabs stay native PSF buttons; hints do not intercept input.
-        BumperHint("left", -28, "LB")
-        BumperHint("right", 500, "RB")
+        -- The glass is class-tinted; the native bumper artwork stays unmodified.
+        -- Existing PADLSHOULDER/PADRSHOULDER tab navigation is unchanged.
+        BumperHint("left", -28)
+        BumperHint("right", 500)
         local navLine = panel:CreateTexture(nil, "ARTWORK")
         navLine:SetTexture("Interface\\Buttons\\WHITE8X8")
         navLine:SetVertexColor(.48, .54, .61, .28)
