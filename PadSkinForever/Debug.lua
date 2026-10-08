@@ -152,6 +152,69 @@ function addon:CaptureMinimapDebug()
     self:Print("Captured minimap diagnostics. Open /psf > Debug and copy the report.")
 end
 
+
+local gamepadHistory = {}
+
+-- Inspect Blizzard-owned UI without reparenting or modifying any native glyph.
+-- CharacterFrame and the currently visible controller legend are useful roots.
+function addon:CaptureGamepadDebug()
+    wipe(gamepadHistory)
+    local seen, matches = {}, 0
+    local function Walk(object, path, depth)
+        if not object or seen[object] or depth > 9 or matches >= 100 then return end
+        seen[object] = true
+        local name = object.GetName and Read(object, "GetName") or ""
+        local atlas = object.GetAtlas and Read(object, "GetAtlas") or ""
+        local texture = object.GetTexture and Read(object, "GetTexture") or ""
+        local label = object.GetText and Read(object, "GetText") or ""
+        local search = (name .. " " .. atlas .. " " .. texture .. " " .. label):lower()
+        local hit = search:find("gamepad", 1, true) or search:find("shoulder", 1, true)
+            or search:find("bumper", 1, true) or search:find("controller", 1, true)
+            or search:find("padl", 1, true) or search:find("padr", 1, true)
+            or label == "LB" or label == "RB"
+        if hit then
+            matches = matches + 1
+            gamepadHistory[#gamepadHistory + 1] = MinimapObjectLine(object, path)
+        end
+        if object.GetRegions then
+            local ok, regions = pcall(function() return { object:GetRegions() } end)
+            if ok then
+                for i, region in ipairs(regions) do Walk(region, path .. "/region" .. i, depth + 1) end
+            end
+        end
+        if object.GetChildren then
+            local ok, children = pcall(function() return { object:GetChildren() } end)
+            if ok then
+                for i, child in ipairs(children) do
+                    if child.IsShown and child:IsShown() then
+                        Walk(child, path .. "/child" .. i, depth + 1)
+                    end
+                end
+            end
+        end
+    end
+    local roots = { { _G.CharacterFrame, "CharacterFrame" },
+                    { _G.PaperDollFrame, "PaperDollFrame" },
+                    { _G.GamePadActionBar, "GamePadActionBar" } }
+    for _, root in ipairs(roots) do Walk(root[1], root[2], 0) end
+    -- The native legend can be parented outside CharacterFrame. Search visible
+    -- top-level frames for gamepad-related names, but never descend all UIParent.
+    if UIParent and UIParent.GetChildren then
+        for _, child in ipairs({ UIParent:GetChildren() }) do
+            if child.IsShown and child:IsShown() and child.GetName then
+                local name = Read(child, "GetName"):lower()
+                if name:find("gamepad") or name:find("controller") or name:find("legend") then
+                    Walk(child, "UIParent/" .. name, 0)
+                end
+            end
+        end
+    end
+    if #gamepadHistory == 0 then
+        gamepadHistory[1] = "No named bumper glyphs found; native icons may use unnamed regions."
+    end
+    self:Print("Gamepad snapshot captured. Open /psf > Debug and copy the report.")
+end
+
 local function Snapshot(object)
     local parts = {}
     for _, field in ipairs({ { "GetName", "name" }, { "GetAtlas", "atlas" },
@@ -186,7 +249,7 @@ function addon:GetDebugReport()
     lines[#lines + 1] = "\nMINIMAP SNAPSHOT"
     if #minimapHistory == 0 then lines[#lines + 1] = "No minimap snapshot captured yet. Use /psf minimapdebug." end
     for _, entry in ipairs(minimapHistory) do lines[#lines + 1] = entry end
-    lines[#lines + 1] = "\nTARGET AURA SCANS (maximum 16; newest first)"
+    lines[#lines + 1] = "\nGAMEPAD GLYPH SNAPSHOT"\n    if #gamepadHistory == 0 then lines[#lines + 1] = "Use /psf gamepaddebug with Character panel open." end\n    for _, entry in ipairs(gamepadHistory) do lines[#lines + 1] = entry end\n    lines[#lines + 1] = "\nTARGET AURA SCANS (maximum 16; newest first)"
     if #auraHistory == 0 then lines[#lines + 1] = "No target aura scan recorded yet." end
     for _, entry in ipairs(auraHistory) do lines[#lines + 1] = entry end
     lines[#lines + 1] = "\nRECENT SETTER CALLS (maximum 40; newest first)"
