@@ -757,7 +757,9 @@ local function Map(enabled)
     -- Position, size, pins, zoom, clicks and minimap buttons remain Blizzard-owned.
     addon:ThemeCard(map, square, "Minimap", 1, addon.design.surface.rail or addon.design.card)
     addon:ThemeAlpha(MinimapCompassTextureUnderlay, enabled)
-    addon:ThemeAlpha(MinimapCompassTexture, square)
+    -- A square map must not display Blizzard's circular compass mesh.
+    -- Restore its original alpha only when the PSF minimap skin is disabled.
+    addon:ThemeAlpha(MinimapCompassTexture, enabled and square)
 
     if MinimapCluster then
         -- Remove Blizzard's remaining circular/top chrome without touching the
