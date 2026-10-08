@@ -188,7 +188,9 @@ local function Label(parent, text, x, y, emphasized, size)
 end
 
 local function Button(parent, text, x, y, width, callback)
-    return RegisterControl(addon:CreatePSFButton(parent, text, x, y, width, callback))
+    local button = RegisterControl(addon:CreatePSFButton(parent, text, x, y, width, callback))
+    button:SetPSFGlassControl()
+    return button
 end
 
 local function FlatButton(parent, text, x, y, width, callback)
