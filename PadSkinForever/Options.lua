@@ -139,6 +139,8 @@ local function CreateControllerBindings()
         RIGHT = { "PadSkinForeverControllerRight", function() MoveControllerFocus("RIGHT") end },
         ACCEPT = { "PadSkinForeverControllerAccept", ActivateControllerFocus },
         BACK = { "PadSkinForeverControllerBack", function() if panel then panel:Hide() end end },
+        PREV_TAB = { "PadSkinForeverControllerPrevTab", function() if panel and panel.PSFCycleTab then panel:PSFCycleTab(-1) end end },
+        NEXT_TAB = { "PadSkinForeverControllerNextTab", function() if panel and panel.PSFCycleTab then panel:PSFCycleTab(1) end end },
     }
     for action, data in pairs(actions) do
         local button = CreateFrame("Button", data[1], UIParent)
@@ -161,6 +163,8 @@ local function CreateControllerBindings()
                 self:SetBindingClick(true, "PADDRIGHT", "PadSkinForeverControllerRight", "LeftButton")
                 self:SetBindingClick(true, "PAD1", "PadSkinForeverControllerAccept", "LeftButton")
                 self:SetBindingClick(true, "PAD2", "PadSkinForeverControllerBack", "LeftButton")
+                self:SetBindingClick(true, "PADLSHOULDER", "PadSkinForeverControllerPrevTab", "LeftButton")
+                self:SetBindingClick(true, "PADRSHOULDER", "PadSkinForeverControllerNextTab", "LeftButton")
             elseif combat and active then
                 self:SetAttribute("psf-active", false)
             end
@@ -265,7 +269,7 @@ function addon:ShowOptions()
         panel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         panel:SetBackdropColor(0, 0, 0, 0)
         panel:SetBackdropBorderColor(0, 0, 0, 0)
-        addon:CreateGlassPanel(panel, addon.design.surface.glass, addon.design.radius.card)
+        addon:CreateGlossyGlass(panel, "frosted", "player")
         panel:EnableMouse(true)
         panel:SetMovable(true)
         panel:RegisterForDrag("LeftButton")
@@ -295,7 +299,7 @@ function addon:ShowOptions()
         navGlass:SetPoint("TOPLEFT", panel, "TOPLEFT", 14, -43)
         navGlass:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -14, -43)
         navGlass:SetHeight(43)
-        addon:CreateGlassPanel(navGlass, addon.design.surface.frosted, addon.design.radius.compact)
+        addon:CreateGlossyGlass(navGlass, "floating", "player")
 
         panel.tabs.general = Button(panel, "General", 22, -50, 82, function() ShowTab("general") end)
         panel.tabs.glyphs = Button(panel, "Glyphs", 110, -50, 82, function() ShowTab("glyphs") end)
