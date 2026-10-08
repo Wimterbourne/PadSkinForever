@@ -270,6 +270,8 @@ function addon:ShowOptions()
         panel:SetBackdropColor(0, 0, 0, 0)
         panel:SetBackdropBorderColor(0, 0, 0, 0)
         addon:CreateGlossyGlass(panel, "frosted", "player")
+        -- Texture-based v3 material; missing assets leave the legacy glass intact.
+        addon:CreateSpatialGlass(panel, "player")
         -- Dark backing protects settings readability against the game world.
         local readability = panel:CreateTexture(nil, "BACKGROUND", nil, -7)
         readability:SetPoint("TOPLEFT", panel, "TOPLEFT", 7, -7)
