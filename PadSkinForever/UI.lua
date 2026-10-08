@@ -251,6 +251,48 @@ function addon:CreateGlassPanel(parent, palette, radius)
     return parent
 end
 
+-- Class-driven glossy reflections are presentation-only and reusable.
+-- WoW cannot sample the world behind a frame; gradients and frosted glints
+-- simulate reflected light while leaving the actual world visible.
+function addon:CreateGlossyGlass(parent, role, unit)
+    self:CreateGlassPanel(parent, self:GetSurfacePalette(role or "frosted"), self.design.radius.card)
+    if parent.PSFGloss then return parent.PSFGloss end
+    local gloss = {}
+    local function strip(layer, height, top, color)
+        local t = parent:CreateTexture(nil, layer, nil, 2)
+        t:SetTexture(WHITE)
+        t:SetPoint(top and "TOPLEFT" or "BOTTOMLEFT", parent, top and "TOPLEFT" or "BOTTOMLEFT", 12, top and -3 or 3)
+        t:SetPoint(top and "TOPRIGHT" or "BOTTOMRIGHT", parent, top and "TOPRIGHT" or "BOTTOMRIGHT", -12, top and -3 or 3)
+        t:SetHeight(height)
+        t:SetColorTexture(unpack(color))
+        return t
+    end
+    gloss.sheen = strip("ARTWORK", 3, true, { 1, 1, 1, .15 })
+    gloss.reflection = strip("BORDER", 15, true, { 1, 1, 1, .045 })
+    gloss.lower = strip("ARTWORK", 2, false, { 1, 1, 1, .10 })
+    gloss.edges = {}
+    for _, side in ipairs({ "LEFT", "RIGHT" }) do
+        local t = parent:CreateTexture(nil, "ARTWORK", nil, 2)
+        t:SetTexture(WHITE)
+        t:SetPoint("TOP" .. side, parent, "TOP" .. side, side == "LEFT" and 2 or -2, -12)
+        t:SetPoint("BOTTOM" .. side, parent, "BOTTOM" .. side, side == "LEFT" and 2 or -2, 12)
+        t:SetWidth(3)
+        gloss.edges[#gloss.edges + 1] = t
+    end
+    parent.PSFGloss = gloss
+    self:SetGlossyGlassIdentity(parent, unit or "player")
+    return gloss
+end
+
+function addon:SetGlossyGlassIdentity(parent, unit)
+    local gloss = parent and parent.PSFGloss
+    if not gloss then return end
+    local c = self:GetIdentityColor(unit or "player")
+    for _, edge in ipairs(gloss.edges) do edge:SetVertexColor(c[1], c[2], c[3], .45) end
+    gloss.reflection:SetVertexColor(c[1], c[2], c[3], .11)
+    gloss.lower:SetVertexColor(c[1], c[2], c[3], .24)
+end
+
 function addon:CreateRoundedPanel(parent, palette, radius)
     if parent.PSFRoundedPanel then return parent.PSFRoundedPanel end
     -- Draw directly on the owner so its child controls and header regions stay
