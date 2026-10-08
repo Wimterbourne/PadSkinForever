@@ -747,6 +747,12 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     if not check.Text:SetFont(self:GetUIFontPath(false), 13, "") then check.Text:SetFont(STANDARD_TEXT_FONT, 13, "") end
     check.Text:SetTextColor(unpack(self.uiColors.text))
     check.Text:SetText(text)
+    -- Keep the native CheckButton hit area aligned with its visible glass row.
+    -- Font metrics include the configured UI font, so short labels no longer
+    -- inherit the same 460px plate as the longest settings labels.
+    local labelWidth = check.Text:GetStringWidth() or 0
+    local rowWidth = math.max(150, math.min(460, math.ceil(labelWidth + 54)))
+    check:SetWidth(rowWidth)
     local function SetCheckboxState(self)
         local focused = self.PSFHovered or self.PSFControllerFocused
         self:SetBackdropColor(0, 0, 0, 0)
