@@ -542,11 +542,20 @@ local function SetButtonState(button)
         local glass = button.PSFGlassControl
         button:SetBackdropColor(0, 0, 0, 0)
         button:SetBackdropBorderColor(0, 0, 0, 0)
+        -- Soft neutral highlights; state feedback comes from the glass itself.
+        local pressed = button.PSFPressed and true or false
+        local focused = button.PSFControllerFocused and true or false
+        local hovered = button.PSFHovered and true or false
         for _, region in ipairs(glass.reflection) do
-            region:SetAlpha(active and .95 or .65)
+            region:SetAlpha(pressed and .25 or focused and .72 or hovered and .64 or .43)
         end
-        -- Preserve the mint controller-focus indicator independently of class color.
-        button.PSFIndicator:SetShown(active and true or false)
+        for _, region in ipairs(glass.base) do
+            region:SetVertexColor(pressed and .58 or focused and .94 or hovered and .88 or .78,
+                                  pressed and .68 or focused and 1 or hovered and .95 or .88,
+                                  pressed and .76 or 1, 1)
+        end
+        -- Controller focus is mint, independent of class-colored selected tabs.
+        button.PSFIndicator:SetShown(focused)
         button.PSFIndicator:SetVertexColor(unpack(colors.accent))
     elseif style == "tab" then
         button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
@@ -590,6 +599,17 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
     button:SetText(text)
     button:SetScript("OnEnter", function(self) self.PSFHovered = true; SetButtonState(self) end)
     button:SetScript("OnLeave", function(self) self.PSFHovered = nil; SetButtonState(self) end)
+    button:HookScript("OnMouseDown", function(self)
+        self.PSFPressed = true
+        SetButtonState(self)
+    end)
+    button:HookScript("OnMouseUp", function(self)
+        self.PSFPressed = nil
+        SetButtonState(self)
+    end)
+    button:HookScript("OnHide", function(self)
+        self.PSFPressed = nil
+    end)
     button:SetScript("OnClick", callback)
     button.SetPSFSelected = function(self, selected)
         self.PSFSelected = selected and true or nil
