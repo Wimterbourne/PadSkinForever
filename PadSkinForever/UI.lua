@@ -521,6 +521,11 @@ local function SetButtonState(button)
     local colors = addon.uiColors
     local active = button.PSFSelected or button.PSFHovered or button.PSFControllerFocused
     local style = button.PSFStyle or "action"
+    if button.PSFGlassControl then
+        local visible = style == "action" or style == "flat"
+        for _, part in ipairs(button.PSFGlassControl.base) do part:SetShown(visible) end
+        for _, part in ipairs(button.PSFGlassControl.reflection) do part:SetShown(visible) end
+    end
     if style == "tab" and button.PSFClassTab then
         local selected = button.PSFSelected and true or false
         local hovered = button.PSFHovered or button.PSFControllerFocused
