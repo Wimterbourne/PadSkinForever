@@ -254,6 +254,67 @@ end
 -- Class-driven glossy reflections are presentation-only and reusable.
 -- WoW cannot sample the world behind a frame; gradients and frosted glints
 -- simulate reflected light while leaving the actual world visible.
+-- Spatial Glass v3: four independent alpha-texture layers, rendered as 9-slices.
+-- Assets are optional during rollout: the existing glossy panel remains intact
+-- until Media/SpatialGlass/*.tga is installed alongside this renderer.
+function addon:CreateSpatialGlass(parent, unit)
+    if parent.PSFSpatialGlass then return parent.PSFSpatialGlass end
+    local root = "Interface\\AddOns\\PadSkinForever\\Media\\SpatialGlass\\"
+    local inset, uv = 22, { 0, .125, .875, 1 }
+    local pieces = {
+        { "TOPLEFT", "TOPLEFT", 1, 1 },
+        { "TOP", "TOP", 2, 1 },
+        { "TOPRIGHT", "TOPRIGHT", 3, 1 },
+        { "LEFT", "LEFT", 1, 2 },
+        { "CENTER", "CENTER", 2, 2 },
+        { "RIGHT", "RIGHT", 3, 2 },
+        { "BOTTOMLEFT", "BOTTOMLEFT", 1, 3 },
+        { "BOTTOM", "BOTTOM", 2, 3 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 3, 3 },
+    }
+    local function slice(name, layer, sublevel, tint)
+        local regions = {}
+        for _, spec in ipairs(pieces) do
+            local t = parent:CreateTexture(nil, layer, nil, sublevel)
+            t:SetTexture(root .. name .. ".tga")
+            local col, row = spec[3], spec[4]
+            t:SetTexCoord(uv[col], uv[col + 1], uv[row], uv[row + 1])
+            if col == 1 then
+                t:SetPoint("LEFT", parent, "LEFT", 0, 0)
+                t:SetWidth(inset)
+            elseif col == 3 then
+                t:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
+                t:SetWidth(inset)
+            else
+                t:SetPoint("LEFT", parent, "LEFT", inset, 0)
+                t:SetPoint("RIGHT", parent, "RIGHT", -inset, 0)
+            end
+            if row == 1 then
+                t:SetPoint("TOP", parent, "TOP", 0, 0)
+                t:SetHeight(inset)
+            elseif row == 3 then
+                t:SetPoint("BOTTOM", parent, "BOTTOM", 0, 0)
+                t:SetHeight(inset)
+            else
+                t:SetPoint("TOP", parent, "TOP", 0, -inset)
+                t:SetPoint("BOTTOM", parent, "BOTTOM", 0, inset)
+            end
+            if tint then t:SetVertexColor(tint[1], tint[2], tint[3], .76) end
+            regions[#regions + 1] = t
+        end
+        return regions
+    end
+    local color = self:GetIdentityColor(unit or "player")
+    local layers = {
+        base = slice("Glass_Base", "BACKGROUND", -5),
+        well = slice("Glass_InnerWell", "BACKGROUND", -4),
+        reflection = slice("Glass_Reflection", "BORDER", 0),
+        edge = slice("Glass_ClassEdge", "ARTWORK", 0, color),
+    }
+    parent.PSFSpatialGlass = layers
+    return layers
+end
+
 function addon:CreateGlossyGlass(parent, role, unit)
     self:CreateGlassPanel(parent, self:GetSurfacePalette(role or "frosted"), self.design.radius.card)
     if parent.PSFGloss then return parent.PSFGloss end
