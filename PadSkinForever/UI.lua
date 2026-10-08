@@ -529,13 +529,13 @@ local function SetButtonState(button)
         button:SetBackdropBorderColor(0, 0, 0, 0)
         button.PSFIndicator:Hide()
         button.PSFClassTab.glow:SetShown(selected)
-        button.PSFClassTab.sheen:SetAlpha(selected and .26 or hovered and .13 or .06)
-        button.PSFClassTab.top:SetShown(selected)
-        button.PSFClassTab.bottom:SetShown(selected)
-        button.PSFClassTab.left:SetShown(selected)
-        button.PSFClassTab.right:SetShown(selected)
-        for _, edge in ipairs({button.PSFClassTab.top, button.PSFClassTab.bottom, button.PSFClassTab.left, button.PSFClassTab.right}) do
-            edge:SetVertexColor(c[1], c[2], c[3], .82)
+        button.PSFClassTab.sheen:SetAlpha(selected and .38 or hovered and .15 or .06)
+        for _, piece in ipairs(button.PSFClassTab.edge) do
+            piece:SetShown(selected)
+            piece:SetVertexColor(c[1], c[2], c[3], .85)
+        end
+        for _, piece in ipairs(button.PSFClassTab.reflection) do
+            piece:SetAlpha(selected and .72 or hovered and .18 or .08)
         end
     elseif style == "tab" then
         button:SetBackdropColor(.06, .075, .07, button.PSFSelected and .72 or button.PSFHovered and .48 or 0)
@@ -611,33 +611,51 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
         glass.glow:SetPoint("TOPLEFT", 3, -2)
         glass.glow:SetPoint("BOTTOMRIGHT", -3, 2)
         glass.glow:SetTexture(WHITE)
-        glass.glow:SetGradient("VERTICAL", CreateColor(.14, .24, .30, .26), CreateColor(.02, .04, .07, .02))
+        glass.glow:SetGradient("VERTICAL", CreateColor(.14, .24, .30, .15), CreateColor(.02, .04, .07, 0))
         glass.sheen = self:CreateTexture(nil, "BORDER", nil, 2)
         glass.sheen:SetTexture(WHITE)
         glass.sheen:SetPoint("TOPLEFT", 7, -3)
         glass.sheen:SetPoint("TOPRIGHT", -7, -3)
         glass.sheen:SetHeight(5)
         glass.sheen:SetGradient("VERTICAL", CreateColor(.84, .94, 1, .6), CreateColor(.84, .94, 1, 0))
-        local function horizontalEdge(top)
-            local t = self:CreateTexture(nil, "ARTWORK", nil, 2)
-            t:SetTexture(WHITE)
-            t:SetPoint(top and "TOPLEFT" or "BOTTOMLEFT", self, top and "TOPLEFT" or "BOTTOMLEFT", 6, top and -3 or 3)
-            t:SetPoint(top and "TOPRIGHT" or "BOTTOMRIGHT", self, top and "TOPRIGHT" or "BOTTOMRIGHT", -6, top and -3 or 3)
-            t:SetHeight(2)
-            return t
+        -- Reuse the approved Spatial Glass v3 curved alpha contour.
+        -- Nine-slicing keeps rounded corners intact on compact 82x28 tabs.
+        local root = "Interface\\\\AddOns\\\\PadSkinForever\\\\Media\\\\SpatialGlass\\\\"
+        local coords = { 0, .125, .875, 1 }
+        local function material(name, layer, sublevel)
+            local regions = {}
+            for row = 1, 3 do
+                for col = 1, 3 do
+                    local t = self:CreateTexture(nil, layer, nil, sublevel)
+                    t:SetTexture(root .. name .. ".tga")
+                    t:SetTexCoord(coords[col], coords[col + 1], coords[row], coords[row + 1])
+                    if col == 1 then
+                        t:SetPoint("LEFT", self, "LEFT", 2, 0)
+                        t:SetWidth(8)
+                    elseif col == 3 then
+                        t:SetPoint("RIGHT", self, "RIGHT", -2, 0)
+                        t:SetWidth(8)
+                    else
+                        t:SetPoint("LEFT", self, "LEFT", 10, 0)
+                        t:SetPoint("RIGHT", self, "RIGHT", -10, 0)
+                    end
+                    if row == 1 then
+                        t:SetPoint("TOP", self, "TOP", 0, -2)
+                        t:SetHeight(8)
+                    elseif row == 3 then
+                        t:SetPoint("BOTTOM", self, "BOTTOM", 0, 2)
+                        t:SetHeight(8)
+                    else
+                        t:SetPoint("TOP", self, "TOP", 0, -10)
+                        t:SetPoint("BOTTOM", self, "BOTTOM", 0, 10)
+                    end
+                    regions[#regions + 1] = t
+                end
+            end
+            return regions
         end
-        glass.top = horizontalEdge(true)
-        glass.bottom = horizontalEdge(false)
-        glass.left = self:CreateTexture(nil, "ARTWORK", nil, 2)
-        glass.left:SetTexture(WHITE)
-        glass.left:SetPoint("TOPLEFT", 3, -7)
-        glass.left:SetPoint("BOTTOMLEFT", 3, 7)
-        glass.left:SetWidth(2)
-        glass.right = self:CreateTexture(nil, "ARTWORK", nil, 2)
-        glass.right:SetTexture(WHITE)
-        glass.right:SetPoint("TOPRIGHT", -3, -7)
-        glass.right:SetPoint("BOTTOMRIGHT", -3, 7)
-        glass.right:SetWidth(2)
+        glass.edge = material("Glass_ClassEdge", "ARTWORK", 2)
+        glass.reflection = material("Glass_Reflection", "BORDER", 1)
         self.PSFClassTab = glass
         SetButtonState(self)
     end
