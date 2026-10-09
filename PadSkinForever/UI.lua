@@ -554,7 +554,7 @@ local function SetButtonState(button)
                                   pressed and .68 or focused and 1 or hovered and .95 or .88,
                                   pressed and .76 or 1, 1)
         end
-        -- Controller focus is mint, independent of class-colored selected tabs.
+        -- Inset mint focus into the glass silhouette; no floating exterior arrow.
         button.PSFIndicator:SetShown(focused)
         button.PSFIndicator:SetVertexColor(unpack(colors.accent))
     elseif style == "tab" then
@@ -627,9 +627,10 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
             self.PSFIndicator:SetPoint("BOTTOMRIGHT", -8, 0)
             self.PSFIndicator:SetHeight(2)
         else
-            self.PSFIndicator:SetPoint("TOPLEFT", 0, -5)
-            self.PSFIndicator:SetPoint("BOTTOMLEFT", 0, 5)
-            self.PSFIndicator:SetWidth(2)
+            local inset = self.PSFGlassControl and 7 or 0
+            self.PSFIndicator:SetPoint("TOPLEFT", inset, -7)
+            self.PSFIndicator:SetPoint("BOTTOMLEFT", inset, 7)
+            self.PSFIndicator:SetWidth(self.PSFGlassControl and 3 or 2)
         end
         SetButtonState(self)
     end
@@ -689,6 +690,7 @@ function addon:CreatePSFButton(parent, text, x, y, width, callback)
             base = strip("Glass_Tab_Base", "BACKGROUND", 1),
             reflection = strip("Glass_Tab_Reflection", "BORDER", 1),
         }
+        self:SetPSFStyle(self.PSFStyle)
         SetButtonState(self)
     end
     button.PSFStyle = "action"
@@ -736,7 +738,7 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     local rowReflection = rowGlass("Glass_Tab_Reflection", "BORDER", 1)
     local focusBar = check:CreateTexture(nil, "ARTWORK")
     focusBar:SetTexture(WHITE); focusBar:SetWidth(2)
-    focusBar:SetPoint("TOPLEFT", 0, -5); focusBar:SetPoint("BOTTOMLEFT", 0, 5)
+    focusBar:SetPoint("TOPLEFT", 7, -7); focusBar:SetPoint("BOTTOMLEFT", 7, 7)
     focusBar:SetVertexColor(unpack(self.uiColors.accent)); focusBar:Hide()
     local mark = check:CreateTexture(nil, "ARTWORK")
     mark:SetTexture(WHITE); mark:SetSize(14, 14); mark:SetPoint("LEFT", 7, 0)
@@ -755,6 +757,7 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
     check:SetWidth(rowWidth)
     local function SetCheckboxState(self)
         local focused = self.PSFHovered or self.PSFControllerFocused
+        local controllerFocused = self.PSFControllerFocused and true or false
         self:SetBackdropColor(0, 0, 0, 0)
         self:SetBackdropBorderColor(0, 0, 0, 0)
         for _, part in ipairs(rowBase) do
@@ -763,7 +766,7 @@ function addon:CreatePSFCheckbox(parent, text, x, y, callback)
         for _, part in ipairs(rowReflection) do
             part:SetAlpha(focused and .42 or .19)
         end
-        focusBar:SetShown(focused and true or false)
+        focusBar:SetShown(controllerFocused)
     end
     check:SetScript("OnEnter", function(self)
         self.PSFHovered = true
